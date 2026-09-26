@@ -1,12 +1,12 @@
 variant,size (MB),latency bs1 (ms),latency bs64 (ms),PSNR vs FP32 (dB),note,size vs base,speed-up bs1,speed-up bs64
-FP32 eager (baseline),7.134,0.88,9.23,inf,1.78 M params,1.0x,1.0x,1.0x
-"FP32 eager, Conv-BN fused",7.127,0.779,9.04,144.2,exact same function,1.0x,1.13x,1.02x
-FP16 eager,3.569,27.558,187.26,75.3,size halves; CPU speed hardware-dependent,0.5x,0.03x,0.05x
-BF16 eager,3.569,23.148,123.33,57.0,size halves; CPU speed hardware-dependent,0.5x,0.04x,0.07x
-ONNX Runtime FP32,7.126,0.455,27.45,144.5,"fused, dynamic batch",1.0x,1.93x,0.34x
-"ONNX Runtime INT8 (static, QDQ)",1.792,1.268,30.57,30.1,calibrated on random z,0.25x,0.69x,0.3x
-Pruned 30% (L1 unstructured),7.134,2.358,15.03,28.1,"sparsity 30%, gzip 5.11 MB vs 6.62 MB",1.0x,0.37x,0.61x
-Pruned 50% (L1 unstructured),7.134,3.09,13.25,17.8,"sparsity 50%, gzip 3.95 MB vs 6.62 MB",1.0x,0.28x,0.7x
-Pruned 70% (L1 unstructured),7.134,3.53,13.94,12.1,"sparsity 70%, gzip 2.67 MB vs 6.62 MB",1.0x,0.25x,0.66x
-Pruned 90% (L1 unstructured),7.134,2.173,14.46,9.8,"sparsity 90%, gzip 1.22 MB vs 6.62 MB",1.0x,0.4x,0.64x
-Distilled student (ngf=16),1.394,1.66,3.96,22.9,0.35 M params (5.1x fewer),0.2x,0.53x,2.33x
+FP32 eager (baseline),7.134,0.86,8.02,inf,1.78 M params,1.0x,1.0x,1.0x
+"FP32 eager, Conv-BN fused",7.127,0.762,9.13,144.2,exact same function,1.0x,1.13x,0.88x
+FP16 eager,3.569,25.199,182.92,75.3,size halves; CPU speed hardware-dependent,0.5x,0.03x,0.04x
+BF16 eager,3.569,22.902,119.41,57.0,size halves; CPU speed hardware-dependent,0.5x,0.04x,0.07x
+ONNX Runtime FP32,7.126,0.321,17.99,144.5,"fused, dynamic batch",1.0x,2.68x,0.45x
+"ONNX Runtime INT8 (static, QDQ)",1.792,0.919,20.51,30.1,calibrated on random z,0.25x,0.94x,0.39x
+Pruned 30% (L1 unstructured),7.134,0.87,8.84,28.1,"sparsity 30%, gzip 5.11 MB vs 6.62 MB",1.0x,0.99x,0.91x
+Pruned 50% (L1 unstructured),7.134,0.93,8.63,17.8,"sparsity 50%, gzip 3.95 MB vs 6.62 MB",1.0x,0.92x,0.93x
+Pruned 70% (L1 unstructured),7.134,0.863,8.57,12.1,"sparsity 70%, gzip 2.67 MB vs 6.62 MB",1.0x,1.0x,0.94x
+Pruned 90% (L1 unstructured),7.134,0.872,8.67,9.8,"sparsity 90%, gzip 1.22 MB vs 6.62 MB",1.0x,0.99x,0.93x
+Distilled student (ngf=16),1.394,0.502,1.5,22.9,0.35 M params (5.1x fewer),0.2x,1.71x,5.35x

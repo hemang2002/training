@@ -6,13 +6,50 @@ Everything runs on a CPU-only laptop, in front of students, with visible progres
 
 | Notebook | What it shows | Measured run time (reference laptop, see below) |
 |---|---|---|
-| `01_object_detection_pennfudan.ipynb` | Fine-tune COCO-pretrained Faster R-CNN (MobileNetV3-Large-FPN) on Penn-Fudan pedestrians; own AP@0.5 implementation; before/after comparison | __T01__ |
-| `02_detection_optimization.ipynb` | Resolution, proposals, dynamic INT8, threads, ONNX Runtime — latency **and** AP for each | __T02__ |
-| `03_dcgan_fashionmnist.ipynb` | DCGAN from scratch on FashionMNIST, per-epoch sample grids, GIF, latent interpolation | __T03__ |
-| `04_gan_optimization.ipynb` | Dynamic-quant trap, Conv-BN fusion, FP16/BF16, ONNX Runtime, ORT static INT8, pruning, distillation | __T04__ |
+| `01_object_detection_pennfudan.ipynb` | Fine-tune COCO-pretrained Faster R-CNN (MobileNetV3-Large-FPN) on Penn-Fudan pedestrians; own AP@0.5 implementation; before/after comparison | live training **11.0 min** (6 epochs, ~65 s/epoch + eval); whole notebook ~1.5 min with `USE_CACHED=True` |
+| `02_detection_optimization.ipynb` | Resolution, proposals, dynamic INT8, threads, ONNX Runtime — latency **and** AP for each | **~4–4.5 min** (14 variants × latency + AP, 2 ONNX exports) |
+| `03_dcgan_fashionmnist.ipynb` | DCGAN from scratch on FashionMNIST, per-epoch sample grids, GIF, latent interpolation | live training 10 epochs: **18.6 min** measured while other jobs shared the CPU (76–157 s/epoch) — expect ~10–13 min on an idle laptop; `TIME_BUDGET_MIN=15` stops early if needed; ~20 s cached |
+| `04_gan_optimization.ipynb` | Dynamic-quant trap, Conv-BN fusion, FP16/BF16, ONNX Runtime, ORT static INT8, pruning, distillation | **~2 min** cached (distillation training itself: 178 s when `USE_CACHED=False`) |
 | `prepare_demo.py` | Night-before download of datasets + pretrained weights | ~1–2 min (network) |
 
-__MEASURED__
+**Reference laptop:** Windows 11, 24 logical CPU cores, **CPU only** (no GPU used), torch 2.9.1, torchvision 0.24.1, onnxruntime 1.30.
+All numbers below come from the executed notebooks (`outputs/*_results.csv`). Latency = best-of-3-trials median at batch 1.
+
+### Detection (Penn-Fudan, 50 held-out images)
+
+| Model | AP@0.5 | AP@[.5:.95] | Precision @ score ≥ 0.5 | False positives |
+|---|---|---|---|---|
+| COCO-pretrained, "person" class only (no fine-tuning) | 0.984 | 0.804 | 0.611 | 72 |
+| new 2-class head, untrained | 0.023 | 0.006 | 0.022 | 4222 |
+| **fine-tuned (6 epochs, 120 images, 11 min CPU)** | **0.976** | **0.793** | **0.915** | **10** |
+
+(Our AP implementation matches `pycocotools` within 0.003.) The COCO model already finds every pedestrian (recall 1.0)
+but also boxes people the dataset does not label (far away, cut off at the border). Fine-tuning teaches the
+**annotation convention** → precision 0.61 → 0.92. See `outputs/det_predictions_before_after.png`.
+
+| Optimisation (detector) | Size MB | Latency ms | Speed-up | AP@0.5 |
+|---|---|---|---|---|
+| baseline FP32 eager, 800 px, 1000 proposals, 16 threads | 76.0 | 121 | 1.00× | 0.976 |
+| input 640 / 512 / 416 / 320 px | 76.0 | 86 / 60 / 46 / 39 | 1.4× / 2.0× / 2.7× / 3.1× | 0.979 / 0.951 / 0.934 / 0.855 |
+| dynamic INT8 (Linear layers only) | **34.3** | 116 | 1.04× | 0.975 |
+| 300 / 100 / 50 proposals | 76.0 | 100 / 80 / 76 | 1.2× / 1.5× / 1.6× | 0.976 / 0.968 / 0.935 |
+| 1 thread (vs 16) | 76.0 | 353 | 0.34× | 0.976 |
+| ONNX Runtime FP32 | 76.0 | 59 | 2.1× | 0.983 |
+| **512 px + 100 proposals, ONNX Runtime** | 76.0 | **25** | **4.9×** | 0.944 |
+
+### GAN (DCGAN generator, 1.78 M params)
+
+| Variant | Size MB | ms @ batch 1 | ms @ batch 64 | PSNR vs FP32 |
+|---|---|---|---|---|
+| FP32 eager (baseline) | 7.13 | 0.86 | 8.0 | — |
+| FP16 / BF16 eager (CPU) | 3.57 | 25.2 / 22.9 | 183 / 119 | 75 / 57 dB |
+| ONNX Runtime FP32 | 7.13 | **0.32** | 18.0 | 144 dB (identical) |
+| ONNX Runtime INT8 static (QDQ) | **1.79** | 0.92 | 21.7 | 30 dB |
+| pruned 30 / 50 / 70 / 90 % (L1 unstructured) | 7.13 (gzip 5.1 / 4.0 / 2.7 / 1.2) | 0.87–0.93 | 8.6–8.8 | 28 / 18 / 12 / 10 dB |
+| **distilled student (ngf=16, 0.35 M params)** | **1.39** | **0.50** | **1.5** | 23 dB |
+
+GAN training: shapes appear after epoch 1–2, clearly recognisable shirts/trousers/sneakers/bags by epoch 5
+(`outputs/gan_progress_strip.png`, `outputs/gan_progress.gif`).
 
 ---
 
@@ -128,7 +165,25 @@ hundreds for diffusion) — which is exactly why GAN generators are attractive t
 
 ## 5. "What difference does optimisation make?" — discussion guide
 
-__DISCUSSION__
+Put the two final tables on the projector and ask the class to fill in **"what did it buy, what did it cost?"**:
+
+1. **The biggest detection win was not quantization.** Input resolution (3.1× at 320 px) and fewer proposals
+   (1.6×) need no retraining at all; ONNX Runtime (2.1×) needs only an export. Stacked: **4.9× faster for −0.03 AP**.
+   Ask: *why does 320 px hurt AP so much more than 512 px?* (small/far pedestrians shrink below the receptive field).
+2. **Dynamic INT8 shrank the detector 76 → 34 MB but gave ~no speed-up** — it only quantizes `nn.Linear` (the box
+   head, where fc6 holds 12.8 M of 19 M params), while time is spent in convolutions. Size ≠ speed.
+3. **FP16/BF16 halve the size but are ~25× slower on this CPU** — no native half-precision math, so every op
+   converts. On a GPU the same change is typically ~2× faster. *Always measure on the deployment hardware.*
+4. **INT8 static on the GAN: 4× smaller, not faster at this tiny size, and visibly lower quality (PSNR 30 dB)** —
+   calibrated on random latents only. Discuss: what calibration data would a generator need?
+5. **Unstructured pruning never made anything faster** — zeros in a dense tensor still get multiplied. It only helps
+   compression (gzip) or sparse-aware hardware/kernels. Quality collapses beyond ~50 %.
+6. **Distillation was the only technique that gave smaller *and* faster** (5× fewer params, 1.7× at batch 1,
+   5.3× at batch 64) — because it changes the architecture — at the cost of a training run and some quality.
+7. **Threads:** 1 thread was 2.9× slower than 16, but in a server you'd often run several processes with fewer
+   threads each for better throughput — connects to gunicorn workers / Kubernetes replicas on Day 4.
+8. Meta-lesson: **latency numbers are fragile** — we had to warm up on every input shape, warm up ≥ 1 s, and take the
+   best of 3 trials to get stable numbers on a laptop. Ask students how they'd benchmark in production (p95 under real load).
 
 ## 6. Going bigger (alternatives to mention)
 

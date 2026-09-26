@@ -383,6 +383,16 @@ kubectl -n ml-demo rollout status deployment/cifar-api
 
 > PowerShell quoting: use `-p '{\"data\":{\"DEFAULT_MODEL\":\"fp32\"}}'` or run the patch from Git Bash.
 
+`rollout undo` prints *"Warning: resource deployments/cifar-api was previously managed with 'kubectl apply'…"*.
+That's expected: imperative commands (`set image`, `undo`, `patch`) change the live object but not the YAML in
+git. Discussion point → **GitOps**: the YAML in the repo should be the source of truth; after an emergency
+rollback, fix the file and `kubectl apply -k k8s/` again.
+
+**Verified behaviour (kind v0.27, this repo's manifests):** ConfigMap change + `rollout restart` switched the default
+model to fp32; the broken tag gave `ImagePullBackOff` on 1 new pod while the old pods kept answering `/ready` with 200;
+`rollout undo` restored service. In the HPA demo, the load-test Job pushed CPU to 360% of request → 2 → 6 replicas
+in about 1 minute, 71,635 requests, **0 errors**, spread over all 6 pods.
+
 ### 5.7 Clean up
 
 ```bash

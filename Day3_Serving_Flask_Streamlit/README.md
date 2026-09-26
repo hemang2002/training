@@ -233,6 +233,7 @@ HTTP, JSON, image decoding and Python overhead can dominate.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `ConnectionRefusedError` from Streamlit | API not running, or wrong `API_URL` | start API; check sidebar URL |
+| Every request from Python takes ~2 s on Windows | `http://localhost` resolves to IPv6 `::1` first; the server listens on IPv4 only → ~2 s fallback per new connection (measured: 2,041 ms vs 6 ms) | use `http://127.0.0.1:5000` (our notebooks and UI already do) |
 | `curl` in PowerShell behaves strangely | alias for `Invoke-WebRequest` | use `curl.exe` |
 | `gunicorn` fails on Windows | gunicorn is Unix-only (needs `fcntl`) | use `waitress-serve` |
 | `/ready` returns 503 | `models/` empty | run Day 2 `scripts/train_and_export.py` |
