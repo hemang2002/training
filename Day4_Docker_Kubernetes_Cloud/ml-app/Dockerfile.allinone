@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# ALL-IN-ONE image: API + UI in ONE container, for free platforms that run a single
+# container per app (Hugging Face Spaces, Render free web service, Koyeb, ...).
+#
+#   docker build -f Dockerfile.allinone -t cifar-allinone:v1 .
+#   docker run --rm -p 7860:7860 cifar-allinone:v1        -> http://localhost:7860
+#
+# Inside the container:  gunicorn (API) on 127.0.0.1:5000  <--  Streamlit on 0.0.0.0:$PORT
+# Only Streamlit is exposed publicly; the API is internal.
+# For real systems prefer one process per container (see docker-compose.yml / k8s/).
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    MODEL_DIR=/app/models \
+    API_URL=http://127.0.0.1:5000 \
+    DEFAULT_MODEL=int8 \
+    PORT=7860
+
+RUN useradd --create-home --uid 1000 appuser
+WORKDIR /app
+COPY api/requirements.txt api-requirements.txt
+COPY ui/requirements.txt ui-requirements.txt
+RUN pip install -r api-requirements.txt -r ui-requirements.txt
+
+COPY api/app.py api/model_service.py ./api/
+COPY ui/streamlit_app.py ./ui/
+COPY ui/samples/ ./ui/samples/
+COPY models/ ./models/
+COPY start.sh ./start.sh
+# Strip Windows line endings (CRLF) in case the repo was cloned on Windows - otherwise: "sh\r: not found".
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh && chown -R appuser /app
+# Numeric UID (not the name) so Kubernetes runAsNonRoot can verify the user is non-root.
+USER 1000
+
+EXPOSE 7860
+CMD ["./start.sh"]

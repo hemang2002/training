@@ -1,0 +1,35 @@
+# In-cluster load generator. Traffic goes through the Service, so it is spread over all API pods
+# (kubectl port-forward would pin all traffic to ONE pod).
+#
+#   kubectl -n ml-demo create configmap loadtest-script --from-file=k8s/loadtest/loadtest.py
+#   kubectl apply -f k8s/loadtest/loadtest-job.yaml
+#   kubectl -n ml-demo logs -f job/loadtest          # terminal 1
+#   kubectl -n ml-demo get hpa,pods -w                # terminal 2 - watch replicas grow
+#   kubectl -n ml-demo delete job loadtest            # to run it again
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: loadtest
+  namespace: ml-demo
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loadtest
+          image: cifar-api:v1          # re-use the API image: it already has Python + Pillow
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/scripts/loadtest.py", "--url", "http://cifar-api:5000",
+                    "--duration", "180", "--concurrency", "16"]
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+      volumes:
+        - name: script
+          configMap:
+            name: loadtest-script

@@ -1,0 +1,6 @@
+# A namespace groups everything for this app; deleting it removes everything at once:
+#   kubectl delete namespace ml-demo
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml-demo

@@ -1,0 +1,11 @@
+# Keep the build context small: everything listed here is NOT sent to the Docker daemon.
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ipynb_checkpoints
+.venv
+venv
+.git
+*.md
+!README.md
+models/*.pth

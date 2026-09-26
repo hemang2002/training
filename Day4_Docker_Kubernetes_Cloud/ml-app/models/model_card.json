@@ -1,0 +1,56 @@
+{
+  "img_size": 96,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "labels": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "input_name": "input",
+  "output_name": "logits",
+  "variants": {
+    "fp32": {
+      "file": "model_fp32.onnx",
+      "size_mb": 8.92,
+      "accuracy": 0.9,
+      "latency_ms": 0.727
+    },
+    "int8": {
+      "file": "model_int8.onnx",
+      "size_mb": 2.612,
+      "accuracy": 0.894,
+      "latency_ms": 0.637
+    }
+  },
+  "trained_on": "CIFAR-10 subset",
+  "created": "2026-09-26T17:11:52",
+  "details": {
+    "architecture": "torchvision mobilenet_v2 (ImageNet-pretrained), classifier[1]=Linear(1280,10)",
+    "train_images": 10000,
+    "test_images": 2000,
+    "epochs": 3,
+    "calibration_images": 320,
+    "pytorch_fp32_accuracy": 0.9,
+    "onnx_opset": 17,
+    "latency_note": "median of 200 runs, batch=1, ONNX Runtime CPU, 4 threads",
+    "int8_scheme": "ONNX Runtime static, QDQ, per-channel, U8S8, MinMax",
+    "preprocessing": "RGB -> Resize((96,96)) -> ToTensor -> Normalize(mean,std) -> NCHW float32",
+    "output": "raw logits (apply softmax in the client)"
+  }
+}

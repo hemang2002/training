@@ -1,0 +1,26 @@
+# OPTIONAL: expose the UI on a hostname through an Ingress controller instead of a NodePort.
+#   minikube addons enable ingress
+#   kubectl apply -f k8s/extras/ingress.yaml
+#   add "<minikube ip>  cifar.local" to your hosts file (Windows: C:\Windows\System32\drivers\etc\hosts)
+#   open http://cifar.local
+# k3s ships with the Traefik ingress controller: change ingressClassName to "traefik".
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cifar
+  namespace: ml-demo
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cifar.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cifar-ui
+                port:
+                  number: 8501
+# The API stays internal (ClusterIP). Exposing it under a prefix like /api would need a rewrite rule,
+# because the Flask routes are /predict, /health, ... (not /api/predict).

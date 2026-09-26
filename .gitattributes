@@ -1,0 +1,5 @@
+# Shell scripts must keep LF line endings or they fail inside Linux containers ("sh\r: not found").
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.onnx binary
+*.pth binary

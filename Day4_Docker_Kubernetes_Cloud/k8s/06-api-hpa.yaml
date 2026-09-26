@@ -1,0 +1,25 @@
+# Horizontal Pod Autoscaler: keep average CPU of the API pods around 60% of their CPU *request* (250m).
+# Requires metrics-server:  minikube addons enable metrics-server   (k3s/Docker Desktop: see README)
+# Watch it:  kubectl -n ml-demo get hpa -w
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cifar-api
+  namespace: ml-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cifar-api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # default is 300 s; shortened so the demo scales down in class

@@ -1,0 +1,32 @@
+# Course environment (Days 1-4 + live demos). Python 3.10 - 3.13.
+#
+# CPU-only PyTorch (smaller download, works everywhere):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements.txt
+# With an NVIDIA GPU, install torch/torchvision following https://pytorch.org/get-started/locally/ instead.
+
+torch>=2.3
+torchvision>=0.18
+
+# notebooks & analysis
+jupyterlab
+ipykernel
+numpy
+pandas
+matplotlib
+scikit-learn
+pillow
+
+# model export & optimized inference (Day 2, Day 3, live demos)
+onnx>=1.16
+onnxscript
+onnxruntime>=1.18
+pycocotools            # detection demo (COCO-style evaluation helpers)
+
+# serving (Day 3)
+flask>=3.0
+requests
+streamlit>=1.35
+pytest
+gunicorn ; platform_system != "Windows"
+waitress ; platform_system == "Windows"

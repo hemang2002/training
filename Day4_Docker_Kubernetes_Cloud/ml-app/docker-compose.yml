@@ -1,0 +1,33 @@
+# Run the whole app locally:   docker compose up --build
+#   UI  -> http://localhost:8501
+#   API -> http://localhost:5000/health
+# Stop:  docker compose down
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    image: cifar-api:v1
+    ports:
+      - "5000:5000"
+    environment:
+      DEFAULT_MODEL: int8
+      WORKERS: 2
+      LOG_LEVEL: INFO
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    image: cifar-ui:v1
+    ports:
+      - "8501:8501"
+    environment:
+      # Containers talk to each other by SERVICE NAME on the compose network.
+      # "localhost" here would mean "this UI container itself" -> connection refused.
+      API_URL: http://api:5000
+    depends_on:
+      api:
+        condition: service_healthy   # wait for the API's HEALTHCHECK to pass
+    restart: unless-stopped

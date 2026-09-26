@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cifar-api
+  namespace: ml-demo
+  labels:
+    app: cifar-api
+spec:
+  replicas: 2                      # two copies -> survives one pod crashing; HPA may change this
+  revisionHistoryLimit: 3          # keep 3 old ReplicaSets for `kubectl rollout undo`
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1                  # start 1 new pod before killing an old one
+      maxUnavailable: 0            # never drop below the desired count -> zero-downtime update
+  selector:
+    matchLabels:
+      app: cifar-api               # MUST match the pod template labels below
+  template:
+    metadata:
+      labels:
+        app: cifar-api
+    spec:
+      containers:
+        - name: api
+          image: cifar-api:v1      # local image (minikube/kind: load it first). Cloud: <dockerhub-user>/cifar-api:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: cifar-config
+          resources:
+            requests:              # what the scheduler reserves (and what HPA % is based on)
+              cpu: 250m
+              memory: 256Mi
+            limits:                # hard caps: CPU is throttled, memory over limit -> OOMKilled
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:            # give model loading up to 60 s before other probes start
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:          # failing -> removed from Service endpoints (no traffic), NOT restarted
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:           # failing -> container is restarted
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false

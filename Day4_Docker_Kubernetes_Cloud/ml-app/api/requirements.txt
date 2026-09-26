@@ -1,0 +1,7 @@
+# Inference-only dependencies - note: NO torch needed to serve the model.
+flask>=3.0
+onnxruntime>=1.18
+numpy>=1.26
+pillow>=10.0
+gunicorn>=22.0 ; platform_system != "Windows"
+waitress>=3.0 ; platform_system == "Windows"

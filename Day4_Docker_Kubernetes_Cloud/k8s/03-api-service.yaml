@@ -1,0 +1,15 @@
+# ClusterIP = internal only. Other pods reach the API at http://cifar-api:5000
+# (full DNS name: cifar-api.ml-demo.svc.cluster.local). Traffic is load-balanced across ready pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: cifar-api
+  namespace: ml-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: cifar-api
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http

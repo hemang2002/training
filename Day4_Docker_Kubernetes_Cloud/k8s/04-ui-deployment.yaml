@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cifar-ui
+  namespace: ml-demo
+  labels:
+    app: cifar-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cifar-ui
+  template:
+    metadata:
+      labels:
+        app: cifar-ui
+    spec:
+      containers:
+        - name: ui
+          image: cifar-ui:v1       # cloud: <dockerhub-user>/cifar-ui:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8501
+          env:
+            - name: API_URL
+              value: http://cifar-api:5000   # the API Service name - Kubernetes DNS resolves it
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          readinessProbe:
+            httpGet: {path: /_stcore/health, port: http}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /_stcore/health, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false

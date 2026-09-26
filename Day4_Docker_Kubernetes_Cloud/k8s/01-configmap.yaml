@@ -1,0 +1,14 @@
+# Configuration lives OUTSIDE the image. Change a value, then restart pods to pick it up:
+#   kubectl -n ml-demo rollout restart deployment/cifar-api
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cifar-config
+  namespace: ml-demo
+data:
+  DEFAULT_MODEL: "int8"
+  # In Kubernetes we scale with REPLICAS, so each pod runs a single gunicorn worker.
+  WORKERS: "1"
+  THREADS: "4"
+  ORT_THREADS: "1"
+  LOG_LEVEL: "INFO"
