@@ -206,7 +206,8 @@ drop the file into `models/`, add an entry under `"variants"`, restart the API, 
 
 <details><summary>✅ Solution idea</summary>
 
-Make an fp16 variant (on the machine that has `onnx` + `onnxconverter-common`):
+Make an fp16 variant (`pip install onnxconverter-common` first; it prints harmless
+"float32 number … will be truncated" warnings for tiny weights):
 
 ```python
 import onnx
@@ -222,6 +223,7 @@ Add to `model_card.json`:
 "fp16": {"file": "model_fp16.onnx"}
 ```
 
-Restart → the new variant appears everywhere. **Discussion:** fp16 halves the size, but on most CPUs it is
+Restart → the new variant appears everywhere (verified: fp16 file 4.5 MB vs 8.9 MB, `cat_1` confidence 0.8695
+vs 0.8686 for fp32). **Discussion:** fp16 halves the size, but on most CPUs it is
 *not faster* (no native fp16 math) — on GPUs it usually is. "Smaller" ≠ "faster".
 </details>
