@@ -23,7 +23,11 @@ Day3_Serving_Flask_Streamlit/
 ├── LAB.md                        ← server-side exercises + solutions
 ├── 01_consuming_the_api.ipynb    ← lecture notebook: call every endpoint, errors, benchmarks, pitfalls
 ├── 02_student_lab_client.ipynb   ← client-side exercises + solutions
-├── app/
+├── simple/                       ← ⭐ SHOW FIRST: ~140-line beginner version (port 5001), see simple/README.md
+│   ├── step1_hello_api.py        ← hello-world Flask API
+│   ├── step2_predict_api.py      ← one /predict endpoint, int8 model, preprocessing inline
+│   └── step3_simple_ui.py        ← pick picture → button → answer + chart
+├── app/                          ← full version: students try, test and break it themselves (port 5000)
 │   ├── api/
 │   │   ├── app.py                ← Flask routes (/health /ready /models /metrics /predict /compare)
 │   │   ├── model_service.py      ← ONNX Runtime loading, preprocessing, softmax, top-k
@@ -48,7 +52,7 @@ python Day2_Transfer_Learning_and_Optimization/scripts/train_and_export.py
 |------|-------|------|----------|
 | 0:00 – 0:15 | Recap of Day 2 (what's in `models/`, fp32 vs int8 results) | Discussion | `models/model_card.json` |
 | 0:15 – 0:50 | **Serving concepts**: client/server, REST, HTTP, JSON, status codes, why ONNX Runtime | Lecture | §1–§3 below |
-| 0:50 – 1:30 | **Code walk-through**: `model_service.py`, `app.py`; start API; curl every endpoint | Live coding | `app/api` |
+| 0:50 – 1:30 | **Simple version first** (30 min): step 1 hello API → step 2 `/predict` → step 3 UI, plus the "things to try live" table. Then ask *"what is missing for real life?"* and open the **full** `model_service.py` / `app.py` (10 min) | Live coding | `simple/` → `app/api` |
 | 1:30 – 1:45 | ☕ Break | | |
 | 1:45 – 2:25 | **Notebook 1**: consume the API, errors, fp32 vs int8 in the service, load test, preprocessing bug, OOD | Live coding | `01_consuming_the_api.ipynb` |
 | 2:25 – 3:05 | 🧑‍💻 **Student lab A** — client side | Hands-on | `02_student_lab_client.ipynb` |
@@ -67,6 +71,14 @@ Hands-on time: ~1 h 30 min of 5 h (plus students follow along during live coding
 ```bash
 # from repo root, with the course venv active
 pip install -r Day3_Serving_Flask_Streamlit/app/api/requirements.txt -r Day3_Serving_Flask_Streamlit/app/ui/requirements.txt
+
+# 0) Simple version (what you show first) - see simple/README.md
+cd Day3_Serving_Flask_Streamlit/simple
+python predict_api.py                   # terminal 1, port 5001
+streamlit run simple_ui.py              # terminal 2
+cd ../..
+
+# Full version (what students test on their own):
 
 # 1) API  (terminal 1)
 cd Day3_Serving_Flask_Streamlit/app/api
