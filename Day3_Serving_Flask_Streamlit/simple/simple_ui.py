@@ -33,7 +33,7 @@ if st.button("🔮 Ask the model", type="primary"):
     try:
         answer = requests.post(API_URL, files={"file": image_bytes}, timeout=10).json()
     except requests.exceptions.RequestException:  # API not running, or it sent back something that isn't JSON
-        st.error("No answer from the API. Is it running?  Start it with:  python step2_predict_api.py")
+        st.error("No answer from the API. Is it running?  Start it with:  python predict_api.py")
         st.stop()
 
     if "label" not in answer:                    # the API answered, but with an error message
