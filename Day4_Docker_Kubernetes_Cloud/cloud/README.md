@@ -27,7 +27,7 @@
 | **Google Cloud** | $300 / 90-day trial; always-free e2-micro VM (1 GB, US regions); GKE free tier covers one cluster's management fee, **not** nodes | Yes | ✅ | ✅ (nodes paid from credit) | e2-micro is too small for k3s — use compose + swap |
 | **Azure for Students** | $100 credit / 12 months (renewable while a student), school email | **No** | ✅ | ✅ AKS free control plane, nodes from credit | Delete resources after class to save credit |
 | **AWS (new accounts)** | Credit-based Free plan ($100 + up to $100 earned, max 6 months) | Yes | ✅ | EKS is paid — verify before class | The old "12 months t2.micro" model no longer applies to new accounts |
-| **Killercoda** | Browser Kubernetes playground, ~1 h sessions | No (sign-in) | ✅ | ✅ (temporary) | Pull images from Docker Hub; everything wiped at session end |
+| **Killercoda** | Browser Linux playground (Ubuntu), ~1 h sessions | No (sign-in) | ✅ build images there | ✅ k3s on that Docker (temporary) | No Docker Hub needed; repo must be public on GitHub; everything wiped at session end |
 | Play with Docker / Play with Kubernetes | — | — | — | — | **Shut down on 1 March 2026** — don't use old tutorials that point to them |
 
 ## Budget safety checklist (for any cloud with a card)
