@@ -25,7 +25,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
@@ -35,6 +34,7 @@
     <a href="07_cnn_convolution.html" class="on" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -44,6 +44,16 @@
   <p class="one-liner">A convolution slides a tiny 3×3 <b>stencil</b> (the <b>kernel</b>) over the image. At every position it multiplies, adds up, and writes one number.
   Different stencils light up different patterns: edges, corners, blobs. A CNN <b>learns</b> the stencil numbers with gradient descent.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>Imagine scanning a picture with a tiny <b>3×3 magnifying glass</b> that only lights up when it sees one particular pattern, for example a vertical edge. Slide it over the whole picture and you get a new picture showing <b>where</b> that pattern is.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Click a digit (for example <b>7</b>) at the top-left.</li><li>Click <b>Vertical edges</b> and see which parts light up in the middle picture.</li><li>Press <b>▶ Animate</b> to watch the little window slide over the picture.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Different kernels find different things: edges, corners, blobs. A CNN <b>learns</b> its own kernels. Nobody designs them by hand.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Kernel / filter</b> = the 3×3 pattern we look for</span><span><b>Feature map</b> = the picture of where the pattern was found</span><span><b>Stride</b> = how far the window jumps each time</span><span><b>Padding</b> = a border of zeros around the image</span><span><b>Pooling</b> = shrink the picture by keeping the biggest value in each small block</span></div>
+</section>
+
 
 <section class="card">
   <h2>✏️ 1. Draw something, pick a kernel</h2>
@@ -71,6 +81,7 @@
         <div><div class="canvas-title">After max-pool <span id="poolShape"></span></div><canvas id="cpool" width="280" height="280"></canvas></div>
       </div>
       <div class="legend"><span><i style="background:#2f6fed"></i>positive response (pattern found)</span><span><i style="background:#f08c00"></i>negative response</span><span>white = 0 · hover the middle map to inspect one output</span></div>
+      <div class="look">👀 <b>Left</b>: your picture. <b>Middle</b>: where the kernel found its pattern (blue = found it here). <b>Right</b>: the same map shrunk to half size, keeping only the strongest spots.</div>
       <div class="grid2" style="margin-top:.7rem">
         <div class="explain" id="calcBox"></div>
         <div>
@@ -100,6 +111,7 @@
   <p>A real conv layer applies <b>many</b> kernels to the same input. <code>nn.Conv2d(1, 6, kernel_size=3)</code> has 6 kernels and produces 6 feature maps (called <b>channels</b>).
   Below: six hand-made kernels on your drawing (conv + ReLU, padding 1). In a trained CNN nobody hand-makes these; the numbers are <b>learned</b> by backprop, exactly like w and b in Lesson 3.</p>
   <div class="bank" id="bank"></div>
+      <div class="look">👀 Six different 3×3 kernels on the same drawing. Each one lights up a <b>different kind of detail</b>. A real CNN learns dozens of these by itself.</div>
 </section>
 
 <section class="card">
@@ -141,7 +153,7 @@
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 Your Day-1 CNN, decoded</h2>
   <pre class="code">nn.Conv2d(<span class="n">1</span>, <span class="n">32</span>, kernel_size=<span class="n">3</span>, padding=<span class="n">1</span>), nn.ReLU(),    <span class="c"># 32 learned 3x3 kernels: 1x28x28 -> 32x28x28   (320 params)</span>
 nn.MaxPool2d(<span class="n">2</span>),                                    <span class="c"># 32x28x28 -> 32x14x14                             (0 params)</span>
@@ -300,6 +312,12 @@ $('#spd').onchange=()=>{if(animT){stopAnim();$('#anim').click();}};
 ['#pad','#str','#relu','#pool'].forEach(id=>$(id).addEventListener('input',()=>{pos=0;update();}));
 ['#ph','#pcin','#pcout'].forEach(id=>$(id).addEventListener('input',renderParams));
 renderImgPresets();kern=[...KERNELS.vert.k];renderKPresets();renderKGrid();fromCanvas(IMG_PRESETS['7']);pos=0;update();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

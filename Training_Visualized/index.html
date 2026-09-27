@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training, Visualized — see a neural network learn</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .cycle-wrap{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:1.5rem;align-items:center}
+  @media (max-width:860px){.cycle-wrap{grid-template-columns:1fr}}
+  .cycle svg{width:100%;height:auto;display:block}
+  .cycle .st rect{fill:#fff;stroke:#ced4da;stroke-width:2}
+  .cycle .st text{font:600 14px var(--sans);fill:#1c2230;text-anchor:middle}
+  .cycle .st .em{font-size:22px}
+  .cycle .st.on rect{fill:#fff3bf;stroke:#f08c00;stroke-width:3.5}
+  .cycle-text .step{display:none}
+  .cycle-text .step.on{display:block}
+  .cycle-text .step h3{font-size:1.3rem;margin-bottom:.3rem}
+  .dots{display:flex;gap:.4rem;margin-top:.6rem}
+  .dots button{width:.9rem;height:.9rem;border-radius:50%;border:0;background:#dee2e6;cursor:pointer;padding:0}
+  .dots button.on{background:var(--orange)}
+  .lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:1rem}
+  .lesson{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1rem 1.1rem;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s;position:relative}
+  .lesson:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(20,30,50,.12)}
+  .lesson .num{position:absolute;top:.8rem;right:1rem;font-weight:800;font-size:1.6rem;color:#e9ecef}
+  .lesson .em{font-size:2rem;line-height:1}
+  .lesson h3{margin:.4rem 0 .25rem;font-size:1.12rem}
+  .lesson p{margin:0 0 .5rem;color:var(--muted);font-size:.93rem}
+  .lesson .pill{margin-right:.3rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html" class="on">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Interactive lessons · work offline · no installation</div>
+  <h1>See a neural network learn</h1>
+  <p class="one-liner">Eight small, hands-on pages that show <b>how training really works</b>, one step at a time.
+  Move the sliders, press the buttons, break things on purpose, and watch what happens.</p>
+</section>
+
+<section class="card">
+  <h2>🔁 All of machine-learning training in one loop</h2>
+  <div class="cycle-wrap">
+    <div class="cycle">
+      <svg viewBox="0 0 420 420" id="cycleSvg" aria-label="The training loop in five steps"></svg>
+    </div>
+    <div class="cycle-text" id="cycleText">
+      <div class="step"><h3>1 · 📦 Take some examples</h3><p>Pick a few examples from the data, for example 8 photos with their correct labels. This small group is called a <b>batch</b>.</p><p class="muted small">Lesson 4</p></div>
+      <div class="step"><h3>2 · 🤔 The model guesses</h3><p>The model uses its current <b>weights</b> (knobs) to make a guess for each example. At the start the knobs are random, so the guesses are bad.</p><p class="muted small">Lessons 1 and 5</p></div>
+      <div class="step"><h3>3 · 📏 Measure the mistake</h3><p>Compare the guesses with the correct answers and squeeze all mistakes into <b>one number: the loss</b>. Smaller loss = better model.</p><p class="muted small">Lesson 1</p></div>
+      <div class="step"><h3>4 · 🔍 Find who is to blame</h3><p><b>Backpropagation</b> works out, for every single knob, which way it should turn to make the loss smaller, and by how much.</p><p class="muted small">Lesson 3</p></div>
+      <div class="step"><h3>5 · 🔧 Turn the knobs a little</h3><p><b>Gradient descent</b> turns every knob a small step in the right direction. Then we go back to step 1 with new examples, thousands of times.</p><p class="muted small">Lesson 2</p></div>
+      <div class="dots" id="cycleDots"></div>
+      <div class="btn-row"><button class="btn" id="cyclePlay">⏸ Pause</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🗺️ The lessons</h2>
+  <div class="lessons">
+    <a class="lesson" href="01_what_is_a_model.html"><span class="num">1</span><div class="em">🍦</div><h3>What is a model?</h3>
+      <p>Fit a line by hand with two sliders. Try to beat the computer.</p><span class="pill blue">≈ 25 min</span><span class="pill">Day 1</span></a>
+    <a class="lesson" href="02_gradient_descent.html"><span class="num">2</span><div class="em">⛰️</div><h3>Rolling downhill</h3>
+      <p>A ball rolls to the bottom of the loss. Make the steps too big and watch it explode.</p><span class="pill blue">≈ 40 min</span><span class="pill">Day 1</span></a>
+    <a class="lesson" href="03_backpropagation.html"><span class="num">3</span><div class="em">🔍</div><h3>Backpropagation</h3>
+      <p>Step through one neuron: numbers flow forward, blame flows backward.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 1</span></a>
+    <a class="lesson" href="04_training_loop.html"><span class="num">4</span><div class="em">🔁</div><h3>The training loop</h3>
+      <p>Run the six lines of every PyTorch training script, one line at a time. Includes classic bugs.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 1</span></a>
+    <a class="lesson" href="05_neural_network_playground.html"><span class="num">5</span><div class="em">🧠</div><h3>Neural network playground</h3>
+      <p>Build a network, press play, and watch every neuron learn its piece of the picture.</p><span class="pill blue">≈ 45 min</span><span class="pill">Day 1–2</span></a>
+    <a class="lesson" href="06_overfitting.html"><span class="num">6</span><div class="em">🎯</div><h3>Overfitting</h3>
+      <p>Too simple, too complex, or just right? Find the sweet spot and learn when to stop.</p><span class="pill blue">≈ 30 min</span><span class="pill">Day 1–2</span></a>
+    <a class="lesson" href="07_cnn_convolution.html"><span class="num">7</span><div class="em">👁️</div><h3>How a CNN sees</h3>
+      <p>Draw a digit and slide 3×3 kernels over it to find edges and shapes.</p><span class="pill blue">≈ 30 min</span><span class="pill">Day 1</span></a>
+    <a class="lesson" href="08_quantization_pruning.html"><span class="num">8</span><div class="em">🗜️</div><h3>Making models small</h3>
+      <p>Round and delete a model's numbers. How far can you go before it breaks?</p><span class="pill blue">≈ 30 min</span><span class="pill">Day 2</span></a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧭 How to use these pages</h2>
+  <div class="grid3">
+    <div><h3>1 · Open</h3><p>Double-click any <code>.html</code> file. Chrome or Edge work best. No internet and no installation are needed.</p></div>
+    <div><h3>2 · Start at the top</h3><p>Every page begins with a <b>"New here?"</b> box: a simple story, three things to click, and what to look for.</p></div>
+    <div><h3>3 · Guess, then check</h3><p>Each page has challenges. <b>Guess the answer first</b>, then try it, then open the answer. Guessing is where the learning happens.</p></div>
+  </div>
+  <p class="small muted">The <b>Simple view</b> button (top right) hides code and extra details. Switch to <b>Detailed view</b> to see the PyTorch code and the deeper sections.</p>
+</section>
+
+<section class="card">
+  <h2>📖 Words you will meet</h2>
+  <table class="plain">
+    <tr><th style="width:12rem">Word</th><th>In plain words</th><th style="width:7rem">Lesson</th></tr>
+    <tr><td><b>Model</b></td><td>A guessing rule with many knobs.</td><td>1</td></tr>
+    <tr><td><b>Weight / parameter</b></td><td>One knob inside the model. Training changes only these.</td><td>1</td></tr>
+    <tr><td><b>Loss</b></td><td>One number that says how wrong the model is. Lower is better.</td><td>1</td></tr>
+    <tr><td><b>Gradient</b></td><td>The slope: which way to turn a knob to make the loss go down, and how strongly.</td><td>2, 3</td></tr>
+    <tr><td><b>Learning rate</b></td><td>How big each knob-turning step is.</td><td>2</td></tr>
+    <tr><td><b>Backpropagation</b></td><td>The trick that finds the gradient of every knob in one backward sweep.</td><td>3</td></tr>
+    <tr><td><b>Batch / epoch</b></td><td>A few examples used for one step / one full trip through all the data.</td><td>4</td></tr>
+    <tr><td><b>Neuron / layer / activation</b></td><td>A tiny calculator / a column of them / the bend that lets them draw curves.</td><td>5</td></tr>
+    <tr><td><b>Overfitting</b></td><td>Memorising the practice data instead of learning the pattern.</td><td>6</td></tr>
+    <tr><td><b>Kernel / convolution</b></td><td>A small pattern slid over an image to find where that pattern appears.</td><td>7</td></tr>
+    <tr><td><b>Quantization / pruning</b></td><td>Rounding the weights to fewer values / deleting the smallest weights.</td><td>8</td></tr>
+  </table>
+</section>
+
+<section class="card adv">
+  <h2>🧑‍🏫 For the trainer: where each lesson fits</h2>
+  <table class="plain">
+    <tr><th>When</th><th>Pages</th><th>Why there</th></tr>
+    <tr><td>Day 1 morning, before notebook 01</td><td>1 → 2 → 3</td><td>Model, loss, gradient descent and backprop give meaning to <code>requires_grad</code> and <code>backward()</code>.</td></tr>
+    <tr><td>Day 1, before notebook 02</td><td>4 → 7</td><td>The training loop and convolutions are exactly what notebook 02 codes up.</td></tr>
+    <tr><td>Day 1 end or Day 2 start</td><td>5 → 6</td><td>Depth, activations and overfitting explain the train/test curves and why transfer learning helps.</td></tr>
+    <tr><td>Day 2, before notebook 03</td><td>8</td><td>Quantization and pruning with intuition first, then the real PyTorch/ONNX methods.</td></tr>
+  </table>
+  <p class="small muted">Total ≈ 4½ hours if every challenge is done in class. Each page also works as homework: students can follow the "New here?" box alone.
+  All numbers quoted in the answers were measured on these exact pages.</p>
+</section>
+</main>
+<footer>Training, Visualized · 8 interactive lessons · works offline · no data leaves your computer</footer>
+
+<script>
+// ---------- the animated 5-step training cycle ----------
+const STEPS=[['📦','Take examples'],['🤔','Model guesses'],['📏','Measure mistake'],['🔍','Find the blame'],['🔧','Turn the knobs']];
+const svg=document.getElementById('cycleSvg'),cx=210,cy=210,R=150;let cur=0,timer=null;
+function pos(i){const a=-Math.PI/2+i*2*Math.PI/STEPS.length;return [cx+R*Math.cos(a),cy+R*Math.sin(a)];}
+function draw(){
+  let s='<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#adb5bd"/></marker></defs>';
+  s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#e9ecef" stroke-width="16"/>`;
+  for(let i=0;i<STEPS.length;i++){const a1=-Math.PI/2+(i+0.28)*2*Math.PI/STEPS.length,a2=-Math.PI/2+(i+0.72)*2*Math.PI/STEPS.length;
+    s+=`<path d="M${cx+R*Math.cos(a1)},${cy+R*Math.sin(a1)} A${R},${R} 0 0 1 ${cx+R*Math.cos(a2)},${cy+R*Math.sin(a2)}" fill="none" stroke="${i===cur?'#f08c00':'#adb5bd'}" stroke-width="3" marker-end="url(#arr)"/>`;}
+  s+=`<text x="${cx}" y="${cy-6}" text-anchor="middle" style="font:700 18px var(--sans);fill:#1c2230">repeat</text><text x="${cx}" y="${cy+18}" text-anchor="middle" style="font:500 13px var(--sans);fill:#868e96">thousands of times</text>`;
+  STEPS.forEach(([em,t],i)=>{const [x,y]=pos(i);s+=`<g class="st${i===cur?' on':''}" data-i="${i}" style="cursor:pointer"><rect x="${x-70}" y="${y-34}" width="140" height="68" rx="14"/>
+    <text class="em" x="${x}" y="${y-4}">${em}</text><text x="${x}" y="${y+22}">${i+1} · ${t}</text></g>`;});
+  svg.innerHTML=s;
+  svg.querySelectorAll('.st').forEach(g=>g.onclick=()=>{cur=+g.dataset.i;stop();draw();});
+  document.querySelectorAll('#cycleText .step').forEach((el,i)=>el.classList.toggle('on',i===cur));
+  document.getElementById('cycleDots').innerHTML=STEPS.map((_,i)=>`<button class="${i===cur?'on':''}" data-i="${i}" aria-label="step ${i+1}"></button>`).join('');
+  document.querySelectorAll('#cycleDots button').forEach(b=>b.onclick=()=>{cur=+b.dataset.i;stop();draw();});
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}document.getElementById('cyclePlay').textContent='▶ Play';}
+function play(){stop();timer=setInterval(()=>{cur=(cur+1)%STEPS.length;draw();},3200);document.getElementById('cyclePlay').textContent='⏸ Pause';}
+document.getElementById('cyclePlay').onclick=()=>timer?stop():play();
+draw();play();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
+</script>
+</body>
+</html>

@@ -27,7 +27,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
@@ -37,6 +36,7 @@
     <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -46,6 +46,16 @@
   <p class="one-liner">One neuron can only draw a <b>straight line</b>. Stack neurons in layers and the network can draw <b>curves, circles and spirals</b>.
   Build a network, press play, and watch every neuron learn its own little piece of the picture.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>One neuron is like one <b>ruler</b>: it can only draw a straight line. Put many neurons together and they can draw any shape, the same way you can draw a circle using many short straight lines.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>▶ Train</b>. Watch the background turn into a blue blob around the blue dots.</li><li>Look at the small squares in the middle. Each one is a neuron, and each draws a simple edge.</li><li>Now click <b>Spiral</b> and train again. It's much harder!</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p><b>Test acc</b> = how well it does on dots it has <b>never seen</b>. If test accuracy is high, the network really learned the shape (it didn't just memorise).</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Neuron</b> = a tiny calculator that draws one straight edge</span><span><b>Layer</b> = a column of neurons</span><span><b>Activation</b> = a bend that lets straight edges make curves</span><span><b>Feature</b> = an input number we give the network</span><span><b>Test data</b> = exam questions the network never practised on</span></div>
+</section>
+
 
 <section class="card">
   <div class="topctl">
@@ -83,6 +93,7 @@
       <div class="canvas-box"><canvas id="netc" style="height:440px"></canvas></div>
       <div class="legend"><span><i style="background:#2f6fed"></i>positive weight</span><span><i style="background:#f08c00"></i>negative weight</span>
         <span>line thickness = weight size</span><span>each square = what that neuron "sees" over the whole plane</span></div>
+      <div class="look">👀 Each <b>square is one neuron</b>. Its picture shows which area it likes (blue) or dislikes (orange). Lines are connections: thicker = stronger. Left = inputs, right = the final answer.</div>
       <div class="small muted" id="pcount"></div>
     </div>
     <!-- output -->
@@ -94,10 +105,12 @@
         <div class="stat"><b id="trA">–</b><span>Train acc</span></div>
         <div class="stat good"><b id="teA">–</b><span>Test acc</span></div>
       </div>
-      <div class="canvas-box"><canvas id="outc" style="height:360px"></canvas></div>
+      <div class="canvas-box"><canvas id="outc" style="height:360px"></canvas>
+      <div class="look">👀 The network's answer for every point: <b>blue area</b> = "blue class", <b>orange area</b> = "orange class". It's working when every dot sits in the area of its own colour.</div></div>
       <label class="check"><input type="checkbox" id="showTest" checked> Show test data (black ring)</label>
       <label class="check"><input type="checkbox" id="disc"> Show only the final decision (no shading)</label>
-      <div class="canvas-box" style="margin-top:.4rem"><div class="canvas-title">Loss per epoch: <span style="color:#1c2230">train</span> · <span style="color:#f08c00">test</span></div><canvas id="lossc" style="height:130px"></canvas></div>
+      <div class="canvas-box" style="margin-top:.4rem"><div class="canvas-title">Loss per epoch: <span style="color:#1c2230">train</span> · <span style="color:#f08c00">test</span></div><canvas id="lossc" style="height:130px"></canvas>
+      <div class="look">👀 Black = mistakes on practice data, orange = mistakes on new data. Both going down = learning. Orange going <b>up</b> = memorising.</div></div>
     </div>
   </div>
 </section>
@@ -155,7 +168,7 @@
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 The default network in PyTorch</h2>
   <pre class="code"><span class="k">import</span> torch.nn <span class="k">as</span> nn
 
@@ -394,6 +407,12 @@ const outs=()=>{$('#noiseOut').textContent=$('#noise').value;$('#trOut').textCon
 ['#showTest','#disc'].forEach(id=>$(id).addEventListener('change',()=>{drawOut();}));
 window.addEventListener('resize',()=>render());
 outs();renderDatasets();renderFeats();renderLayerBar();buildData();buildNet();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

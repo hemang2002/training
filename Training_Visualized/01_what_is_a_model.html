@@ -10,7 +10,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" class="on" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
@@ -20,6 +19,7 @@
     <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -29,6 +29,16 @@
   <p class="one-liner">A model is a <b>formula with knobs</b>. Training means <b>turning the knobs</b> until the formula's guesses are good.
   Today <b>you</b> are the training algorithm.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A guessing game. You tell me the temperature, and I guess how many ice-creams the shop will sell. My guessing rule has <b>two dials</b>. At first my guesses are bad. I turn the dials until my guesses get close. That's all "training" means.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Drag the <b>w</b> slider. The blue line tilts.</li><li>Drag the <b>b</b> slider. The line moves up and down.</li><li>Try to make the <b>red dashed lines</b> (the mistakes) as short as you can.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>The big number <b>"Your loss"</b> is your score for how wrong you are. <b>Smaller is better.</b> Then press 🤖 and watch the computer do the same thing, much faster.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Model</b> = a guessing rule</span><span><b>Parameter</b> = one dial inside the rule (here w and b)</span><span><b>Loss</b> = one number that says how wrong we are (lower = better)</span><span><b>Training</b> = turning the dials to make the loss smaller</span></div>
+</section>
+
 
 <section class="card">
   <h2>🍦 The story: an ice-cream shop</h2>
@@ -92,8 +102,9 @@
       <div id="goal" class="banner info">🎯 Goal: get your loss within 10% of the best possible, using only the two sliders.</div>
       <div class="grid2">
         <div class="canvas-box">
-          <div class="canvas-title">Data and your line (click a dot to follow it)</div>
+          <div class="canvas-title">Data and your line (click a dot to highlight it)</div>
           <canvas id="plot" style="height:360px"></canvas>
+      <div class="look">👀 Each <b>black dot</b> is one day. The <b>blue line</b> is your guess for every temperature. A <b>red dashed line</b> shows how wrong the guess was on that day. Short red lines = good guess.</div>
         </div>
         <div class="canvas-box">
           <div class="canvas-title">The loss landscape: every (w, b) you could choose. Click to jump.</div>
@@ -101,6 +112,7 @@
           <div class="legend"><span><i style="background:#0b3d91"></i>dark = low loss (good)</span>
             <span><i style="background:#fde68a"></i>light = high loss</span>
             <span>⚪ you</span><span style="color:#2f9e44">★ best</span><span style="color:#f08c00">— computer's path</span></div>
+      <div class="look">👀 This is a <b>map of every possible setting</b> of the two dials. Dark blue = small mistakes (good), yellow = big mistakes (bad). The <b>white dot is you</b>. Your goal: move it onto the green ★.</div>
         </div>
       </div>
     </div>
@@ -150,7 +162,7 @@
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 The same thing in PyTorch</h2>
   <pre class="code"><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
 
@@ -182,7 +194,6 @@ print(loss.item())</pre>
 </section>
 
 <nav class="pager">
-  <a href="index.html"><small>← Back</small>Home</a>
   <a class="next" href="02_gradient_descent.html"><small>Next →</small>2 · Rolling downhill: gradient descent</a>
 </nav>
 </main>
@@ -241,6 +252,7 @@ function drawPlot(){
   if(showBest){ctx.strokeStyle='#2f9e44';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.beginPath();
     ctx.moveTo(sx(X_MIN),sy(best.w*X_MIN+best.b));ctx.lineTo(sx(X_MAX),sy(best.w*X_MAX+best.b));ctx.stroke();ctx.setLineDash([]);}
   ctx.strokeStyle='#2f6fed';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(sx(X_MIN),sy(w*X_MIN+b));ctx.lineTo(sx(X_MAX),sy(w*X_MAX+b));ctx.stroke();
+  {const tag=(t,x,y,c,al='left')=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al;ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};const yl=w*41+b;if(yl>Y_MIN+10&&yl<Y_MAX-5)tag('your guess line',sx(41),sy(yl)-10,'#2f6fed','right');}
   data.forEach((p,i)=>{ctx.beginPath();ctx.arc(sx(p.x),sy(p.y),i===sel?7:5,0,7);ctx.fillStyle=p.out?'#d6336c':'#1c2230';ctx.fill();
     if(i===sel){ctx.lineWidth=3;ctx.strokeStyle='#f08c00';ctx.stroke();}});
   ctx.restore();
@@ -273,6 +285,7 @@ function drawHeat(){
   if(path.length>1){ctx.strokeStyle='#f08c00';ctx.lineWidth=2.5;ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1])));ctx.stroke();}
   ctx.fillStyle='#2f9e44';ctx.font='bold 20px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('★',sx(best.w),sy(best.b)+7);
   ctx.beginPath();ctx.arc(sx(w),sy(b),7,0,7);ctx.fillStyle='#fff';ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#1c2230';ctx.stroke();
+  const tag=(t,x,y,c,al='left')=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al;ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};tag('BEST',sx(best.w)+11,sy(best.b)+5,'#2f9e44');tag('YOU',sx(w)+11,sy(w===best.w?b+8:b)-6,'#1c2230');
   ctx.restore();heat._map={L,T,pw,ph};
 }
 
@@ -286,6 +299,7 @@ function updateText(){
   if(yourBest<=best.loss*1.10+1e-9){goal.className='banner good';goal.textContent='🎉 Goal reached by hand in '+tries+' knob moves: within 10% of the best possible '+tag+'.';}
   else{goal.className='banner info';goal.textContent='🎯 Goal: get your '+tag+' below '+fmt(best.loss*1.10)+' (within 10% of the best possible), using only the two sliders.';}
   const p=data[sel],pr=w*p.x+b,e=pr-p.y;
+  if(!$('#follow'))return;   // the "follow one day" box is optional
   $('#follow').innerHTML=
     `<b>${p.out?'Festival day':'Day '+(sel+1)}</b>: it was <b>${p.x} °C</b>.<br>`+
     `① The model predicts: <span class="formula">cups = w × temp + b = ${w.toFixed(2)} × ${p.x} ${b<0?'−':'+'} ${Math.abs(b).toFixed(1)} = ${pr.toFixed(1)} cups</span>`+
@@ -342,6 +356,12 @@ window.addEventListener('resize',redraw);
 
 $('#nOut').textContent=nPts;$('#noiseOut').textContent=noise;
 makeData();redraw();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

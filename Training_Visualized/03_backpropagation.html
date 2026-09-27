@@ -34,7 +34,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" class="on" title="Backpropagation">3</a>
@@ -44,6 +43,7 @@
     <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -53,6 +53,16 @@
   <p class="one-liner">Gradient descent needs the slope for <b>every</b> knob. Backpropagation is the trick that computes all of them in
   <b>one backward sweep</b>: the error is passed backwards through the network, and every knob learns how much of the blame is its own.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A football team lost 0–1. Who is to blame, and how much? The coach starts from the final score and walks <b>backwards</b> through the match, handing out blame to each player. Backpropagation does the same: it starts from the error and hands out blame to every weight.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>Next ▶</b> 5 times. Blue numbers flow <b>forward</b>: that is the prediction.</li><li>Press <b>Next ▶</b> 6 more times. Red numbers flow <b>backward</b>: that is the blame.</li><li>On the last step every weight moves a little, and the loss gets smaller.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Each <b>red number</b> tells a weight: "if you go up a little, the loss changes by this much". Negative red means go up; positive red means go down.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Forward pass</b> = compute the prediction</span><span><b>Backward pass</b> = compute the blame for each weight</span><span><b>Gradient (red)</b> = the blame number</span><span><b>Chain rule</b> = multiply the blame along the path, step by step</span></div>
+</section>
+
 
 <section class="card">
   <h2>🧩 Our tiny network: one neuron</h2>
@@ -105,8 +115,9 @@
     <div class="stage">
       <div class="progress" id="progress"></div>
       <div class="graph-box"><svg id="graph" viewBox="0 0 900 390"></svg></div>
+      <div class="look">👀 Read it <b>left to right</b>: inputs → multiply → add → squash → loss. <b style="color:#2f6fed">Blue "=" numbers</b> are values going forward. <b style="color:#e03131">Red "∂" numbers</b> are blame going backward. The <b style="color:#f08c00">orange box</b> is what is happening right now.</div>
       <div class="explain" id="explain" style="margin-top:.7rem"></div>
-      <div class="codeview" id="code" style="margin-top:.7rem"></div>
+      <div class="codeview adv" id="code" style="margin-top:.7rem"></div>
     </div>
   </div>
 </section>
@@ -146,12 +157,12 @@
       lr 10: it jumps up and down (0.09 → 0.24 → 0.16 → …) and never settles. lr 20: the first step is so big that z shoots far out,
       the sigmoid saturates, and the loss jumps to 0.25 and <b>stays there forever</b>. It's worse than where we started, and stuck in the flat zone from challenge 4.
       Backprop gives the direction; the learning rate decides how far to go.</details></li>
-    <li><b>Believe the numbers.</b> Copy the PyTorch code below into a notebook cell and run it. Do you get the same gradients as the red numbers?
+    <li class="adv"><b>Believe the numbers.</b> Copy the PyTorch code below into a notebook cell and run it. Do you get the same gradients as the red numbers?
       <details class="answer"><summary>Answer</summary>Yes, to 4 decimals. <code>loss.backward()</code> does exactly this backward sweep for you, for millions of parameters at once.</details></li>
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 Same numbers in PyTorch (updates as you edit the inputs)</h2>
   <pre class="code" id="gen"></pre>
   <div class="btn-row"><button class="btn" id="copy">📋 Copy code</button><span id="copied" class="muted small" style="align-self:center"></span></div>
@@ -353,6 +364,12 @@ $('#copy').onclick=async()=>{const txt=$('#gen').innerText;let ok=false;
   $('#copied').textContent=ok?'Copied ✔ – paste it into a notebook cell':'Copy failed – select the code and press Ctrl+C';};
 window.addEventListener('resize',drawHist);
 writeInputs();render();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

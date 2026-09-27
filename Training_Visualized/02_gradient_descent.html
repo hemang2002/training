@@ -10,7 +10,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" class="on" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
@@ -20,6 +19,7 @@
     <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -29,6 +29,16 @@
   <p class="one-liner">You are standing on a foggy mountain and want to reach the lowest valley. You can't see far, but you can
   <b>feel the slope under your feet</b>. So you take a step <b>downhill</b>, feel again, step again. That is the whole algorithm.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>You are blindfolded on a hill and want to reach the bottom. You can't see, but you can <b>feel which way the ground slopes</b> under your feet. So you take a small step downhill, feel again, step again. The computer trains a model exactly like this.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In Part A press <b>Step ▶</b> a few times. The ball rolls down.</li><li>Make the <b>learning rate</b> bigger (bigger steps) and press <b>Play</b>.</li><li>Now make it very big (<b>1.05</b>) and press Play. Watch the ball fly away!</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Small steps are <b>slow but safe</b>. Big steps are <b>fast but can jump over</b> the bottom. Steps that are too big make everything <b>explode</b>.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Gradient</b> = the slope under your feet: which way is uphill</span><span><b>Learning rate</b> = how big each step is</span><span><b>Optimizer</b> = the rule for taking steps</span><span><b>Local minimum</b> = a small dip that is not the lowest point</span></div>
+</section>
+
 
 <section class="card">
   <h2>📐 The idea in four steps</h2>
@@ -97,9 +107,11 @@
       <div id="banner1" class="banner info">Press <b>Step ▶</b> and watch the ball.</div>
       <div class="canvas-box"><canvas id="cv1" style="height:340px"></canvas>
         <div class="legend"><span><i style="background:#2f6fed"></i>loss curve</span><span><i style="background:#e03131"></i>slope at the ball</span>
-          <span><i style="background:#f08c00"></i>next step (−lr × slope)</span><span><i style="background:#adb5bd"></i>where the ball has been</span></div></div>
+          <span><i style="background:#f08c00"></i>next step (−lr × slope)</span><span><i style="background:#adb5bd"></i>where the ball has been</span></div>
+      <div class="look">👀 The <b>blue curve</b> shows how wrong the model is for each value of the knob. Lower = better. The <b>black ball</b> is where we are now, and the <b>orange arrow</b> shows where the next step will land.</div></div>
       <div class="grid2" style="margin-top:.8rem">
-        <div class="canvas-box"><div class="canvas-title">Loss after each step</div><canvas id="cv1b" style="height:170px"></canvas></div>
+        <div class="canvas-box"><div class="canvas-title">Loss after each step</div><canvas id="cv1b" style="height:170px"></canvas>
+      <div class="look">👀 Should go <b>down</b> step by step. Jumping up and down = steps too big.</div></div>
         <div>
           <div class="canvas-title">The last steps, as numbers</div>
           <div class="tbl-wrap"><table class="tbl" id="tbl1"><thead><tr><th>step</th><th>w</th><th>slope g</th><th id="vHead">v</th><th>− lr × …</th><th>new w</th><th>loss</th></tr></thead><tbody></tbody></table></div>
@@ -166,7 +178,8 @@
       <button class="btn ghost small" id="rec2">Use recommended learning rates</button>
     </aside>
     <div class="stage">
-      <div class="canvas-box"><canvas id="cv2" style="height:460px"></canvas></div>
+      <div class="canvas-box"><canvas id="cv2" style="height:460px"></canvas>
+      <div class="look">👀 A hiking map seen from above: <b>dark = low ground</b> (good), light = high ground. ★ = the lowest spots. Each coloured line is one optimizer walking downhill from the white circle.</div></div>
       <div class="tbl-wrap" style="margin-top:.6rem">
         <table class="tbl" id="tbl2"><thead><tr><th>Optimizer</th><th>learning rate</th><th>steps</th><th>loss now</th><th>status</th></tr></thead><tbody></tbody></table>
       </div>
@@ -210,7 +223,7 @@
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 In PyTorch</h2>
   <pre class="code"><span class="k">import</span> torch
 
@@ -300,6 +313,7 @@ function drawA(){
   ctx.fillText('w (the knob)',L+pw/2,H-3);ctx.save();ctx.translate(13,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('loss',0,0);ctx.restore();
   ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
   ctx.strokeStyle='#2f6fed';ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<=500;i++){const w=-5+i/50;i?ctx.lineTo(sx(w),sy(F.f(w))):ctx.moveTo(sx(w),sy(F.f(w)));}ctx.stroke();
+  {let bw=-5,bl=Infinity;for(let i=0;i<=1000;i++){const ww=-5+i/100,v=F.f(ww);if(v<bl){bl=v;bw=ww;}}const tag=(t,x,y,c,al='left')=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al;ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};ctx.fillStyle='#2f9e44';ctx.beginPath();ctx.moveTo(sx(bw),sy(bl)+4);ctx.lineTo(sx(bw)-6,sy(bl)+14);ctx.lineTo(sx(bw)+6,sy(bl)+14);ctx.fill();tag('lowest point',sx(bw),sy(bl)+28,'#2f9e44','center');}
   // trail
   const tr=A.hist.slice(-40);ctx.strokeStyle='rgba(134,142,150,.55)';ctx.lineWidth=1.3;ctx.beginPath();
   tr.forEach((p,i)=>{const x=sx(p.w),y=sy(p.l);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
@@ -313,6 +327,7 @@ function drawA(){
     const dir=Math.sign(nw-A.w)||1,ex=sx(Math.max(-5.2,Math.min(5.2,nw)));ctx.beginPath();ctx.moveTo(ex,ay);ctx.lineTo(ex-8*dir,ay-6);ctx.lineTo(ex-8*dir,ay+6);ctx.fill();
     ctx.setLineDash([2,3]);ctx.strokeStyle='rgba(240,140,0,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx(A.w),sy(l));ctx.lineTo(sx(A.w),ay);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(sx(A.w),sy(l),9,0,7);ctx.fillStyle='#1c2230';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+    const tag=(t,x,y,c,al='left')=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al;ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};tag('you are here',sx(A.w),sy(l)-16,'#1c2230','center');
   }
   ctx.restore();
   if(!A.diverged&&Math.abs(A.w)>5){ctx.fillStyle='#e03131';ctx.font='bold 13px Segoe UI, sans-serif';ctx.textAlign=A.w>0?'right':'left';
@@ -429,6 +444,7 @@ function drawB(){
     const p=r.path[r.path.length-1];ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),6,0,7);ctx.fillStyle=r.o.color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
   });
   const s=B.start||F.start;ctx.beginPath();ctx.arc(sx(s[0]),sy(s[1]),7,0,7);ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+  const tag=(t,x,y,c,al='left')=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al;ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};tag('start',sx(s[0])+10,sy(s[1])-8,'#1c2230');
   ctx.restore();
 }
 function renderTable(onlyNums){
@@ -459,6 +475,12 @@ $('#cv2').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClient
 window.addEventListener('resize',()=>{drawA();drawB();});
 
 setRec();resetA();renderTable();resetB();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

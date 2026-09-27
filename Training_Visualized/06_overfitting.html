@@ -10,7 +10,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
@@ -20,6 +19,7 @@
     <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -30,6 +30,16 @@
   The other memorises every practice question word for word, typos included (<b>overfitting</b>). Both fail the real exam.
   We want the student who learned the <b>pattern</b>.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>Three students and one exam. The first learns nothing (<b>underfitting</b>). The second memorises the practice answers word for word (<b>overfitting</b>). The third understands the ideas (<b>just right</b>). Only the third passes the real exam, which has new questions.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Move the <b>degree</b> slider slowly from 0 to 15.</li><li>Watch the blue curve: too stiff → just right → crazy wiggles.</li><li>Watch the <b>orange number</b> (validation error): it goes down, then shoots up.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Training error always goes down, but that doesn't matter much. What matters is the error on <b>new data</b> (validation). The green banner tells you when you are "just right".</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Underfitting</b> = too simple, misses the pattern</span><span><b>Overfitting</b> = too complex, memorises the noise</span><span><b>Validation data</b> = practice exam used only for checking</span><span><b>Regularization</b> = a brake that stops the curve from wiggling too much</span></div>
+</section>
+
 
 <section class="card">
   <h2>🎯 The setup</h2>
@@ -59,9 +69,11 @@
       </div>
       <div id="verdict" class="banner info">–</div>
       <div class="grid2">
-        <div class="canvas-box"><div class="canvas-title">Data and the fitted polynomial</div><canvas id="fitc" style="height:340px"></canvas></div>
+        <div class="canvas-box"><div class="canvas-title">Data and the fitted polynomial</div><canvas id="fitc" style="height:340px"></canvas>
+      <div class="look">👀 <b style="color:#2f9e44">Green dashed</b> = the truth we want to find. <b style="color:#2f6fed">Blue curve</b> = our model. Blue dots = practice data it learns from. <b style="color:#f08c00">Orange dots</b> = the exam it never sees.</div></div>
         <div class="canvas-box"><div class="canvas-title">Error vs model complexity (log scale). ★ = best degree on validation</div><canvas id="degc" style="height:340px"></canvas>
-          <div class="legend"><span><i style="background:#2f6fed"></i>training error</span><span><i style="background:#f08c00"></i>validation error</span><span><i style="background:#ced4da"></i>noise floor</span></div></div>
+          <div class="legend"><span><i style="background:#2f6fed"></i>training error</span><span><i style="background:#f08c00"></i>validation error</span><span><i style="background:#ced4da"></i>noise floor</span></div>
+      <div class="look">👀 Left = simple models, right = complex models. <b style="color:#2f6fed">Blue</b> = mistakes on practice data (always falls). <b style="color:#f08c00">Orange</b> = mistakes on new data (falls, then shoots up). The green ★ is the sweet spot.</div></div>
       </div>
     </div>
   </div>
@@ -81,7 +93,8 @@
       <p class="small muted">Measured on x ∈ [−0.9, 0.9]. Expected error ≈ bias² + variance + noise. A good model balances the first two.</p>
     </div>
     <div class="canvas-box"><canvas id="spagc" style="height:320px"></canvas>
-      <div class="legend"><span><i style="background:#9fb8f5"></i>20 fits</span><span><i style="background:#1c2230"></i>their average</span><span><i style="background:#2f9e44"></i>truth</span></div></div>
+      <div class="legend"><span><i style="background:#9fb8f5"></i>20 fits</span><span><i style="background:#1c2230"></i>their average</span><span><i style="background:#2f9e44"></i>truth</span></div>
+      <div class="look">👀 Each thin line is the <b>same model trained on different data</b>. Lines close together = a stable, reliable model. Lines everywhere = an unreliable model.</div></div>
   </div>
 </section>
 
@@ -97,7 +110,8 @@
       <p class="small muted">The purple curve in the top chart shows the model at the chosen iteration. In PyTorch you would save the checkpoint with the lowest validation loss.</p>
     </div>
     <div class="canvas-box"><div class="canvas-title">Error vs training iterations (log–log)</div><canvas id="gdc" style="height:300px"></canvas>
-      <div class="legend"><span><i style="background:#2f6fed"></i>training</span><span><i style="background:#f08c00"></i>validation</span><span><i style="background:#2f9e44"></i>best time to stop</span></div></div>
+      <div class="legend"><span><i style="background:#2f6fed"></i>training</span><span><i style="background:#f08c00"></i>validation</span><span><i style="background:#2f9e44"></i>best time to stop</span></div>
+      <div class="look">👀 Left = start of training, right = after very long training. The orange line (mistakes on new data) is lowest at the <b>green line</b>: that's the best moment to stop.</div></div>
   </div>
 </section>
 
@@ -128,7 +142,7 @@
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 The same ideas in PyTorch</h2>
   <pre class="code">optimizer = torch.optim.Adam(model.parameters(), lr=<span class="n">1e-3</span>, weight_decay=<span class="n">1e-4</span>)   <span class="c"># L2 regularization</span>
 
@@ -208,6 +222,7 @@ function drawFit(c){
   const F=frame($('#fitc')),{ctx}=F;axes(F);
   if($('#showTrue').checked)curve(F,truth,'#2f9e44',2.5,[7,5]);
   curve(F,x=>pred(c,x),'#2f6fed',3);
+  {const ctx=F.ctx;const tag=(t,x,y,c,al='left')=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al;ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};if($('#showTrue').checked)tag('truth',F.sx(0.72),F.sy(truth(0.72))-12,'#2f9e44','center');const ym=pred(c,-0.72);if(Math.abs(ym)<2.3)tag('model',F.sx(-0.72),F.sy(ym)-12,'#2f6fed','center');}
   if(gdRun&&gdRun.view!==null){const s=gdRun.snaps[gdRun.view];curve(F,x=>pred(s.c,x),'#7048e8',2.5);}
   if($('#showVal').checked)for(const p of val){ctx.beginPath();ctx.arc(F.sx(p.x),F.sy(p.y),3.5,0,7);ctx.fillStyle='rgba(240,140,0,.85)';ctx.fill();}
   for(const p of train){ctx.beginPath();ctx.arc(F.sx(p.x),F.sy(p.y),5,0,7);ctx.fillStyle='#2f6fed';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#fff';ctx.stroke();}
@@ -302,6 +317,12 @@ $('#it').addEventListener('input',e=>{if(!gdRun)return;gdRun.view=+e.target.valu
 window.addEventListener('resize',()=>{update();drawGD();});
 makeData();update();
 (()=>{const F=frame($('#spagc'));axes(F);F.ctx.fillStyle='#868e96';F.ctx.textAlign='center';F.ctx.font='12px Segoe UI, sans-serif';F.ctx.fillText('Press 🍝 to fit 20 training sets',F.L+F.pw/2,F.T+F.ph/2);})();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

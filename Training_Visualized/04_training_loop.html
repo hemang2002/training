@@ -20,7 +20,6 @@
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
   <nav class="nav">
-    <a href="index.html">Home</a>
     <a href="01_what_is_a_model.html" title="What is a model?">1</a>
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
@@ -30,6 +29,7 @@
     <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
     <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
   </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
@@ -39,6 +39,16 @@
   <p class="one-liner">Every PyTorch training script, from this toy up to GPT, has the same six-line heartbeat:
   <b>take a batch → predict → measure the loss → clear old gradients → backpropagate → step</b>. Here you can run it one line at a time and watch what each line does.</p>
 </section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>Learning with flashcards. Take a few cards, answer them, check the answers, learn from your mistakes, then take the next few cards. When you have been through <b>all</b> the cards once, that is one <b>epoch</b>. Then shuffle and start again.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>Next line ▶</b> and read the orange box every time.</li><li>After 6 presses, look at the chart: the black line moved.</li><li>Press <b>▶ Run</b> and watch the line find the gap between orange and blue.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Each step uses only a <b>few dots</b> (the ringed ones). That's a <b>batch</b>. The loss chart goes <b>down</b> as the model learns.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Batch</b> = a few examples used for one step</span><span><b>Epoch</b> = one trip through all the data</span><span><b>zero_grad</b> = wipe the old blame clean</span><span><b>backward</b> = compute the new blame</span><span><b>step</b> = turn the dials a little</span></div>
+</section>
+
 
 <section class="card">
   <h2>🎯 The task</h2>
@@ -72,7 +82,8 @@
     <div>
       <div class="canvas-box"><div class="canvas-title">Data, the current batch (ringed) and the model's line</div><canvas id="plot" style="height:380px"></canvas>
         <div class="legend"><span><i style="background:#f08c00;border-radius:50%"></i>failed (y = 0)</span><span><i style="background:#2f6fed;border-radius:50%"></i>passed (y = 1)</span>
-          <span>◯ in current batch</span><span>— line now</span><span style="color:#868e96">- - line before the last step</span></div></div>
+          <span>◯ in current batch</span><span>— line now</span><span style="color:#868e96">- - line before the last step</span></div>
+      <div class="look">👀 Dots = students (<b style="color:#f08c00">orange failed</b>, <b style="color:#2f6fed">blue passed</b>). The <b>black line</b> is the model's border: it predicts "pass" on the blue side. <b>Big ringed dots</b> = the few students in the current batch. The dashed line shows where the border was one step ago.</div></div>
     </div>
   </div>
 </section>
@@ -88,7 +99,8 @@
       <h3>The knobs and their gradients</h3>
       <div id="params"></div>
       <p class="small muted">Red bars = the gradient currently stored in <code>.grad</code>. The step moves each knob by −lr × gradient.</p>
-      <div class="canvas-box" style="margin-top:.5rem"><div class="canvas-title">Loss: each iteration (grey) and average per epoch (blue)</div><canvas id="lossc" style="height:190px"></canvas></div>
+      <div class="canvas-box" style="margin-top:.5rem"><div class="canvas-title">Loss: each iteration (grey) and average per epoch (blue)</div><canvas id="lossc" style="height:190px"></canvas>
+      <div class="look">👀 Grey = the mistake on each small batch (jumpy). Blue = the average over the whole epoch (smooth). Going <b>down</b> = learning.</div></div>
     </div>
   </div>
 </section>
@@ -156,7 +168,7 @@
   </ol>
 </section>
 
-<section class="card">
+<section class="card adv">
   <h2>🐍 The full script (run it on Day 1)</h2>
   <pre class="code"><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
 <span class="k">from</span> torch.utils.data <span class="k">import</span> TensorDataset, DataLoader
@@ -371,6 +383,12 @@ $('#speed').onchange=()=>{if(timer){stop();$('#bRun').click();}};
 $('#bData').onclick=()=>{seed++;makeData();reset();};
 window.addEventListener('resize',render);
 makeData();reset();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
 </script>
 </body>
 </html>

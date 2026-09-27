@@ -169,4 +169,6 @@ table.plain th{background:var(--soft)}
 .modebtn{margin-left:auto;font:inherit;font-size:.85rem;font-weight:700;border:2px solid var(--blue);color:var(--blue);background:#fff;border-radius:999px;padding:.25rem .8rem;cursor:pointer;white-space:nowrap}
 .modebtn:hover{background:#e7f0ff}
 body.simple .adv{display:none!important}
+/* plain-words caption under a chart: "what am I looking at?" */
+.look{font-size:.9rem;background:#fff9db;border:1px solid #ffec99;border-radius:10px;padding:.45rem .7rem;margin:.45rem .2rem .2rem;color:#5c4813;line-height:1.5}
 footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
