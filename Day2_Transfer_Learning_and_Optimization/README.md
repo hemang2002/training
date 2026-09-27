@@ -27,8 +27,10 @@ By the end of the day students can …
 | File | Purpose | Runtime (CPU) |
 |---|---|---|
 | `01_transfer_learning_mobilenetv2.ipynb` | Feature extraction vs fine-tuning, final model → `models/` | ~7–10 min (`QUICK_RUN`: ~1 min) |
-| `02_quantization_and_pruning.ipynb` | Baseline, dynamic / static PTQ / FP16 / BF16 / pruning / QAT, comparison charts | ~4 min |
-| `03_onnx_export_and_benchmark.ipynb` | ONNX export + validation, ORT graph optimisations, static INT8 ONNX, `model_card.json` | ~2 min |
+| ⭐ `02_SIMPLE_quantization_and_pruning.ipynb` | **Show this in class first.** 5 steps in plain words: rounding 8 numbers by hand → int8 model (3.5× smaller, same accuracy) → pruning 30 % / 50 % → re-train → comparison chart | ~30 s |
+| ⭐ `03_SIMPLE_onnx.ipynb` | **Show this in class first.** 6 steps: export → same answers? → 8× faster → int8 ONNX → compare → predict one picture without PyTorch. Writes only to `outputs/simple/` (never touches `models/`) | ~15 s |
+| `02_quantization_and_pruning.ipynb` | Full version: baseline, dynamic / static PTQ / FP16 / BF16 / pruning / QAT, comparison charts | ~4 min |
+| `03_onnx_export_and_benchmark.ipynb` | Full version: ONNX export + validation, ORT graph optimisations, static INT8 ONNX, `model_card.json` → **writes the `models/` files Day 3 serves** | ~2 min |
 | `04_student_lab.ipynb` | 6 exercises with TODOs + hidden solutions | ~5 min for all solutions |
 | `scripts/train_and_export.py` | **One-command fallback**: the whole Day-2 pipeline → `models/` | ~6 min |
 | `outputs/` | created by the notebooks (CSV results, temporary ONNX files) | – |
@@ -74,12 +76,12 @@ Relative times (T+0 = start of the session). Lab blocks = **115 min (38 %)**.
 | T+0:55 | 40 | **STUDENT LAB A** | Students run NB01 with `QUICK_RUN=True` (then full, in the background), then **Lab Ex. 1 (backbones, 20 min)** and **Ex. 2 (freezing, 15 min)** | NB01, NB04 |
 | T+1:35 | 10 | Break | | |
 | T+1:45 | 35 | Lecture | Why optimise; number formats; quantization theory (affine mapping, per-tensor/per-channel); dynamic vs static PTQ vs QAT; pruning; distillation | §4.2 |
-| T+2:20 | 20 | Live-code | Notebook 02: manual scale/zero-point demo, static PTQ step by step, pruning, summary chart | NB02 |
-| T+2:40 | 35 | **STUDENT LAB B** | Students run NB02 and fill in the results table (§5); **Lab Ex. 3 (calibration data, 15 min)** and **Ex. 4 (structured pruning, 15 min)** | NB02, NB04 |
+| T+2:20 | 20 | Live-code | **`02_SIMPLE`** on the projector, cell by cell (rounding 8 numbers → int8 model → pruning → re-train → chart). Open the full NB02 only for questions ("why not 4×?", "what about float16?") | NB02 SIMPLE |
+| T+2:40 | 35 | **STUDENT LAB B** | Students run `02_SIMPLE` themselves (30 s), then the full NB02 and fill in the results table (§5); **Lab Ex. 3 (calibration data, 15 min)** and **Ex. 4 (structured pruning, 15 min)** | NB02 SIMPLE, NB02, NB04 |
 | T+3:15 | 10 | Break | | |
 | T+3:25 | 15 | Lecture | TorchScript vs ONNX, ONNX Runtime & execution providers, graph optimisations / operator fusion, why we serve ORT tomorrow | §4.3 |
-| T+3:40 | 15 | Live-code | Notebook 03: export, validate, fusion levels, INT8 ONNX, model card, NumPy-only inference | NB03 |
-| T+3:55 | 40 | **STUDENT LAB C** | Students run NB03; **Lab Ex. 5 (threads, 10 min)** and **Ex. 6 (batch size, 10 min)**; complete the results table; buffer for unfinished exercises | NB03, NB04 |
+| T+3:40 | 15 | Live-code | **`03_SIMPLE_onnx`** on the projector (export → same answers → 8× faster → int8 → one picture without PyTorch). Mention that the full NB03 does the same and writes `models/` + `model_card.json` for Day 3 | NB03 SIMPLE |
+| T+3:55 | 40 | **STUDENT LAB C** | Students run `03_SIMPLE`, then the full NB03; **Lab Ex. 5 (threads, 10 min)** and **Ex. 6 (batch size, 10 min)**; complete the results table; buffer for unfinished exercises | NB03, NB04 |
 | T+4:35 | 25 | Discussion | Results table comparison across students' laptops, discussion questions (§6), pitfalls (§7), recap & homework (§8), preview Day 3 | §5–§8 |
 
 Tips: if training is slow on student laptops, let them use the trainer's `models/` (copied from the script run)
