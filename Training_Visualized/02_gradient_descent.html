@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2 · Gradient descent — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" class="on" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 2 of 8 · ≈ 40 min</div>
+  <h1>Rolling downhill: gradient descent</h1>
+  <p class="one-liner">You are standing on a foggy mountain and want to reach the lowest valley. You can't see far, but you can
+  <b>feel the slope under your feet</b>. So you take a step <b>downhill</b>, feel again, step again. That is the whole algorithm.</p>
+</section>
+
+<section class="card">
+  <h2>📐 The idea in four steps</h2>
+  <div class="grid2">
+    <ol class="steps">
+      <li><b>Feel the slope</b> The slope of the loss at your current knob value is called the <b>gradient</b>.
+        Positive slope means "the loss goes up if you move right".</li>
+      <li><b>Scale it</b> Multiply the slope by a small number called the <b>learning rate</b> (lr). It decides how big a step you take.</li>
+      <li><b>Step the other way</b> Move <i>against</i> the slope, because you want to go <i>down</i>.</li>
+      <li><b>Repeat</b> until the slope is (almost) flat. Flat ground means you are at the bottom of a valley.</li>
+    </ol>
+    <div>
+      <p class="center" style="font-size:1.35rem;font-family:var(--mono);margin-top:1.2rem">w<sub>new</sub> = w<sub>old</sub> − <b style="color:var(--orange)">lr</b> × <b style="color:var(--red)">gradient</b></p>
+      <div class="callout info">
+        <p><b>Why "minus"?</b> If the slope is +4, the loss rises to the right, so we go left (w gets smaller).
+        If the slope is −4, the loss rises to the left, so we go right. The minus sign handles both cases automatically.</p>
+      </div>
+      <p class="small muted">Lesson 1 had 2 knobs. A real network has millions, but the rule is the same: every knob gets its own slope and
+      moves against it, all at the same time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== PART A ======================== -->
+<section class="card">
+  <h2>🏔️ Part A: one knob, one ball</h2>
+  <p class="muted">The curve is the loss for every possible value of one knob <i>w</i>. The ball is where you are now. The dashed line is the slope you "feel".
+  <b>Click on the chart</b> to drop the ball somewhere else.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Landscape</h3>
+      <div class="ctl"><select id="fn1">
+        <option value="bowl">Simple bowl</option>
+        <option value="two">Two valleys</option>
+        <option value="bumps">Many bumps</option>
+        <option value="plateau">Flat plateau</option>
+      </select></div>
+      <div class="small muted" id="formula1"></div>
+      <h3>Settings</h3>
+      <div class="ctl"><label>Learning rate <output id="lrOut"></output></label>
+        <input type="range" id="lr1" min="0" max="14" step="1" value="5"></div>
+      <div class="ctl"><label>Momentum <output id="muOut"></output></label>
+        <input type="range" id="mu1" min="0" max="4" step="1" value="0"></div>
+      <div class="ctl"><label>Speed</label>
+        <select id="speed1"><option value="700">Slow (explain each step)</option><option value="250" selected>Normal</option><option value="50">Fast</option></select></div>
+      <div class="btn-row">
+        <button class="btn primary" id="step1">Step ▶</button>
+        <button class="btn" id="play1">▶▶ Play</button>
+        <button class="btn" id="reset1">↺ Reset</button>
+      </div>
+      <div class="callout try small" style="margin:.6rem 0 0">
+        <b>🧮 Compute it yourself</b>
+        <div id="quizQ" style="margin:.3rem 0"></div>
+        <div style="display:flex;gap:.4rem"><input type="number" id="quizA" step="any" placeholder="next w = ?" style="flex:1;padding:.3rem .5rem;border:1px solid var(--line);border-radius:8px;font:inherit">
+        <button class="btn" id="quizBtn">Check</button></div>
+        <div id="quizR" style="margin-top:.3rem"></div>
+      </div>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat"><b id="t1">0</b><span>Steps</span></div>
+        <div class="stat blue"><b id="w1v">–</b><span>w now</span></div>
+        <div class="stat"><b id="g1v">–</b><span>Slope (gradient)</span></div>
+        <div class="stat orange"><b id="l1v">–</b><span>Loss</span></div>
+      </div>
+      <div id="banner1" class="banner info">Press <b>Step ▶</b> and watch the ball.</div>
+      <div class="canvas-box"><canvas id="cv1" style="height:340px"></canvas>
+        <div class="legend"><span><i style="background:#2f6fed"></i>loss curve</span><span><i style="background:#e03131"></i>slope at the ball</span>
+          <span><i style="background:#f08c00"></i>next step (−lr × slope)</span><span><i style="background:#adb5bd"></i>where the ball has been</span></div></div>
+      <div class="grid2" style="margin-top:.8rem">
+        <div class="canvas-box"><div class="canvas-title">Loss after each step</div><canvas id="cv1b" style="height:170px"></canvas></div>
+        <div>
+          <div class="canvas-title">The last steps, as numbers</div>
+          <div class="tbl-wrap"><table class="tbl" id="tbl1"><thead><tr><th>step</th><th>w</th><th>slope g</th><th id="vHead">v</th><th>− lr × …</th><th>new w</th><th>loss</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Part A challenges: predict first, then press the button</h3>
+  <ol class="challenges">
+    <li><b>Patience vs speed.</b> Simple bowl, lr = 0.1. How many steps until w is within 0.01 of the bottom (w = 1)? Now lr = 0.01.
+      <details class="answer"><summary>Answer</summary>About 28 steps with lr 0.1 and about 308 with lr 0.01. A 10× smaller learning rate needs roughly 10× more steps.
+      Too small a learning rate wastes time (and money on the GPU bill).</details></li>
+    <li><b>The magic number.</b> Predict what happens with lr = 0.5 on the simple bowl. Then press Step once.
+      <details class="answer"><summary>Answer</summary>It lands exactly on the bottom in <b>one</b> step. The slope of (w − 1)² is 2(w − 1), so
+      w − 0.5 × 2(w − 1) = 1. This only works because we know the exact shape of the bowl. Real losses are never this simple.</details></li>
+    <li><b>Too big.</b> Try lr = 0.9, then 1.0, then 1.05. Describe each in one word.
+      <details class="answer"><summary>Answer</summary>0.9: <b>zig-zag</b> (it jumps over the bottom every step but still gets closer).
+      1.0: <b>stuck</b> (it bounces between −4 and 6 forever). 1.05: <b>explodes</b> (each jump is bigger than the last).
+      For this bowl the distance to the bottom is multiplied by (1 − 2·lr) every step. If that number's size is above 1, training diverges.
+      This is what a <code>loss = nan</code> in your notebook usually means.</details></li>
+    <li><b>The trap.</b> Two valleys, lr = 0.05, momentum 0. Where does the ball stop? Is that the lowest point? Now set momentum 0.9 and reset.
+      Finally try momentum 0.9 with lr 0.1.
+      <details class="answer"><summary>Answer</summary>Without momentum it stops at w ≈ 2.07, a <b>local minimum</b> (loss 1.79). The real bottom is at w ≈ −2.37 (loss −0.88).
+      With momentum 0.9 the ball behaves like a heavy ball: it keeps its speed, rolls over the hill and finds the deeper valley.
+      With lr 0.1 and momentum 0.9 it ends up back in the <i>local</i> valley. Momentum often helps, but it is <b>not a guarantee</b>.</details></li>
+    <li><b>Many bumps.</b> Start at 4.5 (the default). Compare momentum 0 → 0.9 → 0.95 with lr 0.05.
+      <details class="answer"><summary>Answer</summary>Momentum 0: stuck in the first dip at 4.08. Momentum 0.9: rolls all the way to the lowest dip at −0.37.
+      Momentum 0.95: rolls <i>past</i> the lowest dip and settles at −1.87. Too much momentum overshoots. PyTorch's common default is 0.9.</details></li>
+    <li><b>The plateau.</b> Flat plateau, lr = 0.3, start at −4. Watch the "Loss after each step" chart. Why is it slow at first and fast later?
+      <details class="answer"><summary>Answer</summary>Far from the valley the ground is almost flat (slope ≈ 0.05), so the steps are tiny. Near the valley it is steep, so the steps are big.
+      Deep networks have plateaus like this too ("vanishing gradients"). Tricks such as ReLU, good initialisation, BatchNorm and Adam exist largely to fight them.</details></li>
+  </ol>
+</section>
+
+<!-- ======================== PART B ======================== -->
+<section class="card">
+  <h2>🏁 Part B: two knobs, four optimizers race</h2>
+  <p class="muted">Now the loss depends on two knobs (x and y), so it is a map. <b>Dark = low loss.</b> Every coloured line is a different
+  <b>optimizer</b> (a different rule for turning the slope into a step). <b>Click the map</b> to choose a new starting point for all of them.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Landscape</h3>
+      <div class="ctl"><select id="fn2">
+        <option value="valley">Long narrow valley</option>
+        <option value="rosen">Banana valley (Rosenbrock)</option>
+        <option value="himmel">Four valleys (Himmelblau)</option>
+        <option value="saddle">Saddle point</option>
+      </select></div>
+      <div class="small muted" id="formula2"></div>
+      <h3>Mini-batch noise</h3>
+      <div class="ctl"><label>Gradient noise <output id="noiseOut2"></output></label>
+        <input type="range" id="noise2" min="0" max="4" step="1" value="0"></div>
+      <p class="small muted" style="margin:0">Real training uses a small random batch of data each step, so each slope is a slightly wrong estimate. This slider adds that randomness.</p>
+      <h3>Run</h3>
+      <div class="ctl"><label>Speed</label><select id="speed2"><option value="1">1 step / frame</option><option value="3" selected>3 steps / frame</option><option value="10">10 steps / frame</option></select></div>
+      <div class="btn-row">
+        <button class="btn primary" id="play2">▶ Race</button>
+        <button class="btn" id="step2">Step</button>
+        <button class="btn" id="reset2">↺ Reset</button>
+      </div>
+      <button class="btn ghost small" id="rec2">Use recommended learning rates</button>
+    </aside>
+    <div class="stage">
+      <div class="canvas-box"><canvas id="cv2" style="height:460px"></canvas></div>
+      <div class="tbl-wrap" style="margin-top:.6rem">
+        <table class="tbl" id="tbl2"><thead><tr><th>Optimizer</th><th>learning rate</th><th>steps</th><th>loss now</th><th>status</th></tr></thead><tbody></tbody></table>
+      </div>
+      <p class="small muted">"Reached" = within 0.05 of a minimum. Each optimizer runs for at most 1500 steps.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧠 The four optimizers in plain words</h2>
+  <div class="grid2">
+    <div><h3 style="color:#e03131">SGD: the careful walker</h3><p>Step = −lr × slope. Simple and predictable. In a narrow valley it zig-zags between the walls.</p>
+      <h3 style="color:#f08c00">Momentum: the heavy ball</h3><p>Remembers its previous direction: velocity = 0.9 × old velocity + slope. It speeds up on long gentle slopes
+      and can roll through small bumps. It may overshoot.</p></div>
+    <div><h3 style="color:#2f9e44">RMSProp: the terrain-aware walker</h3><p>Divides each knob's step by how steep that knob has recently been, so steep knobs take small steps and
+      flat knobs take bigger ones.</p>
+      <h3 style="color:#7048e8">Adam: momentum + RMSProp</h3><p>Combines both ideas. It is the most common default in deep learning (<code>lr=1e-3</code>) because it works
+      reasonably well without much tuning. It is not always the fastest.</p></div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Part B challenges</h3>
+  <ol class="challenges">
+    <li><b>Narrow valley, SGD only.</b> Untick the others. Find the <i>largest</i> SGD learning rate that still works. What happens at 0.5? At 0.55?
+      <details class="answer"><summary>Answer</summary>Just below 0.5 works best (0.45 reaches the minimum in about 48 steps). At exactly 0.5 it bounces between the two walls forever;
+      above 0.5 it explodes. The steep direction (y) limits the learning rate, and the flat direction (x) then moves painfully slowly.
+      That is the core problem Momentum and Adam try to fix.</details></li>
+    <li><b>Banana valley.</b> Press "Use recommended". Then set SGD's learning rate to 0.01. Then try Adam at 0.05, 0.2 and 0.5.
+      <details class="answer"><summary>Answer</summary>SGD at 0.002 reaches the minimum in about 640 steps, but at 0.01 it explodes within 3 steps.
+      Adam reaches it with every lr from 0.05 to 0.5. Adam isn't dramatically faster here, but it is <b>much more forgiving</b> of your learning-rate choice.
+      RMSProp gets into the valley but keeps jiggling and never quite reaches the minimum within 1500 steps.</details></li>
+    <li><b>Four valleys.</b> All four minima have loss 0. Race from the default start, then click four different starting points.
+      <details class="answer"><summary>Answer</summary>Different starts, and even different optimizers from the same start, end in different valleys
+      (from the default start Momentum ends near (−2.8, 3.1) while the others go to (−3.8, −3.3)). All are equally good here.
+      Real networks also have many different, equally good solutions. That's why two training runs with different random seeds give different weights but similar accuracy.</details></li>
+    <li><b>The saddle.</b> Select Saddle point and race. Where do they stop? Is the loss the lowest possible? Now set gradient noise to 0.1 and race again.
+      <details class="answer"><summary>Answer</summary>They all stop at (0, 0) with loss 0, but the real minima are at y = ±1.41 with loss −1.
+      At (0, 0) the slope is exactly zero in every direction (a <b>saddle point</b>: downhill along y, uphill along x), so no optimizer gets a signal to move.
+      With a little noise they fall off the saddle and find a real minimum. This is one reason the "noise" of mini-batches is actually <b>useful</b>.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 In PyTorch</h2>
+  <pre class="code"><span class="k">import</span> torch
+
+optimizer = torch.optim.SGD(model.parameters(), lr=<span class="n">0.1</span>)                 <span class="c"># careful walker</span>
+optimizer = torch.optim.SGD(model.parameters(), lr=<span class="n">0.1</span>, momentum=<span class="n">0.9</span>)   <span class="c"># heavy ball</span>
+optimizer = torch.optim.RMSprop(model.parameters(), lr=<span class="n">1e-3</span>)
+optimizer = torch.optim.Adam(model.parameters(), lr=<span class="n">1e-3</span>)              <span class="c"># the usual default</span>
+
+<span class="c"># inside the training loop, this one line does "w = w - lr * gradient" for EVERY parameter:</span>
+optimizer.step()</pre>
+  <p class="small muted">The Momentum formula here is exactly PyTorch's: <code>v = momentum·v + g</code>, then <code>w = w − lr·v</code>.
+  Adam uses PyTorch's defaults β₁ = 0.9 and β₂ = 0.999; RMSProp uses α = 0.99.</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Your training loss suddenly becomes <code>nan</code> after 200 steps. What is the first thing you try?
+      <details class="answer"><summary>Answer</summary>Lower the learning rate (for example ×0.1). Divergence, like lr 1.05 on the bowl, is the most common cause.
+      Other causes: bad input data (a nan in the dataset), or log(0) in a hand-written loss.</details></li>
+    <li>The gradient at your current point is exactly 0. Are you guaranteed to be at the best solution?
+      <details class="answer"><summary>Answer</summary>No. You could be at a local minimum (two valleys), a saddle point, or on a flat plateau.
+      A zero gradient only means "flat here".</details></li>
+    <li>Why don't we just compute the exact minimum with a formula, like the 🤖 button in Lesson 1 could?
+      <details class="answer"><summary>Answer</summary>For a straight line there is a formula. For a neural network with millions of parameters and nonlinear activations there is
+      no formula, so we must walk downhill step by step.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="01_what_is_a_model.html"><small>← Previous</small>1 · What is a model?</a>
+  <a class="next" href="03_backpropagation.html"><small>Next →</small>3 · Backpropagation: who gets the blame?</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const n4=v=>!Number.isFinite(v)?'∞':Math.abs(v)>=1e5?v.toExponential(2):(+v.toFixed(4)).toString();
+function colorRamp(t){const st=[[11,61,145],[31,120,180],[55,182,164],[168,221,125],[253,230,138]];
+  t=Math.min(1,Math.max(0,t))*(st.length-1);const i=Math.min(st.length-2,Math.floor(t)),f=t-i;return st[i].map((c,k)=>Math.round(c+(st[i+1][k]-c)*f));}
+
+/* ====================== PART A ====================== */
+const F1={
+  bowl:{f:w=>(w-1)**2,g:w=>2*(w-1),start:-4,formula:'L(w) = (w − 1)²  · bottom at w = 1'},
+  two:{f:w=>0.1*w**4-w*w+0.6*w+3,g:w=>0.4*w**3-2*w+0.6,start:4,formula:'L(w) = 0.1w⁴ − w² + 0.6w + 3  · lowest at w ≈ −2.37'},
+  bumps:{f:w=>0.1*w*w+0.25*Math.sin(4*w)+1,g:w=>0.2*w+Math.cos(4*w),start:4.5,formula:'L(w) = 0.1w² + 0.25·sin(4w) + 1  · lowest at w ≈ −0.37'},
+  plateau:{f:w=>1-Math.exp(-((w-1)**2)/8),g:w=>(w-1)/4*Math.exp(-((w-1)**2)/8),start:-4,formula:'L(w) = 1 − exp(−(w − 1)²/8)  · bottom at w = 1'},
+};
+const LR_LIST=[0.001,0.003,0.01,0.03,0.05,0.1,0.2,0.3,0.5,0.7,0.9,0.95,1.0,1.05,1.2];
+const MU_LIST=[0,0.5,0.8,0.9,0.95];
+const A={fn:'bowl',w:-4,v:0,t:0,hist:[],rows:[],diverged:false,timer:null};
+const lr1=()=>LR_LIST[+$('#lr1').value], mu1=()=>MU_LIST[+$('#mu1').value];
+
+function resetA(w0){
+  stopA();const F=F1[A.fn];A.w=w0===undefined?F.start:w0;A.v=0;A.t=0;A.diverged=false;A.rows=[];A.hist=[{t:0,w:A.w,l:F.f(A.w)}];
+  $('#formula1').textContent=F.formula;$('#banner1').className='banner info';$('#banner1').innerHTML='Press <b>Step ▶</b> and watch the ball.';
+  drawA();
+}
+function stepA(){
+  if(A.diverged)return false;
+  const F=F1[A.fn],lr=lr1(),mu=mu1(),g=F.g(A.w);
+  A.v=mu*A.v+g;const d=-lr*A.v,wNew=A.w+d;A.t++;
+  A.rows.push({t:A.t,w:A.w,g,v:A.v,d,wNew,l:F.f(wNew)});if(A.rows.length>200)A.rows.shift();
+  A.w=wNew;const l=F.f(wNew);A.hist.push({t:A.t,w:wNew,l});if(A.hist.length>600)A.hist.shift();
+  const b=$('#banner1');
+  if(!Number.isFinite(wNew)||Math.abs(wNew)>1e6){A.diverged=true;b.className='banner bad';b.innerHTML='💥 <b>Diverged!</b> Every step overshoots more than the last. The learning rate is too big.';stopA();}
+  else if(Math.abs(d)<1e-7&&Math.abs(g)<1e-5){b.className='banner good';b.innerHTML=`✅ Converged after ${A.t} steps: the slope is (almost) zero at w = ${n4(A.w)}. Is this the <i>lowest</i> point on the curve?`;stopA();}
+  else if(Math.abs(A.w)>5){b.className='banner bad';b.innerHTML=`⚠️ The ball has left the chart (w = ${n4(A.w)}). Keep stepping to see if it comes back.`;}
+  else{b.className='banner info';b.innerHTML=`Step ${A.t}: slope was ${n4(g)} → moved by ${n4(d)}.`;}
+  drawA();return true;
+}
+function stopA(){if(A.timer){clearInterval(A.timer);A.timer=null;}$('#play1').textContent='▶▶ Play';}
+function drawA(){
+  const F=F1[A.fn],cv=$('#cv1'),{ctx,w:W,h:H}=setupCanvas(cv),L=48,R=12,T=12,B=34,pw=W-L-R,ph=H-T-B;
+  let lo=Infinity,hi=-Infinity;for(let i=0;i<=400;i++){const v=F.f(-5+i/40);lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;
+  const sx=w=>L+(w+5)/10*pw,sy=v=>T+(hi-v)/(hi-lo)*ph;cv._m={L,pw};
+  ctx.clearRect(0,0,W,H);ctx.font='12px Segoe UI, system-ui, sans-serif';ctx.lineWidth=1;
+  for(let x=-5;x<=5;x++){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(sx(x),T);ctx.lineTo(sx(x),T+ph);ctx.stroke();
+    ctx.fillStyle='#6b7385';ctx.textAlign='center';ctx.fillText(x,sx(x),T+ph+15);}
+  ctx.fillText('w (the knob)',L+pw/2,H-3);ctx.save();ctx.translate(13,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('loss',0,0);ctx.restore();
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+  ctx.strokeStyle='#2f6fed';ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<=500;i++){const w=-5+i/50;i?ctx.lineTo(sx(w),sy(F.f(w))):ctx.moveTo(sx(w),sy(F.f(w)));}ctx.stroke();
+  // trail
+  const tr=A.hist.slice(-40);ctx.strokeStyle='rgba(134,142,150,.55)';ctx.lineWidth=1.3;ctx.beginPath();
+  tr.forEach((p,i)=>{const x=sx(p.w),y=sy(p.l);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+  tr.forEach((p,i)=>{ctx.fillStyle=`rgba(134,142,150,${0.25+0.6*i/tr.length})`;ctx.beginPath();ctx.arc(sx(p.w),sy(p.l),3.2,0,7);ctx.fill();});
+  if(!A.diverged&&Math.abs(A.w)<=5){
+    const g=F.g(A.w),l=F.f(A.w),gp=g*(ph/(hi-lo))/(pw/10),dx=55/Math.sqrt(1+gp*gp)/(pw/10);   // ~55 px long whatever the slope
+    ctx.strokeStyle='#e03131';ctx.setLineDash([6,4]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx(A.w-dx),sy(l-g*dx));ctx.lineTo(sx(A.w+dx),sy(l+g*dx));ctx.stroke();ctx.setLineDash([]);
+    // preview of next step
+    const nv=mu1()*A.v+g,nw=A.w-lr1()*nv,ay=T+ph-10;
+    ctx.strokeStyle='#f08c00';ctx.fillStyle='#f08c00';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(sx(A.w),ay);ctx.lineTo(sx(Math.max(-5.2,Math.min(5.2,nw))),ay);ctx.stroke();
+    const dir=Math.sign(nw-A.w)||1,ex=sx(Math.max(-5.2,Math.min(5.2,nw)));ctx.beginPath();ctx.moveTo(ex,ay);ctx.lineTo(ex-8*dir,ay-6);ctx.lineTo(ex-8*dir,ay+6);ctx.fill();
+    ctx.setLineDash([2,3]);ctx.strokeStyle='rgba(240,140,0,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx(A.w),sy(l));ctx.lineTo(sx(A.w),ay);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(sx(A.w),sy(l),9,0,7);ctx.fillStyle='#1c2230';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+  }
+  ctx.restore();
+  if(!A.diverged&&Math.abs(A.w)>5){ctx.fillStyle='#e03131';ctx.font='bold 13px Segoe UI, sans-serif';ctx.textAlign=A.w>0?'right':'left';
+    ctx.fillText((A.w>0?'ball is off the chart at w = '+n4(A.w)+' →':'← ball is off the chart at w = '+n4(A.w)),A.w>0?L+pw-4:L+4,T+16);}
+  // loss history
+  const c2=$('#cv1b'),o=setupCanvas(c2),x0=40,y0=8,pw2=o.w-x0-8,ph2=o.h-y0-22,g2=o.ctx;
+  const hs=A.hist,n=Math.max(1,hs[hs.length-1].t-hs[0].t);
+  const lo2=lo,hi2=hi,sy2=v=>y0+(hi2-Math.max(lo2,Math.min(hi2,v)))/(hi2-lo2)*ph2;
+  g2.font='11px Segoe UI, sans-serif';g2.fillStyle='#6b7385';g2.textAlign='right';g2.fillText(n4(hi2),x0-4,y0+8);g2.fillText(n4(lo2),x0-4,y0+ph2);
+  g2.textAlign='center';g2.fillText('step',x0+pw2/2,o.h-4);
+  g2.strokeStyle='#e2e4e9';g2.strokeRect(x0,y0,pw2,ph2);g2.strokeStyle='#f08c00';g2.lineWidth=2;g2.beginPath();
+  hs.forEach((p,i)=>{const x=x0+(p.t-hs[0].t)/n*pw2,y=sy2(p.l);i?g2.lineTo(x,y):g2.moveTo(x,y);});g2.stroke();
+  // numbers
+  $('#t1').textContent=A.t;$('#w1v').textContent=n4(A.w);$('#g1v').textContent=A.diverged?'–':n4(F.g(A.w));$('#l1v').textContent=A.diverged?'∞':n4(F.f(A.w));
+  $('#lrOut').textContent=lr1();$('#muOut').textContent=mu1();
+  const useMu=mu1()>0;$('#vHead').textContent=useMu?'velocity v':'(v = g)';
+  $('#tbl1 tbody').innerHTML=A.rows.slice(-6).map(r=>`<tr${r===A.rows[A.rows.length-1]?' class="hl"':''}><td>${r.t}</td><td>${n4(r.w)}</td><td>${n4(r.g)}</td><td>${n4(r.v)}</td><td>${n4(r.d)}</td><td>${n4(r.wNew)}</td><td>${n4(r.l)}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">No steps yet</td></tr>';
+  // quiz
+  if(A.diverged){$('#quizQ').textContent='(diverged: press Reset)';return;}
+  const g=F.g(A.w);
+  $('#quizQ').innerHTML=useMu
+    ?`w = <b>${n4(A.w)}</b>, slope = <b>${n4(g)}</b>, old v = <b>${n4(A.v)}</b>, momentum = ${mu1()}, lr = <b>${lr1()}</b><br>v = ${mu1()}·v + slope, then next w = w − lr·v`
+    :`w = <b>${n4(A.w)}</b>, slope = <b>${n4(g)}</b>, lr = <b>${lr1()}</b><br>next w = w − lr × slope = ?`;
+}
+$('#fn1').onchange=e=>{A.fn=e.target.value;resetA();$('#quizR').textContent='';};
+$('#lr1').oninput=()=>drawA();$('#mu1').oninput=()=>drawA();
+$('#step1').onclick=()=>{stopA();stepA();$('#quizR').textContent='';};
+$('#reset1').onclick=()=>{resetA();$('#quizR').textContent='';};
+$('#play1').onclick=()=>{if(A.timer){stopA();return;}if(A.diverged)resetA();$('#play1').textContent='⏸ Pause';
+  A.timer=setInterval(()=>{if(!stepA()||A.t>=2000)stopA();},+$('#speed1').value);};
+$('#speed1').onchange=()=>{if(A.timer){stopA();$('#play1').click();}};
+$('#cv1').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect(),{L,pw}=e.currentTarget._m,x=e.clientX-r.left-L;
+  if(x<0||x>pw)return;resetA(Math.round((-5+x/pw*10)*100)/100);});
+$('#quizBtn').onclick=()=>{
+  if(A.diverged)return;const F=F1[A.fn],g=F.g(A.w),v=mu1()*A.v+g,truth=A.w-lr1()*v,ans=parseFloat($('#quizA').value);
+  if(!Number.isFinite(ans)){$('#quizR').innerHTML='Type a number first.';return;}
+  const ok=Math.abs(ans-truth)<=Math.max(0.01,Math.abs(truth)*0.005);
+  $('#quizR').innerHTML=ok?`✅ Correct! next w = ${n4(truth)}. Stepping…`:`❌ Not quite. It is ${n4(truth)} = ${n4(A.w)} − ${lr1()} × ${n4(v)}. Stepping…`;
+  $('#quizA').value='';stopA();stepA();};
+
+/* ====================== PART B ====================== */
+const F2={
+  valley:{f:(x,y)=>0.1*x*x+2*y*y,g:(x,y)=>[0.2*x,4*y],dom:[-5,5,-2.5,2.5],start:[-4.5,1.5],min:[[0,0]],c:0.01,scale:1,
+    rec:{sgd:0.4,mom:0.05,rms:0.05,adam:0.2},formula:'L = 0.1x² + 2y²  (steep in y, flat in x)'},
+  rosen:{f:(x,y)=>(1-x)**2+100*(y-x*x)**2,g:(x,y)=>[-2*(1-x)-400*x*(y-x*x),200*(y-x*x)],dom:[-2,2,-1,3],start:[-1.5,2.5],min:[[1,1]],c:0.05,scale:10,
+    rec:{sgd:0.002,mom:0.001,rms:0.01,adam:0.1},formula:'L = (1 − x)² + 100(y − x²)²  · minimum at (1, 1)'},
+  himmel:{f:(x,y)=>(x*x+y-11)**2+(x+y*y-7)**2,g:(x,y)=>[4*x*(x*x+y-11)+2*(x+y*y-7),2*(x*x+y-11)+4*y*(x+y*y-7)],dom:[-5,5,-5,5],start:[0,-4.5],
+    min:[[3,2],[-2.805,3.131],[-3.779,-3.283],[3.584,-1.848]],c:0.5,scale:10,rec:{sgd:0.01,mom:0.003,rms:0.05,adam:0.1},formula:'L = (x² + y − 11)² + (x + y² − 7)²  · four minima, all with loss 0'},
+  saddle:{f:(x,y)=>0.5*x*x+0.25*y**4-y*y,g:(x,y)=>[x,y**3-2*y],dom:[-5,5,-2.5,2.5],start:[4,0],min:[[0,Math.SQRT2],[0,-Math.SQRT2]],c:0.05,scale:1,
+    rec:{sgd:0.1,mom:0.01,rms:0.03,adam:0.1},formula:'L = 0.5x² + 0.25y⁴ − y²  · saddle at (0,0), minima at y = ±1.41'},
+};
+const NOISE_LIST=[0,0.1,0.3,1,3];
+const OPTS=[{id:'sgd',name:'SGD',color:'#e03131'},{id:'mom',name:'Momentum',color:'#f08c00'},{id:'rms',name:'RMSProp',color:'#2f9e44'},{id:'adam',name:'Adam',color:'#b197fc'}];
+const B={fn:'valley',start:null,runs:[],timer:null,img:null,on:{sgd:true,mom:true,rms:true,adam:true},lr:{}};
+const MAX2=1500;
+
+function buildImg(){
+  const F=F2[B.fn],[x0,x1,y0,y1]=F.dom,GW=260,GH=Math.round(GW*(y1-y0)/(x1-x0)*0.9)||200,vals=new Float64Array(GW*GH);
+  let fmin=Infinity;for(const m of F.min)fmin=Math.min(fmin,F.f(m[0],m[1]));
+  let lo=Infinity,hi=-Infinity;
+  for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const x=x0+(i+.5)/GW*(x1-x0),y=y1-(j+.5)/GH*(y1-y0),v=Math.log(Math.max(0,F.f(x,y)-fmin)+F.c);vals[j*GW+i]=v;lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  const c=document.createElement('canvas');c.width=GW;c.height=GH;const g=c.getContext('2d'),img=g.createImageData(GW,GH),NB=16;
+  const band=k=>Math.floor((vals[k]-lo)/(hi-lo)*NB);
+  for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const k=j*GW+i,bd=band(k);let [r,gg,bb]=colorRamp(bd/NB);
+    if((i<GW-1&&band(k+1)!==bd)||(j<GH-1&&band(k+GW)!==bd)){r*=0.8;gg*=0.8;bb*=0.8;}
+    img.data[4*k]=r;img.data[4*k+1]=gg;img.data[4*k+2]=bb;img.data[4*k+3]=255;}
+  g.putImageData(img,0,0);B.img=c;
+}
+function resetB(){
+  stopB();const F=F2[B.fn],s=B.start||F.start,rng=mulberry32(1234);
+  B.runs=OPTS.filter(o=>B.on[o.id]).map(o=>({o,x:s[0],y:s[1],t:0,v:[0,0],s:[0,0],m:[0,0],path:[[s[0],s[1]]],status:'ready',reachedAt:-1,rng:mulberry32(99+o.id.length*17)}));
+  $('#formula2').textContent=F.formula;$('#noiseOut2').textContent=NOISE_LIST[+$('#noise2').value];
+  drawB();renderTable();
+}
+function stepRun(r){
+  if(r.status==='diverged'||r.t>=MAX2)return;
+  const F=F2[B.fn],lr=B.lr[r.o.id],sig=NOISE_LIST[+$('#noise2').value]*F.scale,g=F.g(r.x,r.y);
+  if(sig>0){g[0]+=sig*gauss(r.rng);g[1]+=sig*gauss(r.rng);}
+  r.t++;const d=[0,0];
+  for(let i=0;i<2;i++){
+    if(r.o.id==='sgd')d[i]=lr*g[i];
+    else if(r.o.id==='mom'){r.v[i]=0.9*r.v[i]+g[i];d[i]=lr*r.v[i];}
+    else if(r.o.id==='rms'){r.s[i]=0.99*r.s[i]+0.01*g[i]*g[i];d[i]=lr*g[i]/(Math.sqrt(r.s[i])+1e-8);}
+    else{r.m[i]=0.9*r.m[i]+0.1*g[i];r.s[i]=0.999*r.s[i]+0.001*g[i]*g[i];
+      d[i]=lr*(r.m[i]/(1-0.9**r.t))/(Math.sqrt(r.s[i]/(1-0.999**r.t))+1e-8);}
+  }
+  r.x-=d[0];r.y-=d[1];
+  if(!Number.isFinite(r.x)||!Number.isFinite(r.y)||Math.abs(r.x)>1e4||Math.abs(r.y)>1e4){r.status='diverged';return;}
+  r.path.push([r.x,r.y]);
+  const dm=Math.min(...F.min.map(m=>Math.hypot(r.x-m[0],r.y-m[1])));
+  if(dm<0.05&&r.reachedAt<0)r.reachedAt=r.t;
+  r.status=r.reachedAt>0?'reached':(r.t>=MAX2?'done':'running');
+}
+function stepAll(){B.runs.forEach(stepRun);}
+function allDone(){return B.runs.every(r=>r.status==='diverged'||r.t>=MAX2);}
+function stopB(){if(B.timer){cancelAnimationFrame(B.timer);B.timer=null;}$('#play2').textContent='▶ Race';}
+function loopB(){const k=+$('#speed2').value;for(let i=0;i<k;i++)stepAll();drawB();renderTable(true);
+  if(allDone()){stopB();return;}B.timer=requestAnimationFrame(loopB);}
+function drawB(){
+  if(!B.img)buildImg();
+  const F=F2[B.fn],[x0,x1,y0,y1]=F.dom,cv=$('#cv2'),{ctx,w:W,h:H}=setupCanvas(cv),L=40,R=10,T=10,Bm=30,pw=W-L-R,ph=H-T-Bm;
+  const sx=x=>L+(x-x0)/(x1-x0)*pw,sy=y=>T+(y1-y)/(y1-y0)*ph;cv._m={L,T,pw,ph};
+  ctx.clearRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.drawImage(B.img,L,T,pw,ph);
+  ctx.font='12px Segoe UI, sans-serif';ctx.fillStyle='#6b7385';ctx.textAlign='center';
+  for(let i=0;i<=4;i++){const x=x0+i*(x1-x0)/4;ctx.fillText(+x.toFixed(2),sx(x),T+ph+15);}ctx.fillText('x',L+pw/2,H-2);
+  ctx.textAlign='right';for(let i=0;i<=4;i++){const y=y0+i*(y1-y0)/4;ctx.fillText(+y.toFixed(2),L-5,sy(y)+4);}
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+  ctx.font='bold 18px Segoe UI, sans-serif';ctx.textAlign='center';
+  F.min.forEach(m=>{ctx.fillStyle='#fff';ctx.fillText('★',sx(m[0]),sy(m[1])+6);});
+  B.runs.forEach(r=>{
+    ctx.lineJoin='round';
+    for(const [lw,col] of [[5,'rgba(255,255,255,.75)'],[2.4,r.o.color]]){ctx.lineWidth=lw;ctx.strokeStyle=col;ctx.beginPath();
+      r.path.forEach((p,i)=>{const x=sx(Math.max(x0-10,Math.min(x1+10,p[0]))),y=sy(Math.max(y0-10,Math.min(y1+10,p[1])));i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}
+    const p=r.path[r.path.length-1];ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),6,0,7);ctx.fillStyle=r.o.color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
+  });
+  const s=B.start||F.start;ctx.beginPath();ctx.arc(sx(s[0]),sy(s[1]),7,0,7);ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+  ctx.restore();
+}
+function renderTable(onlyNums){
+  const F=F2[B.fn],tb=$('#tbl2 tbody');
+  if(!onlyNums||tb.children.length!==OPTS.length){
+    tb.innerHTML=OPTS.map(o=>`<tr data-id="${o.id}"><td><label class="check" style="margin:0"><input type="checkbox" data-on="${o.id}" ${B.on[o.id]?'checked':''}>
+      <i style="display:inline-block;width:.9rem;height:.9rem;border-radius:3px;background:${o.color}"></i> ${o.name}</label></td>
+      <td><input type="number" data-lr="${o.id}" value="${B.lr[o.id]}" step="any" min="0" style="width:6.5rem;padding:.2rem .4rem;border:1px solid var(--line);border-radius:6px;font:inherit;font-family:var(--mono)"></td>
+      <td data-f="t"></td><td data-f="l"></td><td data-f="s"></td></tr>`).join('');
+    tb.querySelectorAll('[data-on]').forEach(el=>el.onchange=()=>{B.on[el.dataset.on]=el.checked;resetB();});
+    tb.querySelectorAll('[data-lr]').forEach(el=>el.onchange=()=>{const v=parseFloat(el.value);if(v>0){B.lr[el.dataset.lr]=v;resetB();}else el.value=B.lr[el.dataset.lr];});
+  }
+  OPTS.forEach(o=>{const tr=tb.querySelector(`tr[data-id="${o.id}"]`),r=B.runs.find(q=>q.o===o);
+    const set=(f,v)=>tr.querySelector(`[data-f="${f}"]`).innerHTML=v;
+    if(!r){set('t','–');set('l','–');set('s','<span class="muted">off</span>');return;}
+    set('t',r.t);set('l',r.status==='diverged'?'∞':n4(F.f(r.x,r.y)));
+    set('s',r.status==='diverged'?`<b style="color:var(--red)">💥 diverged</b>`:r.reachedAt>0?`<b style="color:var(--green)">✓ reached at step ${r.reachedAt}</b>`:r.t>=MAX2?'✗ not reached':r.t?'running…':'ready');});
+}
+function setRec(){const F=F2[B.fn];OPTS.forEach(o=>B.lr[o.id]=F.rec[o.id]);}
+$('#fn2').onchange=e=>{B.fn=e.target.value;B.start=null;B.img=null;setRec();renderTable();resetB();};
+$('#rec2').onclick=()=>{setRec();renderTable();resetB();};
+$('#noise2').oninput=()=>resetB();
+$('#reset2').onclick=()=>resetB();
+$('#step2').onclick=()=>{stopB();stepAll();drawB();renderTable(true);};
+$('#play2').onclick=()=>{if(B.timer){stopB();return;}if(allDone())resetB();$('#play2').textContent='⏸ Pause';B.timer=requestAnimationFrame(loopB);};
+$('#cv2').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect(),{L,T,pw,ph}=e.currentTarget._m,x=e.clientX-r.left-L,y=e.clientY-r.top-T;
+  if(x<0||y<0||x>pw||y>ph)return;const [x0,x1,y0,y1]=F2[B.fn].dom;B.start=[x0+x/pw*(x1-x0),y1-y/ph*(y1-y0)];resetB();});
+window.addEventListener('resize',()=>{drawA();drawB();});
+
+setRec();resetA();renderTable();resetB();
+</script>
+</body>
+</html>

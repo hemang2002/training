@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7 · How a CNN sees — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:210px}
+  .kgrid input{width:100%;text-align:center;font-family:var(--mono);font-size:.95rem;padding:.35rem 0;border:1px solid var(--line);border-radius:6px}
+  .maps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem}
+  @media (max-width:900px){.maps{grid-template-columns:1fr}}
+  .maps canvas{width:100%;aspect-ratio:1;display:block;image-rendering:pixelated;border-radius:6px;border:1px solid var(--line);cursor:crosshair}
+  .calc{display:grid;grid-template-columns:repeat(3,auto);gap:3px;font-family:var(--mono);font-size:.8rem;justify-content:start}
+  .calc span{background:var(--soft);padding:.15rem .35rem;border-radius:4px;text-align:right;min-width:4.6rem}
+  .bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.7rem}
+  .bank figure{margin:0;text-align:center;font-size:.8rem;color:var(--muted)}
+  .bank canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;border-radius:6px;border:1px solid var(--line)}
+  .presets{display:flex;flex-wrap:wrap;gap:.3rem}
+  .presets button{font:inherit;font-size:.85rem;border:1px solid var(--line);background:#fff;border-radius:7px;padding:.2rem .5rem;cursor:pointer}
+  .presets button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" class="on" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 7 of 8 · ≈ 30 min</div>
+  <h1>How a CNN sees</h1>
+  <p class="one-liner">A convolution slides a tiny 3×3 <b>stencil</b> (the <b>kernel</b>) over the image. At every position it multiplies, adds up, and writes one number.
+  Different stencils light up different patterns: edges, corners, blobs. A CNN <b>learns</b> the stencil numbers with gradient descent.</p>
+</section>
+
+<section class="card">
+  <h2>✏️ 1. Draw something, pick a kernel</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Input image (28 × 28)</h3>
+      <div class="presets" id="imgPresets"></div>
+      <p class="small muted" style="margin:.4rem 0 0">Draw on the left image with the mouse. Right-click (or tick Eraser) to erase.</p>
+      <label class="check"><input type="checkbox" id="eraser"> Eraser</label>
+      <h3>Kernel (3 × 3)</h3>
+      <div class="presets" id="kPresets"></div>
+      <div class="kgrid" id="kgrid" style="margin-top:.5rem"></div>
+      <p class="small muted" style="margin:.3rem 0 0">Edit any number to make your own kernel.</p>
+      <h3>Layer settings</h3>
+      <div class="ctl"><label>Padding <output id="padOut"></output></label><input type="range" id="pad" min="0" max="1" value="0"></div>
+      <div class="ctl"><label>Stride <output id="strOut"></output></label><input type="range" id="str" min="1" max="2" value="1"></div>
+      <label class="check"><input type="checkbox" id="relu" checked> Apply ReLU (keep only positives)</label>
+      <label class="check"><input type="checkbox" id="pool" checked> Max-pool 2 × 2</label>
+    </aside>
+    <div class="stage">
+      <div class="banner info" id="shapes"></div>
+      <div class="maps">
+        <div><div class="canvas-title">Input <span id="inShape"></span></div><canvas id="cin" width="280" height="280"></canvas></div>
+        <div><div class="canvas-title">Feature map after conv<span id="reluTag"></span> <span id="outShape"></span></div><canvas id="cout" width="280" height="280"></canvas></div>
+        <div><div class="canvas-title">After max-pool <span id="poolShape"></span></div><canvas id="cpool" width="280" height="280"></canvas></div>
+      </div>
+      <div class="legend"><span><i style="background:#2f6fed"></i>positive response (pattern found)</span><span><i style="background:#f08c00"></i>negative response</span><span>white = 0 · hover the middle map to inspect one output</span></div>
+      <div class="grid2" style="margin-top:.7rem">
+        <div class="explain" id="calcBox"></div>
+        <div>
+          <div class="btn-row"><button class="btn primary" id="anim">▶ Animate the sliding window</button><button class="btn" id="stepW">Step ▶</button></div>
+          <div class="ctl"><label>Animation speed</label><select id="spd"><option value="250">Slow</option><option value="60" selected>Normal</option><option value="8">Fast</option></select></div>
+          <p class="small muted">The orange square on the input is the 3×3 window; the orange cell on the feature map is where its result is written.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧮 The one-number recipe</h2>
+  <ol class="steps">
+    <li><b>Place the 3×3 window</b> on the image (top-left first).</li>
+    <li><b>Multiply</b> each of the 9 pixels by the kernel number in the same spot.</li>
+    <li><b>Add</b> the 9 products (plus a bias, 0 here). That's one output number.</li>
+    <li><b>Slide</b> by the stride (1 or 2 pixels) and repeat until the whole image is covered.</li>
+    <li><b>ReLU</b> sets negative outputs to 0. <b>Max-pool</b> keeps the largest value in every 2×2 block, halving width and height.</li>
+  </ol>
+  <p class="center" style="font-family:var(--mono);font-size:1.05rem">output size = ⌊(input + 2·padding − kernel) / stride⌋ + 1</p>
+</section>
+
+<section class="card">
+  <h2>🗂️ 2. Many kernels = many channels</h2>
+  <p>A real conv layer applies <b>many</b> kernels to the same input. <code>nn.Conv2d(1, 6, kernel_size=3)</code> has 6 kernels and produces 6 feature maps (called <b>channels</b>).
+  Below: six hand-made kernels on your drawing (conv + ReLU, padding 1). In a trained CNN nobody hand-makes these; the numbers are <b>learned</b> by backprop, exactly like w and b in Lesson 3.</p>
+  <div class="bank" id="bank"></div>
+</section>
+
+<section class="card">
+  <h2>💰 3. Why not just use a normal (dense) layer?</h2>
+  <div class="grid2">
+    <div>
+      <div class="ctl"><label>Image size (H = W) <output id="hOut"></output></label><input type="range" id="ph" min="8" max="224" step="4" value="28"></div>
+      <div class="ctl"><label>Input channels <output id="cinOut"></output></label><input type="range" id="pcin" min="1" max="3" value="1"></div>
+      <div class="ctl"><label>Number of kernels (output channels) <output id="coutOut"></output></label><input type="range" id="pcout" min="1" max="128" value="32"></div>
+    </div>
+    <div id="pcalc"></div>
+  </div>
+  <p class="small muted">A conv layer reuses the same small kernel at every position (<b>weight sharing</b>) and only looks at nearby pixels (<b>local connectivity</b>).
+  That is why CNNs need far fewer parameters and why a cat is recognised whether it sits on the left or the right of the photo.</p>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this</h3>
+  <ol class="challenges">
+    <li><b>Edge detectors.</b> Draw (or pick) the digit 1 and choose "Vertical edges". Then "Horizontal edges". Which parts light up?
+      <details class="answer"><summary>Answer</summary>Vertical edges: the left and right sides of the stroke respond (blue on one side, orange on the other, because this Sobel kernel
+      computes "right minus left"). Horizontal edges respond at the top and bottom ends. With ReLU on, only one side (the positive one) survives.
+      The first layer of a trained CNN typically learns kernels just like these.</details></li>
+    <li><b>Predict the size.</b> Before changing anything, compute the feature-map size for padding 1, stride 2 using the formula. Then check.
+      <details class="answer"><summary>Answer</summary>⌊(28 + 2 − 3) / 2⌋ + 1 = ⌊27 / 2⌋ + 1 = 14. With max-pool 2×2 it becomes 7×7.
+      Padding 0, stride 1 gives 26×26: the border shrinks by one pixel on each side, because the window can't be centred on the edge pixels.</details></li>
+    <li><b>Build your own.</b> Make a kernel that detects a <i>horizontal</i> line but ignores vertical ones. Test it on the "+" shape.
+      <details class="answer"><summary>Answer</summary>For example rows [−1 −1 −1], [2 2 2], [−1 −1 −1]. On a horizontal bright line the middle row gives a big positive sum.
+      A vertical line touches one pixel in each row, the middle column, so it gets −1 + 2 − 1 = 0. The numbers in a kernel sum to 0 here, so flat areas give 0 too.</details></li>
+    <li><b>Blur vs sharpen.</b> Try Blur and Sharpen on a digit, with ReLU off. What does the sum of the kernel's 9 numbers tell you?
+      <details class="answer"><summary>Answer</summary>Blur's numbers sum to 1 (average of the neighbourhood), and Sharpen's also sum to 1 (5 − 4), so flat areas keep their brightness.
+      Edge kernels sum to 0, so flat areas become 0 and only changes light up.</details></li>
+    <li><b>Pooling = forgiving position.</b> Draw a small dot, note which pooled cell lights up, then move the dot by one pixel.
+      <details class="answer"><summary>Answer</summary>Often the same pooled cell still lights up, because max-pool keeps the strongest value in each 2×2 block. Small shifts don't matter much.
+      That's part of why CNNs are robust to where exactly an object appears.</details></li>
+    <li><b>Parameter shock.</b> In the calculator, set the image to 224 (ImageNet size), 3 input channels, 64 kernels. Compare the two layers.
+      <details class="answer"><summary>Answer</summary>Conv: (3·3·3 + 1)·64 = 1,792 parameters. A dense layer producing the same 224·224·64 outputs from 224·224·3 inputs would need
+      about 483 billion parameters, which is impossible to train or even store. Weight sharing is what makes deep learning on images possible.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 Your Day-1 CNN, decoded</h2>
+  <pre class="code">nn.Conv2d(<span class="n">1</span>, <span class="n">32</span>, kernel_size=<span class="n">3</span>, padding=<span class="n">1</span>), nn.ReLU(),    <span class="c"># 32 learned 3x3 kernels: 1x28x28 -> 32x28x28   (320 params)</span>
+nn.MaxPool2d(<span class="n">2</span>),                                    <span class="c"># 32x28x28 -> 32x14x14                             (0 params)</span>
+nn.Conv2d(<span class="n">32</span>, <span class="n">64</span>, kernel_size=<span class="n">3</span>, padding=<span class="n">1</span>), nn.ReLU(),   <span class="c"># each kernel is 32x3x3: -> 64x14x14            (18,496 params)</span>
+nn.MaxPool2d(<span class="n">2</span>),                                    <span class="c"># -> 64x7x7</span>
+nn.Flatten(),
+nn.Linear(<span class="n">64</span> * <span class="n">7</span> * <span class="n">7</span>, <span class="n">128</span>), nn.ReLU(),                  <span class="c"># 3136 -> 128                                  (401,536 params)</span>
+nn.Linear(<span class="n">128</span>, n_classes)                            <span class="c"># 128 -> 10                                    (1,290 params)</span></pre>
+  <p class="small muted">Note: the two conv layers together have fewer than 19,000 parameters, while the first Linear layer alone has 401,536.
+  Most parameters in small CNNs live in the dense "head". That's also why Day 2's dynamic quantization (which targets Linear layers) still shrinks CNNs.
+  PyTorch's Conv2d computes exactly the multiply-and-add shown on this page (technically cross-correlation: the kernel is not flipped).</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>A 3×3 kernel on an RGB image: how many numbers does one kernel contain?
+      <details class="answer"><summary>Answer</summary>3 × 3 × 3 = 27 weights (plus 1 bias). A kernel always spans all input channels.</details></li>
+    <li>Why do deeper layers "see" bigger patterns even though each kernel is only 3×3?
+      <details class="answer"><summary>Answer</summary>Each layer looks at a 3×3 patch of the <i>previous</i> feature map, and pooling shrinks the map.
+      So one value deep in the network depends on a large area of the original image (its <b>receptive field</b>). Edges → corners → parts → objects.</details></li>
+    <li>What does the network learn during training in a conv layer?
+      <details class="answer"><summary>Answer</summary>Only the kernel numbers and biases. The sliding, multiplying and pooling are fixed operations.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="06_overfitting.html"><small>← Previous</small>6 · Overfitting</a>
+  <a class="next" href="08_quantization_pruning.html"><small>Next →</small>8 · Making models small</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+const S=28;let img=new Float32Array(S*S),kern=[0,0,0,0,1,0,0,0,0],kName='vert',pos=0,animT=null;
+const KERNELS={
+  identity:{name:'Identity',k:[0,0,0,0,1,0,0,0,0]},
+  vert:{name:'Vertical edges',k:[-1,0,1,-2,0,2,-1,0,1]},
+  horiz:{name:'Horizontal edges',k:[-1,-2,-1,0,0,0,1,2,1]},
+  outline:{name:'Outline',k:[-1,-1,-1,-1,8,-1,-1,-1,-1]},
+  blur:{name:'Blur',k:[1/9,1/9,1/9,1/9,1/9,1/9,1/9,1/9,1/9]},
+  sharpen:{name:'Sharpen',k:[0,-1,0,-1,5,-1,0,-1,0]},
+  diag:{name:'Diagonal ↘',k:[2,-1,-1,-1,2,-1,-1,-1,2]},
+};
+const fmt=v=>{const r=Math.round(v*100)/100;return (Object.is(r,-0)?0:r).toString();};
+
+// ---------- image presets ----------
+function fromCanvas(draw){const c=document.createElement('canvas');c.width=S;c.height=S;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,S,S);g.fillStyle='#fff';g.strokeStyle='#fff';draw(g);
+  const d=g.getImageData(0,0,S,S).data;for(let i=0;i<S*S;i++)img[i]=Math.round(d[4*i]/255*100)/100;}
+const IMG_PRESETS={
+  '7':g=>{g.font='bold 24px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('7',14,15);},
+  '1':g=>{g.font='bold 24px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('1',14,15);},
+  '0':g=>{g.font='bold 24px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('0',14,15);},
+  '4':g=>{g.font='bold 24px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('4',14,15);},
+  '+':g=>{g.fillRect(12,4,4,20);g.fillRect(4,12,20,4);},
+  'Square':g=>{g.lineWidth=3;g.strokeRect(6.5,6.5,15,15);},
+  'X':g=>{g.lineWidth=3;g.beginPath();g.moveTo(5,5);g.lineTo(23,23);g.moveTo(23,5);g.lineTo(5,23);g.stroke();},
+  'T-shirt':g=>{g.beginPath();g.moveTo(9,4);g.lineTo(19,4);g.lineTo(26,9);g.lineTo(22,13);g.lineTo(20,11);g.lineTo(20,24);g.lineTo(8,24);g.lineTo(8,11);g.lineTo(6,13);g.lineTo(2,9);g.closePath();g.fill();},
+  'Dot':g=>{g.fillRect(12,12,2,2);},
+  'Clear':g=>{},
+};
+function renderImgPresets(){const box=$('#imgPresets');box.innerHTML='';for(const k in IMG_PRESETS){const b=document.createElement('button');b.textContent=k;
+  b.onclick=()=>{fromCanvas(IMG_PRESETS[k]);update();};box.appendChild(b);}}
+function renderKPresets(){const box=$('#kPresets');box.innerHTML='';for(const k in KERNELS){const b=document.createElement('button');b.textContent=KERNELS[k].name;b.className=k===kName?'on':'';
+  b.onclick=()=>{kName=k;kern=[...KERNELS[k].k];renderKPresets();renderKGrid();update();};box.appendChild(b);}
+  const c=document.createElement('button');c.textContent='Custom';c.className=kName==='custom'?'on':'';c.onclick=()=>{kName='custom';renderKPresets();};box.appendChild(c);}
+function renderKGrid(){const g=$('#kgrid');g.innerHTML='';kern.forEach((v,i)=>{const inp=document.createElement('input');inp.type='number';inp.step='0.1';inp.value=fmt(v);
+  inp.oninput=()=>{const x=parseFloat(inp.value);if(Number.isFinite(x)){kern[i]=x;if(kName!=='custom'){kName='custom';renderKPresets();}update();}};g.appendChild(inp);});}
+
+// ---------- convolution (cross-correlation, like PyTorch) ----------
+function conv(input,k,pad,stride){
+  const O=Math.floor((S+2*pad-3)/stride)+1,out=new Float32Array(O*O);
+  for(let oy=0;oy<O;oy++)for(let ox=0;ox<O;ox++){let s=0;for(let ky=0;ky<3;ky++)for(let kx=0;kx<3;kx++){const y=oy*stride+ky-pad,x=ox*stride+kx-pad;
+    if(y>=0&&y<S&&x>=0&&x<S)s+=input[y*S+x]*k[ky*3+kx];}out[oy*O+ox]=s;}
+  return {O,out};
+}
+function relu(a){return a.map(v=>v>0?v:0);}
+function maxpool(a,O){const P=Math.floor(O/2),out=new Float32Array(P*P);
+  for(let y=0;y<P;y++)for(let x=0;x<P;x++)out[y*P+x]=Math.max(a[(2*y)*O+2*x],a[(2*y)*O+2*x+1],a[(2*y+1)*O+2*x],a[(2*y+1)*O+2*x+1]);return {P,out};}
+function settings(){return {pad:+$('#pad').value,stride:+$('#str').value,relu:$('#relu').checked,pool:$('#pool').checked};}
+function forward(k=kern,st=settings()){const c=conv(img,k,st.pad,st.stride),fm=st.relu?relu(c.out):c.out,p=maxpool(fm,c.O);return {O:c.O,raw:c.out,fm,P:p.P,pooled:p.out};}
+
+// ---------- drawing ----------
+function drawMap(cv,arr,n,opts={}){
+  const g=cv.getContext('2d'),W=cv.width,cell=W/n;g.clearRect(0,0,W,W);
+  let m=opts.gray?1:1e-9;if(!opts.gray)for(const v of arr)m=Math.max(m,Math.abs(v));
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){const v=arr[y*n+x];
+    if(opts.gray){const c=Math.round(255-v*235);g.fillStyle=`rgb(${c},${c},${c})`;}
+    else{const t=Math.min(1,Math.abs(v)/m),c=v>=0?[47,111,237]:[240,140,0];g.fillStyle=`rgb(${Math.round(255+(c[0]-255)*t)},${Math.round(255+(c[1]-255)*t)},${Math.round(255+(c[2]-255)*t)})`;}
+    g.fillRect(x*cell,y*cell,Math.ceil(cell),Math.ceil(cell));}
+  if(n<=30){g.strokeStyle='rgba(0,0,0,.06)';g.lineWidth=1;for(let i=1;i<n;i++){g.beginPath();g.moveTo(i*cell,0);g.lineTo(i*cell,W);g.moveTo(0,i*cell);g.lineTo(W,i*cell);g.stroke();}}
+  return cell;
+}
+function update(){
+  const st=settings(),f=forward();
+  $('#padOut').textContent=st.pad;$('#strOut').textContent=st.stride;
+  $('#inShape').textContent='(1×28×28)';$('#outShape').textContent=`(1×${f.O}×${f.O})`;$('#poolShape').textContent=st.pool?`(1×${f.P}×${f.P})`:'(pooling off)';
+  $('#reluTag').textContent=st.relu?' + ReLU':'';
+  $('#shapes').innerHTML=`28×28 → conv 3×3 (padding ${st.pad}, stride ${st.stride}) → <b>⌊(28 + ${2*st.pad} − 3) / ${st.stride}⌋ + 1 = ${f.O}</b> → ${f.O}×${f.O}`+
+    (st.pool?` → max-pool 2×2 → <b>${f.P}×${f.P}</b>`:'');
+  drawMap($('#cin'),img,S,{gray:true});drawMap($('#cout'),f.fm,f.O);
+  const cp=$('#cpool');if(st.pool)drawMap(cp,f.pooled,f.P);else{const g=cp.getContext('2d');g.clearRect(0,0,cp.width,cp.height);g.fillStyle='#adb5bd';g.font='16px Segoe UI';g.textAlign='center';g.fillText('pooling is off',cp.width/2,cp.height/2);}
+  pos=Math.min(pos,f.O*f.O-1);drawWindow(f);renderBank();renderParams();
+}
+function drawWindow(f=forward()){
+  const st=settings(),O=f.O,oy=Math.floor(pos/O),ox=pos%O;
+  // input overlay
+  const cin=$('#cin'),g=cin.getContext('2d'),cell=cin.width/S;drawMap(cin,img,S,{gray:true});
+  const y0=oy*st.stride-st.pad,x0=ox*st.stride-st.pad;g.strokeStyle='#f08c00';g.lineWidth=3;g.strokeRect(x0*cell+1.5,y0*cell+1.5,3*cell-3,3*cell-3);
+  if(st.pad){g.setLineDash([4,3]);g.strokeStyle='rgba(240,140,0,.5)';g.lineWidth=1;g.strokeRect(0.5,0.5,cin.width-1,cin.width-1);g.setLineDash([]);}
+  const co=$('#cout'),g2=co.getContext('2d'),c2=drawMap(co,f.fm,O);g2.strokeStyle='#f08c00';g2.lineWidth=3;g2.strokeRect(ox*c2+1.5,oy*c2+1.5,c2-3,c2-3);
+  // calculation
+  let rows='',sum=0;
+  for(let ky=0;ky<3;ky++)for(let kx=0;kx<3;kx++){const y=y0+ky,x=x0+kx,inside=y>=0&&y<S&&x>=0&&x<S,v=inside?img[y*S+x]:0,p=v*kern[ky*3+kx];sum+=p;
+    rows+=`<span title="${inside?'pixel':'padding (0)'}">${inside?fmt(v):'pad 0'}×${fmt(kern[ky*3+kx])}</span>`;}
+  const out=st.relu?Math.max(0,sum):sum;
+  $('#calcBox').innerHTML=`<b>Output position (row ${oy}, col ${ox})</b>: the window covers input rows ${y0}…${y0+2}, cols ${x0}…${x0+2}.
+    <div class="calc" style="margin:.4rem 0">${rows}</div>Sum of the 9 products = <b>${fmt(sum)}</b>${st.relu?` → ReLU → <b>${fmt(out)}</b>`:''}
+    <span class="muted small"><br>${Math.abs(sum)<1e-9?'Nothing here matches the pattern (flat area or empty).':sum>0?'Positive: the pattern of this kernel is present here.':'Negative: the opposite pattern is present here.'}</span>`;
+}
+function renderBank(){
+  const box=$('#bank'),keys=['vert','horiz','outline','diag','blur','sharpen'];
+  if(!box.children.length)box.innerHTML=keys.map(k=>`<figure><canvas width="140" height="140" data-k="${k}"></canvas><figcaption>${KERNELS[k].name}</figcaption></figure>`).join('');
+  box.querySelectorAll('canvas').forEach(c=>{const f=forward(KERNELS[c.dataset.k].k,{pad:1,stride:1,relu:true,pool:false});drawMap(c,f.fm,f.O);});
+}
+function renderParams(){
+  const H=+$('#ph').value,ci=+$('#pcin').value,co=+$('#pcout').value;$('#hOut').textContent=H;$('#cinOut').textContent=ci;$('#coutOut').textContent=co;
+  const conv=(9*ci+1)*co,outs=H*H*co,dense=(H*H*ci+1)*outs,n=v=>v.toLocaleString('en-US');
+  const ratio=dense/conv;
+  $('#pcalc').innerHTML=`<table class="plain"><tr><th></th><th>Parameters</th></tr>
+    <tr><td><b>Conv 3×3</b>, ${co} kernels, padding 1<br><span class="small muted">(3·3·${ci} + 1) · ${co}</span></td><td style="font-family:var(--mono);font-size:1.1rem;color:var(--green)"><b>${n(conv)}</b></td></tr>
+    <tr><td><b>Dense layer</b> with the same ${n(outs)} outputs<br><span class="small muted">(${H}·${H}·${ci} + 1) · ${n(outs)}</span></td><td style="font-family:var(--mono);font-size:1.1rem;color:var(--red)"><b>${n(dense)}</b></td></tr></table>
+    <p class="banner ${ratio>1000?'bad':'info'}" style="margin-top:.5rem">The dense layer needs <b>${ratio>=1e6?ratio.toExponential(1):n(Math.round(ratio))}×</b> more parameters
+    (${(dense*4/1e9).toFixed(dense*4>1e9?1:3)} GB in float32 vs ${(conv*4/1e3).toFixed(1)} KB).</p>`;
+}
+
+// ---------- drawing on the input ----------
+let drawing=false,erase=false;
+function paint(e){const r=$('#cin').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*S,y=(e.clientY-r.top)/r.height*S;
+  for(let yy=Math.floor(y-2);yy<=Math.ceil(y+2);yy++)for(let xx=Math.floor(x-2);xx<=Math.ceil(x+2);xx++){if(yy<0||yy>=S||xx<0||xx>=S)continue;
+    const d=Math.hypot(xx+.5-x,yy+.5-y),a=Math.max(0,1-d/1.8);if(a<=0)continue;const i=yy*S+xx;
+    img[i]=erase||$('#eraser').checked?Math.max(0,img[i]-a):Math.min(1,img[i]+a);img[i]=Math.round(img[i]*100)/100;}
+  update();}
+$('#cin').addEventListener('pointerdown',e=>{drawing=true;erase=e.button===2;$('#cin').setPointerCapture(e.pointerId);paint(e);});
+$('#cin').addEventListener('pointermove',e=>{if(drawing)paint(e);});
+$('#cin').addEventListener('pointerup',()=>drawing=false);
+$('#cin').addEventListener('contextmenu',e=>e.preventDefault());
+$('#cout').addEventListener('mousemove',e=>{if(animT)return;const f=forward(),r=$('#cout').getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*f.O),y=Math.floor((e.clientY-r.top)/r.height*f.O);
+  if(x>=0&&y>=0&&x<f.O&&y<f.O){pos=y*f.O+x;drawWindow(f);}});
+function stopAnim(){if(animT){clearInterval(animT);animT=null;}$('#anim').textContent='▶ Animate the sliding window';}
+$('#anim').onclick=()=>{if(animT){stopAnim();return;}$('#anim').textContent='⏸ Pause';const f=forward();if(pos>=f.O*f.O-1)pos=-1;
+  animT=setInterval(()=>{const ff=forward();pos++;if(pos>=ff.O*ff.O){pos=ff.O*ff.O-1;stopAnim();}drawWindow(ff);},+$('#spd').value);};
+$('#stepW').onclick=()=>{stopAnim();const f=forward();pos=(pos+1)%(f.O*f.O);drawWindow(f);};
+$('#spd').onchange=()=>{if(animT){stopAnim();$('#anim').click();}};
+['#pad','#str','#relu','#pool'].forEach(id=>$(id).addEventListener('input',()=>{pos=0;update();}));
+['#ph','#pcin','#pcout'].forEach(id=>$(id).addEventListener('input',renderParams));
+renderImgPresets();kern=[...KERNELS.vert.k];renderKPresets();renderKGrid();fromCanvas(IMG_PRESETS['7']);pos=0;update();
+</script>
+</body>
+</html>

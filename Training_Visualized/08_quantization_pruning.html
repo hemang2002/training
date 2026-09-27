@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8 · Quantization &amp; pruning — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .qsteps{font-family:var(--mono);font-size:.9rem;line-height:1.9}
+  .qsteps b{color:var(--blue)}
+  .twin{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  .twin canvas{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line);display:block}
+  .prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
+  .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" class="on" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 8 of 8 · ≈ 30 min</div>
+  <h1>Making models small: quantization &amp; pruning</h1>
+  <p class="one-liner">A trained model is just a big list of numbers stored as 32-bit floats (4 bytes each).
+  <b>Quantization</b> stores each number on a coarse ruler with only 256 marks (8 bits), or fewer. <b>Pruning</b> throws the smallest numbers away.
+  Both make the model smaller, and often faster. The question is always: <b>how much accuracy does it cost?</b></p>
+</section>
+
+<section class="card">
+  <h2>📏 The ruler idea</h2>
+  <div class="grid2">
+    <div>
+      <p>Take all the weights of a layer. Find their range, say −0.4 … +0.4. Put 255 evenly spaced marks on that range. Now store, for every weight, only
+      <b>the number of the nearest mark</b> (an integer from −127 to 127, which fits in 1 byte). To use the weight again, multiply the mark number by the spacing.</p>
+      <p class="center" style="font-family:var(--mono);font-size:1.05rem">q = round(x / scale) + zero_point<br>x̂ = (q − zero_point) × scale</p>
+      <p class="small muted"><b>scale</b> = the spacing between marks. <b>zero_point</b> = which integer means 0.0 (it is 0 for symmetric quantization).
+      The small difference x − x̂ is the <b>quantization error</b>.</p>
+    </div>
+    <div>
+      <table class="plain">
+        <tr><th>Format</th><th>Bytes / weight</th><th>MobileNetV2 (2.2 M weights)</th></tr>
+        <tr><td>float32</td><td>4</td><td>≈ 8.9 MB</td></tr>
+        <tr><td>float16</td><td>2</td><td>≈ 4.5 MB</td></tr>
+        <tr><td>int8</td><td>1</td><td>≈ 2.2 MB (+ small overhead)</td></tr>
+        <tr><td>int4</td><td>0.5</td><td>≈ 1.1 MB</td></tr>
+      </table>
+      <p class="small muted">Day 2 measured this for real: our MobileNetV2 went from 8.9 MB (fp32 ONNX) to 2.6 MB (int8 ONNX), and test accuracy moved from 90.0% to 89.4%.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PART A ============ -->
+<section class="card">
+  <h2>🔬 Part A: quantize 4,000 real-looking weights</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Quantizer</h3>
+      <div class="ctl"><label>Bits <output id="bOut"></output></label><input type="range" id="bits" min="2" max="8" value="8"></div>
+      <div class="ctl"><label>Scheme</label><select id="scheme"><option value="sym">Symmetric (int, zero_point = 0)</option><option value="asym">Asymmetric / affine (uint + zero_point)</option></select></div>
+      <div class="ctl"><label>Range</label><select id="clip"><option value="minmax">Min–max (cover every weight)</option><option value="p999">Clip at 99.9th percentile</option><option value="p99">Clip at 99th percentile</option></select></div>
+      <h3>Weights</h3>
+      <label class="check"><input type="checkbox" id="outlier"> Add ONE outlier weight (0.9)</label>
+      <label class="check"><input type="checkbox" id="zoom" checked> Zoom the chart to where most weights are</label>
+      <h3>Follow one weight</h3>
+      <div class="ctl"><label>x =</label><input type="number" id="xval" value="0.0371" step="0.001"></div>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat blue"><b id="sLevels">–</b><span>Marks on the ruler</span></div>
+        <div class="stat"><b id="sScale">–</b><span>scale (spacing)</span></div>
+        <div class="stat orange"><b id="sSqnr">–</b><span>SQNR (higher = better)</span></div>
+        <div class="stat"><b id="sMax">–</b><span>Max error</span></div>
+        <div class="stat bad"><b id="sZero">–</b><span>Weights rounded to 0</span></div>
+        <div class="stat"><b id="sClip">–</b><span>Weights clipped</span></div>
+      </div>
+      <div class="canvas-box"><div class="canvas-title">Grey = original weights · blue spikes = where they land after quantization · thin lines = the ruler marks</div><canvas id="hist" style="height:300px"></canvas></div>
+      <div class="explain qsteps" id="follow" style="margin-top:.6rem"></div>
+      <p class="small muted">SQNR = signal-to-quantization-noise ratio in decibels: 10·log₁₀(Σx² / Σ(x − x̂)²). Every extra bit adds about 6 dB.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PART B ============ -->
+<section class="card">
+  <h2>📊 Part B: one ruler for everyone, or one per channel?</h2>
+  <div class="grid2">
+    <div>
+      <p>A conv layer has many output channels (kernels), and their weights can have very different sizes. With <b>per-tensor</b> quantization all channels share one ruler,
+      sized for the biggest channel. With <b>per-channel</b> quantization every channel gets its own ruler.</p>
+      <div class="ctl" style="max-width:18rem"><label>Bits <output id="b2Out"></output></label><input type="range" id="bits2" min="2" max="8" value="8"></div>
+      <p class="small muted">Six channels, weight spread (std) from 0.01 to 0.4. Bars = SQNR per channel.</p>
+    </div>
+    <div class="canvas-box"><canvas id="chan" style="height:260px"></canvas>
+      <div class="legend"><span><i style="background:#f08c00"></i>per-tensor (one scale)</span><span><i style="background:#2f6fed"></i>per-channel (six scales)</span></div></div>
+  </div>
+</section>
+
+<!-- ============ PART C ============ -->
+<section class="card">
+  <h2>🧪 Part C: compress a real (tiny) trained network</h2>
+  <p>This page trains a small network (2 → 32 → 32 → 1, tanh, 1,185 parameters) on the "moons" data, just like Lesson 5. Then you compress it and see what breaks.
+  Quantization here is <b>weight-only</b> (biases and activations stay in float), one ruler per layer unless you tick per-channel.</p>
+  <div class="prog" id="progBox"><i id="prog"></i></div><div class="small muted" id="progTxt">Training…</div>
+  <div class="lab" style="margin-top:.6rem">
+    <aside class="controls">
+      <h3>Quantize</h3>
+      <div class="ctl"><label>Weight precision <output id="nbOut"></output></label><input type="range" id="nbits" min="2" max="9" value="9"></div>
+      <label class="check"><input type="checkbox" id="perch"> Per-channel (one scale per neuron)</label>
+      <h3>Prune</h3>
+      <div class="ctl"><label>Sparsity (weights set to 0) <output id="spOut"></output></label><input type="range" id="sp" min="0" max="95" step="5" value="0"></div>
+      <div class="ctl"><label>Which weights to remove</label><select id="method"><option value="mag">Smallest magnitude</option><option value="rand">Random</option></select></div>
+      <div class="btn-row"><button class="btn primary" id="ft">🔧 Fine-tune the pruned net (100 epochs)</button></div>
+      <div class="btn-row"><button class="btn" id="undo">↺ Back to the original network</button></div>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat"><b id="accO">–</b><span>Original test acc</span></div>
+        <div class="stat good"><b id="accC">–</b><span>Compressed test acc</span></div>
+        <div class="stat"><b id="nz">–</b><span>Non-zero weights</span></div>
+        <div class="stat blue"><b id="size">–</b><span>Size (dense)</span></div>
+      </div>
+      <div class="twin">
+        <div><div class="canvas-title">Original (float32)</div><canvas id="bO" width="240" height="240"></canvas></div>
+        <div><div class="canvas-title" id="cTitle">Compressed</div><canvas id="bC" width="240" height="240"></canvas></div>
+      </div>
+      <div class="grid2" style="margin-top:.7rem">
+        <div class="canvas-box"><div class="canvas-title">Test accuracy vs bits</div><canvas id="cBits" style="height:180px"></canvas></div>
+        <div class="canvas-box"><div class="canvas-title">Test accuracy vs sparsity (before fine-tuning)</div><canvas id="cSp" style="height:180px"></canvas>
+          <div class="legend"><span><i style="background:#2f6fed"></i>smallest magnitude</span><span><i style="background:#f08c00"></i>random (avg of 5)</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Challenges</h3>
+  <ol class="challenges">
+    <li><b>Bits vs error (Part A).</b> Slide from 8 bits down to 2. Watch the SQNR and the blue spikes. About how many dB do you lose per bit?
+      <details class="answer"><summary>Answer</summary>About 6 dB per bit (each bit doubles the number of marks and halves the spacing).
+      At 2 bits there are only 3 marks (−s, 0, +s), and most weights collapse to 0.</details></li>
+    <li><b>One bad apple (Part A).</b> At 8 bits, min–max range, tick "Add ONE outlier". What happens to the scale, SQNR and "rounded to 0"? Then switch Range to "Clip at 99.9th percentile".
+      <details class="answer"><summary>Answer</summary>The one weight at 0.9 stretches the ruler about 5× wider, so the spacing gets 5× coarser for all 3,999 normal weights.
+      SQNR drops by about 14 dB (42 → 28) and 4× more weights now round to 0. Clipping ignores the extreme value, so the 3,999 normal weights get their fine ruler back.
+      Only the outlier gets a big error, and because that one error is huge, the overall SQNR number looks bad (≈ 13 dB).
+      So clipping is a trade: great for the many normal weights, bad for the rare extreme one. Choosing the range (<b>calibration</b>) is the core decision in static quantization on Day 2.</details></li>
+    <li><b>Per-channel (Part B).</b> At 8 bits, compare the smallest channel (std 0.01) under both methods. Then try 4 bits.
+      <details class="answer"><summary>Answer</summary>Per-tensor: the small channel only uses a few marks of a ruler built for the big channel, so its SQNR is poor (near 0 dB at 4 bits: the noise is as big as the signal).
+      Per-channel gives every channel roughly the same good SQNR. That's why Day 2's ONNX Runtime export used <code>per_channel=True</code>.</details></li>
+    <li><b>How low can you go? (Part C)</b> Reduce the weight precision step by step. Where does the decision boundary break? Look at the "accuracy vs bits" chart.
+      <details class="answer"><summary>Answer</summary>It keeps working all the way down to 4 bits (≈ 97%, the same as float32). At 3 bits it starts to break (≈ 88%).
+      At 2 bits it is just guessing (≈ 51%): each layer can only use 3 values (−, 0, +), and the network loses its shape.
+      Now tick "per-channel": 3 bits → ≈ 96% and 2 bits → ≈ 80%. Giving every neuron its own ruler helps a lot at low bits.</details></li>
+    <li><b>Magnitude vs random (Part C).</b> Set sparsity to 50% with "smallest magnitude", then switch to "random".
+      <details class="answer"><summary>Answer</summary>Removing the <b>smallest</b> half of the weights: still ≈ 97%. Those weights hardly mattered.
+      Removing a <b>random</b> half: ≈ 54%, almost guessing, because random removal also deletes important weights.
+      Simple rule: a small weight has a small influence. The chart shows this for every sparsity: blue stays high much longer than orange.</details></li>
+    <li><b>Prune hard, then heal (Part C).</b> Magnitude pruning at 90%. Note the accuracy. Press 🔧 Fine-tune.
+      <details class="answer"><summary>Answer</summary>Right after removing 90% of the weights the network is broken (≈ 51%, guessing).
+      Fine-tuning means training it again for a while, with the removed weights kept at exactly 0. It comes back to ≈ 98% using only 112 of its 1,120 weights!
+      The remaining weights learn to do the job of the removed ones. Real pruning works like this: remove some, retrain, repeat.</details></li>
+    <li><b>Smaller ≠ faster.</b> After pruning to 90%, look at "Size (dense)". Did it shrink?
+      <details class="answer"><summary>Answer</summary>No. The zeros are still stored and still multiplied, so a dense matrix full of zeros is exactly as big and as slow.
+      You only gain if you store it in a sparse format or use hardware or kernels that skip zeros (for example 2:4 structured sparsity on recent NVIDIA GPUs),
+      or if you prune whole channels (structured pruning) so the layer really gets smaller. Our Live Demo measured exactly this: unstructured pruning gave <b>no speed-up</b> on CPU.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🗺️ How this maps to Day 2</h2>
+  <table class="plain">
+    <tr><th>Method (Day 2)</th><th>What it does</th><th>Seen on this page as</th></tr>
+    <tr><td><b>Dynamic quantization</b> <code>quantize_dynamic</code></td><td>Weights → int8 ahead of time; activations quantized on the fly. Mainly Linear/LSTM layers.</td><td>Part A with min–max range</td></tr>
+    <tr><td><b>Static PTQ</b> (+ calibration)</td><td>Also quantizes activations, using ranges measured on calibration images.</td><td>Choosing the Range (min–max vs percentile)</td></tr>
+    <tr><td><b>QAT</b> (quantization-aware training)</td><td>Simulates rounding during training so the weights adapt to the coarse ruler.</td><td>"Fine-tune after compressing" (challenge 6)</td></tr>
+    <tr><td><b>Pruning</b> <code>torch.nn.utils.prune</code></td><td>Zeroes the smallest weights (L1 unstructured) or whole channels (structured).</td><td>Part C sparsity slider</td></tr>
+    <tr><td><b>FP16 / BF16</b></td><td>Halves the size. Fast on GPUs; on most CPUs it's <i>slower</i> (no native half-precision math).</td><td>(The table above)</td></tr>
+  </table>
+  <pre class="code"><span class="k">import</span> torch, torch.nn.utils.prune <span class="k">as</span> prune
+<span class="c"># dynamic int8 quantization of all Linear layers</span>
+qmodel = torch.ao.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
+<span class="c"># magnitude pruning: zero the 50% smallest weights of one layer, then make it permanent</span>
+prune.l1_unstructured(model.fc1, name=<span class="s">"weight"</span>, amount=<span class="n">0.5</span>)
+prune.remove(model.fc1, <span class="s">"weight"</span>)</pre>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why does int8 usually lose so little accuracy?
+      <details class="answer"><summary>Answer</summary>Trained networks are robust to small noise in their weights. 8-bit rounding error is tiny compared with the weights themselves (SQNR ≈ 40 dB),
+      like writing 0.03712 as 0.0371.</details></li>
+    <li>Your int8 model is <i>slower</i> than fp32 on your laptop. How is that possible?
+      <details class="answer"><summary>Answer</summary>Speed depends on hardware support and the runtime. Without fast int8 kernels (or with lots of quantize/dequantize conversions), int8 can be slower.
+      We saw this on Day 2 and in the Live Demo: <b>always measure</b> on the target machine.</details></li>
+    <li>You can afford to lose 0.5% accuracy for a 4× smaller model. Which method do you try first, and what do you check?
+      <details class="answer"><summary>Answer</summary>Post-training int8 quantization (dynamic, or static with calibration). Check accuracy on the validation set, file size and latency on the target hardware.
+      If accuracy drops too much, try per-channel, better calibration, or QAT.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="07_cnn_convolution.html"><small>← Previous</small>7 · How a CNN sees</a>
+  <a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+// ===== NN CORE (same engine as Lesson 5) =====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+const ACTS={
+  tanh:{f:z=>Math.tanh(z),d:(z,a)=>1-a*a},
+  relu:{f:z=>z>0?z:0,d:z=>z>0?1:0},
+  sigmoid:{f:z=>1/(1+Math.exp(-z)),d:(z,a)=>a*(1-a)},
+  linear:{f:z=>z,d:()=>1},
+};
+function makeDataset(kind,n,noise,seed){
+  const r=mulberry32(seed),pts=[],s=noise/100*2.0;
+  const push=(x,y,l)=>pts.push({x:x+s*gauss(r),y:y+s*gauss(r),l});
+  if(kind==='moons'){for(let i=0;i<n;i++){const l=i<n/2?1:0,t=r()*Math.PI;
+    if(l)push(3*Math.cos(t)-1.5,3*Math.sin(t)-1,l);else push(3*Math.cos(t)+1.5,-3*Math.sin(t)+1,l);}}
+  for(let i=pts.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pts[i],pts[j]]=[pts[j],pts[i]];}
+  return pts;
+}
+class Net{
+  constructor(sizes,act,seed){
+    this.sizes=sizes;this.act=act;this.L=sizes.length-1;const r=mulberry32(seed);
+    this.W=[];this.b=[];this.mW=[];this.vW=[];this.mb=[];this.vb=[];this.t=0;
+    for(let l=0;l<this.L;l++){const ni=sizes[l],no=sizes[l+1],sd=Math.sqrt((act==='relu'?2:1)/ni);
+      const W=new Float64Array(no*ni);for(let k=0;k<W.length;k++)W[k]=gauss(r)*sd;
+      this.W.push(W);this.b.push(new Float64Array(no).fill(act==='relu'&&l<this.L-1?0.1:0));
+      this.mW.push(new Float64Array(no*ni));this.vW.push(new Float64Array(no*ni));this.mb.push(new Float64Array(no));this.vb.push(new Float64Array(no));}
+    this.mask=null;
+  }
+  forward(x){
+    const A=[x],Z=[],F=ACTS[this.act].f;
+    for(let l=0;l<this.L;l++){const ni=this.sizes[l],no=this.sizes[l+1],W=this.W[l],b=this.b[l],a=A[l],z=new Float64Array(no),o=new Float64Array(no);
+      for(let j=0;j<no;j++){let s=b[j];const off=j*ni;for(let i=0;i<ni;i++)s+=W[off+i]*a[i];z[j]=s;
+        o[j]=l===this.L-1?1/(1+Math.exp(-s)):F(s);}
+      Z.push(z);A.push(o);}
+    return {A,Z};
+  }
+  predict(x){return this.forward(x).A[this.L][0];}
+  trainBatch(batch,opt,lr,l2){
+    const gW=this.W.map(w=>new Float64Array(w.length)),gb=this.b.map(b=>new Float64Array(b.length)),D=ACTS[this.act].d;let loss=0;
+    for(const s of batch){const {A,Z}=this.forward(s.v),p=A[this.L][0],pc=Math.min(1-1e-12,Math.max(1e-12,p));
+      loss+=-(s.l*Math.log(pc)+(1-s.l)*Math.log(1-pc));
+      let delta=new Float64Array([p-s.l]);
+      for(let l=this.L-1;l>=0;l--){const ni=this.sizes[l],no=this.sizes[l+1],a=A[l],W=this.W[l];
+        for(let j=0;j<no;j++){const dj=delta[j],off=j*ni;gb[l][j]+=dj;for(let i=0;i<ni;i++)gW[l][off+i]+=dj*a[i];}
+        if(l>0){const prev=new Float64Array(ni);for(let i=0;i<ni;i++){let s2=0;for(let j=0;j<no;j++)s2+=W[j*ni+i]*delta[j];prev[i]=s2*D(Z[l-1][i],A[l][i]);}delta=prev;}}
+    }
+    const B=batch.length;this.t++;
+    for(let l=0;l<this.L;l++){
+      const W=this.W[l],b=this.b[l],M=this.mask?this.mask[l]:null;
+      for(let k=0;k<W.length;k++){let g=gW[l][k]/B+l2*W[k];if(M&&!M[k]){W[k]=0;continue;}W[k]-=this.step(opt,lr,g,this.mW[l],this.vW[l],k);}
+      for(let k=0;k<b.length;k++){const g=gb[l][k]/B;b[k]-=this.step(opt,lr,g,this.mb[l],this.vb[l],k);}
+    }
+    return loss/B;
+  }
+  step(opt,lr,g,m,v,k){
+    if(opt==='sgd')return lr*g;
+    m[k]=0.9*m[k]+0.1*g;v[k]=0.999*v[k]+0.001*g*g;
+    return lr*(m[k]/(1-0.9**this.t))/(Math.sqrt(v[k]/(1-0.999**this.t))+1e-8);
+  }
+  paramCount(){return this.W.reduce((s,w)=>s+w.length,0)+this.b.reduce((s,b)=>s+b.length,0);}
+}
+function evalSet(net,set){let loss=0,c=0;for(const s of set){const p=net.predict(s.v),pc=Math.min(1-1e-12,Math.max(1e-12,p));
+  loss+=-(s.l*Math.log(pc)+(1-s.l)*Math.log(1-pc));c+=(p>=0.5)===(s.l===1)?1:0;}return {loss:loss/set.length,acc:c/set.length};}
+// ===== END NN CORE =====
+
+const $=s=>document.querySelector(s);
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const pct=v=>Math.round(v*100)+'%';
+
+// ---------- the quantizer ----------
+function quantile(sorted,p){const i=(sorted.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo);}
+function makeQuantizer(xs,bits,scheme,clip){
+  let lo=Infinity,hi=-Infinity;for(const v of xs){lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  if(clip!=='minmax'){const p=clip==='p999'?0.999:0.99;
+    if(scheme==='sym'){const a=xs.map(Math.abs).sort((x,y)=>x-y),m=quantile(a,p);lo=-m;hi=m;}
+    else{const s=[...xs].sort((x,y)=>x-y);lo=quantile(s,1-p);hi=quantile(s,p);}}
+  let qmin,qmax,scale,zp;
+  if(scheme==='sym'){const m=Math.max(Math.abs(lo),Math.abs(hi))||1e-12;qmax=2**(bits-1)-1;qmin=-qmax;scale=m/Math.max(1,qmax);zp=0;}
+  else{lo=Math.min(lo,0);hi=Math.max(hi,0);qmin=0;qmax=2**bits-1;scale=(hi-lo)/qmax||1e-12;zp=Math.min(qmax,Math.max(0,Math.round(-lo/scale)));}
+  const q=x=>Math.min(qmax,Math.max(qmin,Math.round(x/scale)+zp));
+  return {bits,scheme,scale,zp,qmin,qmax,q,deq:x=>(q(x)-zp)*scale,lo:(qmin-zp)*scale,hi:(qmax-zp)*scale};
+}
+function stats(xs,Q){let s=0,e=0,mx=0,z=0,cl=0;const used=new Set();
+  for(const x of xs){const q=Q.q(x),d=(q-Q.zp)*Q.scale,er=x-d;s+=x*x;e+=er*er;mx=Math.max(mx,Math.abs(er));if(d===0&&x!==0)z++;
+    if(x/Q.scale+Q.zp>Q.qmax+0.5||x/Q.scale+Q.zp<Q.qmin-0.5)cl++;used.add(q);}
+  return {sqnr:10*Math.log10(s/Math.max(e,1e-30)),maxErr:mx,zeros:z,clipped:cl,used:used.size};}
+
+// ---------- PART A ----------
+const baseW=(()=>{const r=mulberry32(42),a=[];for(let i=0;i<4000;i++)a.push(0.05*gauss(r));return a;})();
+function weightsA(){const w=[...baseW];if($('#outlier').checked)w[0]=0.9;return w;}
+function partA(){
+  const xs=weightsA(),bits=+$('#bits').value,Q=makeQuantizer(xs,bits,$('#scheme').value,$('#clip').value),st=stats(xs,Q);
+  $('#bOut').textContent=bits;$('#sLevels').textContent=Q.qmax-Q.qmin+1;$('#sScale').textContent=Q.scale.toPrecision(3);
+  $('#sSqnr').textContent=st.sqnr.toFixed(1)+' dB';$('#sMax').textContent=st.maxErr.toPrecision(2);$('#sZero').textContent=st.zeros.toLocaleString('en-US');$('#sClip').textContent=st.clipped;
+  // histogram
+  const {ctx,w:W,h:H}=setupCanvas($('#hist')),L=10,T=8,pw=W-20,ph=H-T-26;
+  let lo=Math.min(...xs),hi=Math.max(...xs);if($('#zoom').checked){lo=-0.2;hi=0.2;}
+  const sx=x=>L+(x-lo)/(hi-lo)*pw,NB=160,bins=new Array(NB).fill(0);
+  for(const x of xs){const b=Math.floor((x-lo)/(hi-lo)*NB);if(b>=0&&b<NB)bins[b]++;}
+  const deqCount=new Map();for(const x of xs){const d=Q.deq(x);deqCount.set(d,(deqCount.get(d)||0)+1);}
+  const mb=Math.max(...bins,1),md=Math.max(...deqCount.values());
+  // ruler marks
+  const nMarks=Q.qmax-Q.qmin+1;ctx.strokeStyle=nMarks>64?'rgba(47,111,237,.10)':'rgba(47,111,237,.35)';ctx.lineWidth=1;
+  for(let q=Q.qmin;q<=Q.qmax;q++){const x=(q-Q.zp)*Q.scale;if(x<lo||x>hi)continue;ctx.beginPath();ctx.moveTo(sx(x),T);ctx.lineTo(sx(x),T+ph);ctx.stroke();}
+  ctx.fillStyle='#ced4da';bins.forEach((c,i)=>{const h=c/mb*ph*0.95;ctx.fillRect(L+i/NB*pw,T+ph-h,pw/NB+0.5,h);});
+  ctx.fillStyle='#2f6fed';for(const [d,c] of deqCount){if(d<lo||d>hi)continue;const h=Math.max(2,c/md*ph*0.95);ctx.fillRect(sx(d)-1.5,T+ph-h,3,h);}
+  // clipping range
+  ctx.strokeStyle='#e03131';ctx.setLineDash([5,4]);ctx.lineWidth=1.5;for(const x of [Q.lo,Q.hi]){if(x>=lo&&x<=hi){ctx.beginPath();ctx.moveTo(sx(x),T);ctx.lineTo(sx(x),T+ph);ctx.stroke();}}ctx.setLineDash([]);
+  ctx.fillStyle='#868e96';ctx.font='11px Segoe UI, sans-serif';ctx.textAlign='center';
+  for(let i=0;i<=4;i++){const x=lo+i*(hi-lo)/4;ctx.fillText(x.toFixed(3),sx(x),H-8);}
+  if(!$('#zoom').checked&&$('#outlier').checked){ctx.fillStyle='#e03131';ctx.textAlign='right';ctx.fillText('outlier →',sx(0.9)-4,T+14);}
+  if($('#zoom').checked&&(Q.hi<hi||Q.lo>lo)){ctx.fillStyle='#e03131';ctx.textAlign='left';ctx.fillText('red dashes = edge of the ruler (values outside are clipped)',L+4,T+12);}
+  // follow one weight
+  const x=parseFloat($('#xval').value)||0,r=x/Q.scale+Q.zp,rq=Math.round(x/Q.scale)+Q.zp,q=Q.q(x),d=(q-Q.zp)*Q.scale;
+  $('#follow').innerHTML=`x = <b>${x}</b><br>x / scale ${Q.zp?'+ zero_point':''} = ${x} / ${Q.scale.toPrecision(4)}${Q.zp?' + '+Q.zp:''} = ${r.toFixed(3)}<br>
+    round → ${rq}${rq!==q?` → clamp to [${Q.qmin}, ${Q.qmax}] → <b style="color:var(--red)">${q}</b> (clipped!)`:''} → stored integer q = <b>${q}</b> (${bits} bits)<br>
+    back to float: (q − ${Q.zp}) × scale = <b>${d.toPrecision(5)}</b><br>error = x − x̂ = <b style="color:var(--red)">${(x-d).toPrecision(3)}</b>`;
+}
+
+// ---------- PART B ----------
+const CH_STD=[0.01,0.02,0.05,0.1,0.2,0.4];
+const chW=CH_STD.map((s,c)=>{const r=mulberry32(100+c),a=[];for(let i=0;i<500;i++)a.push(s*gauss(r));return a;});
+function partB(){
+  const bits=+$('#bits2').value;$('#b2Out').textContent=bits;
+  const all=chW.flat(),Qt=makeQuantizer(all,bits,'sym','minmax');
+  const res=chW.map(w=>({t:stats(w,Qt).sqnr,c:stats(w,makeQuantizer(w,bits,'sym','minmax')).sqnr}));
+  const {ctx,w:W,h:H}=setupCanvas($('#chan')),L=40,T=10,pw=W-L-10,ph=H-T-34,top=Math.max(50,...res.map(r=>Math.max(r.t,r.c)))+2,bot=Math.min(0,...res.map(r=>Math.min(r.t,r.c)))-2;
+  const sy=v=>T+(top-v)/(top-bot)*ph;ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='right';
+  for(let v=Math.ceil(bot/10)*10;v<=top;v+=10){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.fillText(v+' dB',L-4,sy(v)+4);}
+  const gw=pw/res.length;res.forEach((r,i)=>{const x=L+i*gw+gw*0.15,bw=gw*0.33;
+    ctx.fillStyle='#f08c00';ctx.fillRect(x,Math.min(sy(r.t),sy(0)),bw,Math.abs(sy(r.t)-sy(0)));ctx.fillStyle='#2f6fed';ctx.fillRect(x+bw,Math.min(sy(r.c),sy(0)),bw,Math.abs(sy(r.c)-sy(0)));
+    ctx.fillStyle='#495057';ctx.textAlign='center';ctx.fillText('std '+CH_STD[i],x+bw,H-18);ctx.fillText(r.t.toFixed(0)+' / '+r.c.toFixed(0),x+bw,H-4);});
+}
+
+// ---------- PART C ----------
+const C={net:null,te:[],tr:[],cur:null,mask:null,tuned:null,curves:null};
+function toV(p){return {v:new Float64Array([p.x/6,p.y/6]),l:p.l};}
+function cloneNet(n){const m=new Net(n.sizes,n.act,1);m.W=n.W.map(w=>Float64Array.from(w));m.b=n.b.map(b=>Float64Array.from(b));return m;}
+function pruneMask(net,sp,method,seed=0){const all=[];net.W.forEach((w,l)=>w.forEach((v,k)=>all.push({l,k,a:Math.abs(v)})));
+  if(method==='rand'){const r=mulberry32(seed);all.forEach(o=>o.a=r());}all.sort((a,b)=>a.a-b.a);const cut=Math.floor(all.length*sp);
+  const mask=net.W.map(w=>new Uint8Array(w.length).fill(1));for(let i=0;i<cut;i++)mask[all[i].l][all[i].k]=0;return mask;}
+function applyMask(net,mask){net.W=net.W.map((w,l)=>w.map((v,k)=>mask[l][k]?v:0));return net;}
+function quantNet(net,bits,perCh){if(bits>=32)return net;
+  net.W=net.W.map((w,l)=>{const ni=net.sizes[l],no=net.sizes[l+1],out=Float64Array.from(w);
+    const groups=perCh?Array.from({length:no},(_,j)=>[...Array(ni).keys()].map(i=>j*ni+i)):[[...w.keys()]];
+    for(const g of groups){let m=0;for(const k of g)m=Math.max(m,Math.abs(w[k]));const qmax=2**(bits-1)-1;
+      const s=m/qmax||1;for(const k of g)out[k]=Math.max(-qmax,Math.min(qmax,Math.round(w[k]/s)))*s;}
+    return out;});return net;}
+function compressed(bits,perCh,sp,method,base=C.net){let n=cloneNet(base);if(sp>0)applyMask(n,pruneMask(base,sp,method,0));return quantNet(n,bits,perCh);}
+function trainTiny(){
+  const pts=makeDataset('moons',400,20,1);C.tr=pts.slice(0,200).map(toV);C.te=pts.slice(200).map(toV);C.pts=pts;
+  const net=new Net([2,32,32,1],'tanh',7),r=mulberry32(99);let e=0;const E=300;
+  const chunk=()=>{for(let k=0;k<15&&e<E;k++,e++){const idx=[...C.tr.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+      for(let s=0;s<idx.length;s+=10)net.trainBatch(idx.slice(s,s+10).map(i=>C.tr[i]),'adam',0.03,0);}
+    $('#prog').style.width=(e/E*100)+'%';$('#progTxt').textContent=`Training the tiny network: epoch ${e} / ${E}`;
+    if(e<E)requestAnimationFrame(chunk);else{C.net=net;$('#progTxt').textContent=`Trained for ${E} epochs (Adam, lr 0.03). Test accuracy ${pct(evalSet(net,C.te).acc)}. Now compress it!`;computeCurves();partC();}};
+  requestAnimationFrame(chunk);
+}
+function computeCurves(){
+  const bits=[8,7,6,5,4,3,2].map(b=>({b,acc:evalSet(compressed(b,false,0,'mag'),C.te).acc}));
+  const sps=[];for(let s=0;s<=95;s+=5){let rnd=0;for(let k=0;k<5;k++){const n=cloneNet(C.net);applyMask(n,pruneMask(C.net,s/100,'rand',k));rnd+=evalSet(n,C.te).acc/5;}
+    sps.push({s,mag:evalSet(compressed(32,false,s/100,'mag'),C.te).acc,rnd});}
+  C.curves={bits,sps};
+}
+function drawBoundary(cv,net){const g=cv.getContext('2d'),W=cv.width,G=48,c=W/G;
+  for(let j=0;j<G;j++)for(let i=0;i<G;i++){const p=net.predict(new Float64Array([(-6+(i+.5)/G*12)/6,(6-(j+.5)/G*12)/6])),col=p>=0.5?[47,111,237]:[240,140,0],a=Math.min(0.85,Math.abs(p-0.5)*1.7);
+    g.fillStyle=`rgba(${col},${a})`;g.clearRect(i*c,j*c,c+1,c+1);g.fillRect(i*c,j*c,c+1,c+1);}
+  for(const p of C.pts.slice(200)){g.beginPath();g.arc((p.x+6)/12*W,(6-p.y)/12*W,2.6,0,7);g.fillStyle=p.l?'#2f6fed':'#f08c00';g.fill();g.lineWidth=1;g.strokeStyle='#1c2230';g.stroke();}}
+function lineChart(cv,xs,series,xlab,xfmt){const {ctx,w:W,h:H}=setupCanvas(cv),L=36,T=8,pw=W-L-10,ph=H-T-26;
+  const x0=Math.min(...xs),x1=Math.max(...xs),sx=x=>L+(x-x0)/(x1-x0)*pw,sy=v=>T+(1-v)/0.6*ph;   // y axis 40%..100%
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='right';
+  for(const v of [0.4,0.6,0.8,1]){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.fillText(pct(v),L-4,sy(v)+4);}
+  ctx.textAlign='center';xs.forEach((x,i)=>{if(xs.length<10||i%4===0)ctx.fillText(xfmt(x),sx(x),T+ph+13);});ctx.fillText(xlab,L+pw/2,H-2);
+  for(const s of series){ctx.strokeStyle=s.col;ctx.fillStyle=s.col;ctx.lineWidth=2.5;ctx.beginPath();s.ys.forEach((v,i)=>i?ctx.lineTo(sx(xs[i]),sy(Math.max(0.4,v))):ctx.moveTo(sx(xs[i]),sy(Math.max(0.4,v))));ctx.stroke();
+    s.ys.forEach((v,i)=>{ctx.beginPath();ctx.arc(sx(xs[i]),sy(Math.max(0.4,v)),2.5,0,7);ctx.fill();});}
+  return {sx,sy};}
+function fineTune(){
+  const sp=+$('#sp').value/100,method=$('#method').value;if(!C.net||sp===0)return;
+  const n=cloneNet(C.net),mask=pruneMask(C.net,sp,method,0);applyMask(n,mask);n.mask=mask;const r=mulberry32(5);
+  $('#ft').disabled=true;let e=0;
+  const chunk=()=>{for(let k=0;k<10&&e<100;k++,e++){const idx=[...C.tr.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+      for(let s=0;s<idx.length;s+=10)n.trainBatch(idx.slice(s,s+10).map(i=>C.tr[i]),'adam',0.01,0);}
+    C.tuned={sp,method,net:n};$('#progTxt').textContent=`Fine-tuning with the pruned weights frozen at 0: epoch ${e} / 100`;partC();
+    if(e<100)requestAnimationFrame(chunk);else $('#progTxt').textContent=`Fine-tuned for 100 epochs (Adam, lr 0.01). Pruned weights stayed exactly 0. Move a slider to leave the fine-tuned network.`;};
+  requestAnimationFrame(chunk);
+}
+// the right-most slider position (9) means 'keep float32'
+function readBits(){const v=+$('#nbits').value;return v===9?32:v;}
+function partC(){
+  const bits=readBits();
+  const sp=+$('#sp').value/100,method=$('#method').value,perCh=$('#perch').checked;
+  $('#nbOut').textContent=bits===32?'float32':bits+'-bit';$('#spOut').textContent=Math.round(sp*100)+'%';
+  if(!C.net)return;
+  const tuned=C.tuned&&C.tuned.sp===sp&&C.tuned.method===method,base=tuned?C.tuned.net:C.net;
+  const n=tuned?quantNet(cloneNet(base),bits,perCh):compressed(bits,perCh,sp,method,C.net);
+  const acc=evalSet(n,C.te).acc,o=evalSet(C.net,C.te).acc;let nz=0,tot=0;n.W.forEach(w=>w.forEach(v=>{tot++;if(v!==0)nz++;}));
+  $('#accO').textContent=pct(o);$('#accC').textContent=pct(acc);$('#accC').parentElement.className='stat '+(acc>=o-0.02?'good':'bad');
+  $('#nz').textContent=`${nz} / ${tot}`;
+  const bytes=tot*(bits===32?4:bits/8)+n.b.reduce((s,b)=>s+b.length,0)*4;$('#size').textContent=(bytes/1024).toFixed(2)+' KB';
+  $('#cTitle').textContent=`Compressed: ${bits===32?'float32':bits+'-bit'}${perCh&&bits<32?' per-channel':''}, ${Math.round(sp*100)}% pruned (${method==='mag'?'magnitude':'random'})${tuned?' + fine-tuned':''}`;
+  drawBoundary($('#bO'),C.net);drawBoundary($('#bC'),n);
+  const cb=C.curves.bits,m1=lineChart($('#cBits'),cb.map(c=>c.b),[{col:'#2f6fed',ys:cb.map(c=>c.acc)}],'bits per weight (per-tensor, no pruning)',x=>x);
+  if(bits<32&&bits>=2&&!perCh&&sp===0){const ctx=$('#cBits').getContext('2d');ctx.strokeStyle='#e03131';ctx.lineWidth=2;ctx.beginPath();ctx.arc(m1.sx(bits),m1.sy(Math.max(0.4,acc)),6,0,7);ctx.stroke();}
+  const cs=C.curves.sps,m2=lineChart($('#cSp'),cs.map(c=>c.s),[{col:'#2f6fed',ys:cs.map(c=>c.mag)},{col:'#f08c00',ys:cs.map(c=>c.rnd)}],'sparsity %',x=>x);
+  if(sp>0){const ctx=$('#cSp').getContext('2d'),h=$('#cSp').getBoundingClientRect().height;ctx.strokeStyle='#1c2230';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(m2.sx(sp*100),8);ctx.lineTo(m2.sx(sp*100),h-26);ctx.stroke();ctx.setLineDash([]);}
+  $('#ft').disabled=sp===0||tuned;
+}
+
+['#bits','#scheme','#clip','#outlier','#zoom','#xval'].forEach(id=>$(id).addEventListener('input',partA));
+$('#bits2').addEventListener('input',partB);
+['#nbits','#sp','#method','#perch'].forEach(id=>$(id).addEventListener('input',()=>partC()));
+$('#ft').onclick=fineTune;
+$('#undo').onclick=()=>{C.tuned=null;$('#nbits').value=9;$('#sp').value=0;$('#method').value='mag';$('#perch').checked=false;partC();};
+window.addEventListener('resize',()=>{partA();partB();partC();});
+partA();partB();trainTiny();
+</script>
+</body>
+</html>

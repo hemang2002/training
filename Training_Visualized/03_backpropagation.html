@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3 · Backpropagation — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .graph-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.3rem;overflow-x:auto}
+  .graph-box svg{display:block;width:100%;min-width:760px;height:auto}
+  .node rect{fill:#f8f9fb;stroke:#ced4da;stroke-width:1.5;transition:all .25s}
+  .node.leaf rect{fill:#fff}
+  .node.hot rect{stroke:#f08c00;stroke-width:3.5;fill:#fff9db}
+  .node .nm{font:700 15px var(--sans);fill:#1c2230}
+  .node .op{font:600 12px var(--sans);fill:#868e96}
+  .node .val{font:700 14px var(--mono);fill:#2f6fed}
+  .node .grd{font:700 13px var(--mono);fill:#e03131}
+  .edge{stroke:#ced4da;stroke-width:2;fill:none}
+  .edge.fwd{stroke:#2f6fed;stroke-width:3.5;stroke-dasharray:8 6;animation:flow 0.6s linear infinite}
+  .edge.bwd{stroke:#e03131;stroke-width:3.5;stroke-dasharray:8 6;animation:flow 0.6s linear infinite reverse}
+  @keyframes flow{to{stroke-dashoffset:-28}}
+  .phase{display:inline-block;padding:.15rem .6rem;border-radius:999px;font-weight:700;font-size:.8rem;color:#fff}
+  .phase.f{background:var(--blue)} .phase.b{background:var(--red)} .phase.u{background:var(--green)} .phase.s{background:#868e96}
+  .inputs{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .6rem}
+  .inputs label{font-size:.85rem;font-weight:600}
+  .inputs input,.inputs select{width:100%;padding:.3rem .45rem;border:1px solid var(--line);border-radius:7px;font:inherit;font-family:var(--mono);font-size:.9rem}
+  .progress{display:flex;gap:3px;margin:.5rem 0}
+  .progress span{flex:1;height:7px;border-radius:4px;background:#e9ecef;cursor:pointer}
+  .progress span.f{background:#a5c3ff} .progress span.b{background:#ffb3b3} .progress span.u{background:#b2f2bb} .progress span.s{background:#dee2e6}
+  .progress span.on{outline:2px solid var(--ink)}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" class="on" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 3 of 8 · ≈ 35 min</div>
+  <h1>Backpropagation: who gets the blame?</h1>
+  <p class="one-liner">Gradient descent needs the slope for <b>every</b> knob. Backpropagation is the trick that computes all of them in
+  <b>one backward sweep</b>: the error is passed backwards through the network, and every knob learns how much of the blame is its own.</p>
+</section>
+
+<section class="card">
+  <h2>🧩 Our tiny network: one neuron</h2>
+  <div class="grid2">
+    <div>
+      <p>Two inputs (x₁, x₂), two weights (w₁, w₂), a bias b, an activation function, and a squared-error loss:</p>
+      <p style="font-family:var(--mono);font-size:1.05rem;background:var(--soft);padding:.6rem .8rem;border-radius:10px">
+        z = w₁·x₁ + w₂·x₂ + b<br>a = activation(z)<br>L = (a − y)²</p>
+      <p>A real network is thousands of these neurons wired together. Backprop works the same way for all of them. Each small operation
+      (×, +, sigmoid) only needs to know its <b>own local slope</b>.</p>
+    </div>
+    <div>
+      <div class="callout info" style="margin-top:0">
+        <p><b>Analogy: a relay of blame.</b> The loss says "I am 0.04 too big". It tells the node before it, "if you go up by 1, I go up by <i>this much</i>".
+        That node multiplies by its own local slope and passes the message on. Every node does the same, back to the weights.
+        Multiplying slopes along the path is called the <b>chain rule</b>.</p>
+      </div>
+      <p class="small muted">Blue numbers = values computed going forward. Red numbers = gradients (∂L/∂·) computed going backward.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🎬 Step through it</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Inputs &amp; weights (edit me!)</h3>
+      <div class="inputs">
+        <div><label>x₁</label><input type="number" id="x1" step="0.1" value="2"></div>
+        <div><label>x₂</label><input type="number" id="x2" step="0.1" value="-1"></div>
+        <div><label>w₁</label><input type="number" id="w1" step="0.1" value="0.5"></div>
+        <div><label>w₂</label><input type="number" id="w2" step="0.1" value="-0.3"></div>
+        <div><label>b</label><input type="number" id="b" step="0.1" value="0.1"></div>
+        <div><label>target y</label><input type="number" id="y" step="0.1" value="1"></div>
+        <div><label>activation</label><select id="act"><option value="sigmoid">sigmoid</option><option value="tanh">tanh</option><option value="relu">ReLU</option><option value="none">none (linear)</option></select></div>
+        <div><label>learning rate</label><input type="number" id="lr" step="0.1" value="0.5"></div>
+      </div>
+      <div class="btn-row" style="margin-top:.8rem">
+        <button class="btn" id="back">◀ Back</button>
+        <button class="btn primary" id="next">Next ▶</button>
+        <button class="btn" id="auto">▶ Auto</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="again">🔁 Apply update &amp; go again</button>
+        <button class="btn" id="train20">⚡ Train 20 steps</button>
+        <button class="btn ghost" id="restore">↺ Restore defaults</button>
+      </div>
+      <div class="canvas-box" style="margin-top:.4rem"><div class="canvas-title">Loss over training steps</div><canvas id="hist" style="height:120px"></canvas></div>
+    </aside>
+    <div class="stage">
+      <div class="progress" id="progress"></div>
+      <div class="graph-box"><svg id="graph" viewBox="0 0 900 390"></svg></div>
+      <div class="explain" id="explain" style="margin-top:.7rem"></div>
+      <div class="codeview" id="code" style="margin-top:.7rem"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🔬 What does a gradient <i>mean</i>? The nudge test</h2>
+  <div class="grid2">
+    <div>
+      <p>A gradient answers one question: <b>"If I nudge this knob up by a tiny amount, how much does the loss change?"</b>
+      Let's check it by actually nudging.</p>
+      <div class="inputs" style="max-width:26rem">
+        <div><label>knob to nudge</label><select id="nk"><option value="w1">w₁</option><option value="w2">w₂</option><option value="b">b</option></select></div>
+        <div><label>nudge size h</label><input type="number" id="nh" value="0.001" step="0.001"></div>
+      </div>
+    </div>
+    <div class="explain" id="nudge" style="border-left-color:var(--purple)"></div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (predict first!)</h3>
+  <ol class="challenges">
+    <li><b>Which way?</b> With the default numbers, before pressing anything: should w₁ go <i>up</i> or <i>down</i> to reduce the loss? Then step through and check the sign of ∂L/∂w₁.
+      <details class="answer"><summary>Answer</summary>The output a ≈ 0.80 is below the target 1, so we want a bigger. A bigger z gives a bigger a, and x₁ = 2 is positive, so a bigger w₁ gives a bigger z.
+      So w₁ should go <b>up</b>. The gradient ∂L/∂w₁ ≈ −0.126 is negative, and the update w₁ − lr × (negative) makes w₁ bigger. ✔</details></li>
+    <li><b>No input, no blame.</b> Set x₁ = 0 and step to the end. What is ∂L/∂w₁? Why?
+      <details class="answer"><summary>Answer</summary>0. The multiply node gives w₁ the gradient × x₁, and x₁ = 0. If the input is zero, the weight had no effect on
+      this prediction, so it gets no blame and does not change. (That's one reason we normalize inputs: features stuck near 0 learn slowly.)</details></li>
+    <li><b>The dead neuron.</b> Choose ReLU and set b = −3. Step through, then press "Train 20 steps". What happens to the loss?
+      <details class="answer"><summary>Answer</summary>z = 2(0.5) + (−1)(−0.3) − 3 = −1.7 is negative, so ReLU outputs 0 and its slope is 0. The chain rule multiplies by 0, so <b>every</b> gradient is 0
+      and the loss never improves. This is a "dead ReLU". If it happens to many neurons in a real network, they stop learning for good.</details></li>
+    <li><b>Very wrong, barely learning.</b> Sigmoid, set w₁ = 5 and target y = 0. The prediction is almost 1 (very wrong!). Look at ∂L/∂z and train 20 steps.
+      <details class="answer"><summary>Answer</summary>z ≈ 10.4 and the sigmoid is flat out there: its slope a(1 − a) ≈ 0.00003. Even though the loss is almost 1 (terrible),
+      the gradients are tiny and 20 steps barely help. This is the <b>vanishing gradient</b> problem, and it's why modern networks prefer ReLU in hidden layers.</details></li>
+    <li><b>Too eager.</b> Restore defaults and set target y = 0.5. Train 20 steps with lr 0.5. Then try lr 10, then lr 20 (set y = 0.5 again each time). Compare the loss curves.
+      <details class="answer"><summary>Answer</summary>lr 0.5: the loss falls smoothly from 0.091 to almost 0.
+      lr 10: it jumps up and down (0.09 → 0.24 → 0.16 → …) and never settles. lr 20: the first step is so big that z shoots far out,
+      the sigmoid saturates, and the loss jumps to 0.25 and <b>stays there forever</b>. It's worse than where we started, and stuck in the flat zone from challenge 4.
+      Backprop gives the direction; the learning rate decides how far to go.</details></li>
+    <li><b>Believe the numbers.</b> Copy the PyTorch code below into a notebook cell and run it. Do you get the same gradients as the red numbers?
+      <details class="answer"><summary>Answer</summary>Yes, to 4 decimals. <code>loss.backward()</code> does exactly this backward sweep for you, for millions of parameters at once.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 Same numbers in PyTorch (updates as you edit the inputs)</h2>
+  <pre class="code" id="gen"></pre>
+  <div class="btn-row"><button class="btn" id="copy">📋 Copy code</button><span id="copied" class="muted small" style="align-self:center"></span></div>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why is it called <i>back</i>-propagation?
+      <details class="answer"><summary>Answer</summary>The gradients are computed from the loss <b>back</b> towards the inputs, the opposite direction to the forward pass,
+      because each node's gradient needs the gradient of the node after it.</details></li>
+    <li>A + node received gradient −0.06 from above. What gradient does it send to each of its inputs? And a × node?
+      <details class="answer"><summary>Answer</summary>+ sends the same −0.06 to every input (its local slope is 1).
+      × sends −0.06 × <i>the other input's value</i> to each input.</details></li>
+    <li>Why does PyTorch need <code>requires_grad=True</code> on weights but not on the data?
+      <details class="answer"><summary>Answer</summary>We only update weights, so we only need their gradients. Skipping the rest saves memory and time.
+      (<code>nn.Linear</code> and friends set it automatically for their parameters.)</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="02_gradient_descent.html"><small>← Previous</small>2 · Rolling downhill: gradient descent</a>
+  <a class="next" href="04_training_loop.html"><small>Next →</small>4 · The training loop, one line at a time</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+const f4=v=>{if(!Number.isFinite(v))return 'nan';const r=Math.abs(v)<5e-5&&v!==0?v.toExponential(2):v.toFixed(4);return r==='-0.0000'?'0.0000':r;};
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const DEFAULTS={x1:2,x2:-1,w1:0.5,w2:-0.3,b:0.1,y:1,act:'sigmoid',lr:0.5};
+let P={...DEFAULTS},step=0,autoT=null,lossHist=[];
+
+const ACT={
+  sigmoid:{f:z=>1/(1+Math.exp(-z)),d:(z,a)=>a*(1-a),name:'sigmoid',dtxt:(z,a)=>`a·(1 − a) = ${f4(a)} × ${f4(1-a)}`,torch:'torch.sigmoid(z)'},
+  tanh:{f:z=>Math.tanh(z),d:(z,a)=>1-a*a,name:'tanh',dtxt:(z,a)=>`1 − a² = 1 − ${f4(a)}²`,torch:'torch.tanh(z)'},
+  relu:{f:z=>Math.max(0,z),d:z=>z>0?1:0,name:'ReLU',dtxt:z=>z>0?`1 (because z = ${f4(z)} > 0)`:`0 (because z = ${f4(z)} ≤ 0, ReLU is flat here)`,torch:'torch.relu(z)'},
+  none:{f:z=>z,d:()=>1,name:'identity',dtxt:()=>'1 (no activation)',torch:'z'},
+};
+function compute(p){
+  const A=ACT[p.act],m1=p.w1*p.x1,m2=p.w2*p.x2,z=m1+m2+p.b,a=A.f(z),L=(a-p.y)**2;
+  const dL=1,da=2*(a-p.y),dadz=A.d(z,a),dz=da*dadz,dm1=dz,dm2=dz,db=dz,dw1=dm1*p.x1,dx1=dm1*p.w1,dw2=dm2*p.x2,dx2=dm2*p.w2;
+  return {m1,m2,z,a,L,dL,da,dadz,dz,dm1,dm2,db,dw1,dx1,dw2,dx2};
+}
+function lossOf(p){return compute(p).L;}
+
+// ---------- graph layout ----------
+const N={
+  x1:{x:70,y:40,leaf:1,label:'x₁',op:'input'}, w1:{x:70,y:115,leaf:1,label:'w₁',op:'weight'},
+  x2:{x:70,y:205,leaf:1,label:'x₂',op:'input'}, w2:{x:70,y:280,leaf:1,label:'w₂',op:'weight'}, b:{x:70,y:355,leaf:1,label:'b',op:'bias'},
+  m1:{x:270,y:78,label:'m₁',op:'w₁ × x₁'}, m2:{x:270,y:243,label:'m₂',op:'w₂ × x₂'},
+  z:{x:470,y:190,label:'z',op:'m₁ + m₂ + b'}, a:{x:650,y:190,label:'a',op:'activation(z)'},
+  y:{x:650,y:330,leaf:1,label:'y',op:'target'}, L:{x:830,y:190,label:'L',op:'(a − y)²'},
+};
+const E=[['x1','m1'],['w1','m1'],['x2','m2'],['w2','m2'],['m1','z'],['m2','z'],['b','z'],['z','a'],['a','L'],['y','L']];
+// when each node's value / gradient becomes visible
+const VAL_AT={x1:0,w1:0,x2:0,w2:0,b:0,y:0,m1:1,m2:2,z:3,a:4,L:5};
+const GRD_AT={L:6,a:7,z:8,m1:9,m2:9,b:9,w1:10,x1:10,w2:11,x2:11};
+const STEPS=[
+  {ph:'s',hot:['x1','w1','x2','w2','b','y'],edges:[],code:[0,1]},
+  {ph:'f',hot:['m1'],edges:[['x1','m1'],['w1','m1']],code:[2]},
+  {ph:'f',hot:['m2'],edges:[['x2','m2'],['w2','m2']],code:[3]},
+  {ph:'f',hot:['z'],edges:[['m1','z'],['m2','z'],['b','z']],code:[4]},
+  {ph:'f',hot:['a'],edges:[['z','a']],code:[5]},
+  {ph:'f',hot:['L'],edges:[['a','L'],['y','L']],code:[6]},
+  {ph:'b',hot:['L'],edges:[],code:[7]},
+  {ph:'b',hot:['a'],edges:[['a','L']],code:[7]},
+  {ph:'b',hot:['z'],edges:[['z','a']],code:[7]},
+  {ph:'b',hot:['m1','m2','b'],edges:[['m1','z'],['m2','z'],['b','z']],code:[7]},
+  {ph:'b',hot:['w1','x1'],edges:[['x1','m1'],['w1','m1']],code:[7]},
+  {ph:'b',hot:['w2','x2'],edges:[['x2','m2'],['w2','m2']],code:[7]},
+  {ph:'u',hot:['w1','w2','b'],edges:[],code:[8,9]},
+];
+const CODE=[
+  'x1, x2, y = torch.tensor(X1), torch.tensor(X2), torch.tensor(Y)',
+  'w1 = torch.tensor(W1, requires_grad=True)   <span class="c"># same for w2 and b</span>',
+  'm1 = w1 * x1',
+  'm2 = w2 * x2',
+  'z  = m1 + m2 + b',
+  'a  = ACT',
+  'loss = (a - y) ** 2',
+  'loss.backward()            <span class="c"># the backward sweep: fills w1.grad, w2.grad, b.grad</span>',
+  'with torch.no_grad():',
+  '    w1 -= lr * w1.grad      <span class="c"># same for w2 and b  (this is optimizer.step())</span>',
+];
+
+function readInputs(){
+  for(const k of ['x1','x2','w1','w2','b','y','lr']){const v=parseFloat($('#'+k).value);if(Number.isFinite(v))P[k]=v;}
+  P.act=$('#act').value;
+}
+function writeInputs(){for(const k of ['x1','x2','w1','w2','b','y','lr'])$('#'+k).value=+P[k].toFixed(6);$('#act').value=P.act;}
+
+function nodeGradKey(k){return 'd'+k;}
+function render(){
+  const c=compute(P),S=STEPS[step],hot=new Set(S.hot);
+  const val=k=>({x1:P.x1,x2:P.x2,w1:P.w1,w2:P.w2,b:P.b,y:P.y,m1:c.m1,m2:c.m2,z:c.z,a:c.a,L:c.L})[k];
+  const grd=k=>k==='L'?c.dL:c[nodeGradKey(k)];
+  const isFwd=(a,b)=>S.ph==='f'&&S.edges.some(e=>e[0]===a&&e[1]===b), isBwd=(a,b)=>S.ph==='b'&&S.edges.some(e=>e[0]===a&&e[1]===b);
+  let svg='<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#adb5bd"/></marker></defs>';
+  for(const [a,b] of E){const A=N[a],B=N[b],x1=A.x+60,y1=A.y,x2=B.x-60,y2=B.y,mx=(x1+x2)/2;
+    const cls=isFwd(a,b)?'edge fwd':isBwd(a,b)?'edge bwd':'edge';
+    svg+=`<path class="${cls}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" ${cls==='edge'?'marker-end="url(#ah)"':''}/>`;}
+  for(const k in N){const n=N[k],showV=step>=VAL_AT[k],showG=GRD_AT[k]!==undefined&&step>=GRD_AT[k];
+    const upd=step===12&&['w1','w2','b'].includes(k);
+    svg+=`<g class="node${n.leaf?' leaf':''}${hot.has(k)?' hot':''}" transform="translate(${n.x-60},${n.y-33})">
+      <rect width="120" height="66" rx="10"/>
+      <text class="nm" x="10" y="19">${n.label}</text><text class="op" x="110" y="18" text-anchor="end">${n.op}</text>
+      <text class="val" x="10" y="39">${showV?'= '+f4(val(k)):''}</text>
+      <text class="grd" x="10" y="58">${upd?'→ '+f4(val(k)-P.lr*grd(k)):showG?'∂ '+f4(grd(k)):''}</text></g>`;}
+  $('#graph').innerHTML=svg;
+  // progress bar
+  $('#progress').innerHTML=STEPS.map((s,i)=>`<span class="${s.ph}${i===step?' on':''}" data-i="${i}" title="step ${i}"></span>`).join('');
+  $('#progress').querySelectorAll('span').forEach(el=>el.onclick=()=>{stopAuto();step=+el.dataset.i;render();});
+  $('#explain').innerHTML=explain(c);
+  // code
+  const A=ACT[P.act];
+  $('#code').innerHTML=CODE.map((l,i)=>`<span class="ln${S.code.includes(i)?' on':''}">${l.replace('X1',fl(P.x1)).replace('X2',fl(P.x2)).replace('(Y)','('+fl(P.y)+')').replace('W1',fl(P.w1)).replace('ACT',A.torch)}</span>`).join('');
+  $('#back').disabled=step===0;$('#next').textContent=step===12?'Apply & restart ▶':'Next ▶';
+  renderNudge(c);renderGen(c);drawHist();
+}
+function explain(c){
+  const A=ACT[P.act],ph={s:'START',f:'FORWARD PASS',b:'BACKWARD PASS',u:'UPDATE'}[STEPS[step].ph];
+  const tag=`<span class="phase ${STEPS[step].ph}">${ph}</span> <span class="muted small">step ${step} of 12</span><br>`;
+  const L1=f4(c.L);
+  switch(step){
+    case 0:return tag+`These are the numbers we start with: the data (x₁, x₂, target y) and the current knobs (w₁, w₂, b).
+      We will first compute the prediction (<b style="color:var(--blue)">forward</b>), then the blame for each knob (<b style="color:var(--red)">backward</b>), then turn the knobs (<b style="color:var(--green)">update</b>).`;
+    case 1:return tag+`Multiply the first input by its weight:<span class="formula">m₁ = w₁ × x₁ = ${f4(P.w1)} × ${f4(P.x1)} = ${f4(c.m1)}</span>`;
+    case 2:return tag+`Same for the second input:<span class="formula">m₂ = w₂ × x₂ = ${f4(P.w2)} × ${f4(P.x2)} = ${f4(c.m2)}</span>`;
+    case 3:return tag+`Add everything up, plus the bias:<span class="formula">z = m₁ + m₂ + b = ${f4(c.m1)} + ${f4(c.m2)} + ${f4(P.b)} = ${f4(c.z)}</span>`;
+    case 4:return tag+`Squash z through the activation (${A.name}):<span class="formula">a = ${A.name}(${f4(c.z)}) = ${f4(c.a)}</span>This is the neuron's <b>prediction</b>.`;
+    case 5:return tag+`Compare with the target y = ${f4(P.y)}:<span class="formula">L = (a − y)² = (${f4(c.a)} − ${f4(P.y)})² = ${L1}</span>The forward pass is done. Now: who is to blame for this loss?`;
+    case 6:return tag+`Start at the end. How much does L change if L changes by 1? Exactly 1, obviously:<span class="formula">∂L/∂L = 1</span>This "1" is the message we will pass backwards.`;
+    case 7:return tag+`Local slope of (a − y)² with respect to a is 2(a − y):<span class="formula">∂L/∂a = 2(a − y) = 2 × (${f4(c.a)} − ${f4(P.y)}) = ${f4(c.da)}</span>
+      ${c.da<0?'Negative: making a <b>bigger</b> would <b>lower</b> the loss.':c.da>0?'Positive: making a <b>smaller</b> would lower the loss.':'Zero: the prediction is perfect.'}`;
+    case 8:return tag+`<b>Chain rule:</b> blame from above × local slope of this node.<span class="formula">∂a/∂z = ${A.dtxt(c.z,c.a)} = ${f4(c.dadz)}
+∂L/∂z = ∂L/∂a × ∂a/∂z = ${f4(c.da)} × ${f4(c.dadz)} = ${f4(c.dz)}</span>${Math.abs(c.dadz)<0.001?'⚠️ The local slope is almost zero, so almost no blame gets through. Everything before this point will barely learn.':''}`;
+    case 9:return tag+`A <b>+ node</b> passes the blame <b>unchanged</b> to every input (each input adds 1-for-1 to z):<span class="formula">∂L/∂m₁ = ∂L/∂m₂ = ∂L/∂b = ∂L/∂z = ${f4(c.dz)}</span>We already have the bias's gradient!`;
+    case 10:return tag+`A <b>× node</b> gives each input the blame × <b>the other input</b>:<span class="formula">∂L/∂w₁ = ∂L/∂m₁ × x₁ = ${f4(c.dm1)} × ${f4(P.x1)} = ${f4(c.dw1)}
+∂L/∂x₁ = ∂L/∂m₁ × w₁ = ${f4(c.dm1)} × ${f4(P.w1)} = ${f4(c.dx1)}</span>We can't change the data, so ∂L/∂x₁ is not used here. (In a deep network, it is exactly the blame passed to the <i>previous layer</i>.)`;
+    case 11:return tag+`Same for the second input:<span class="formula">∂L/∂w₂ = ∂L/∂m₂ × x₂ = ${f4(c.dm2)} × ${f4(P.x2)} = ${f4(c.dw2)}</span>
+      All three knob gradients are ready after <b>one</b> backward sweep: w₁: ${f4(c.dw1)}, w₂: ${f4(c.dw2)}, b: ${f4(c.db)}.`;
+    case 12:{const q={...P,w1:P.w1-P.lr*c.dw1,w2:P.w2-P.lr*c.dw2,b:P.b-P.lr*c.db},L2=lossOf(q);
+      return tag+`Gradient descent (Lesson 2) with lr = ${P.lr}:<span class="formula">w₁ ← ${f4(P.w1)} − ${P.lr} × ${f4(c.dw1)} = ${f4(q.w1)}
+w₂ ← ${f4(P.w2)} − ${P.lr} × ${f4(c.dw2)} = ${f4(q.w2)}
+b  ← ${f4(P.b)} − ${P.lr} × ${f4(c.db)} = ${f4(q.b)}</span>
+      With the new knobs the loss would be <b>${f4(L2)}</b> (it was ${L1}): ${L2<c.L-1e-12?'<b style="color:var(--green)">lower ✔</b>':L2>c.L+1e-12?'<b style="color:var(--red)">higher ✘ (learning rate too big?)</b>':'unchanged (all gradients were zero)'}.
+      Press <b>Apply &amp; restart</b> to keep the new knobs and do it again. That is one training step.`;}
+  }
+}
+function applyUpdate(){const c=compute(P);if(!lossHist.length)lossHist.push(c.L);
+  P.w1-=P.lr*c.dw1;P.w2-=P.lr*c.dw2;P.b-=P.lr*c.db;lossHist.push(lossOf(P));writeInputs();}
+function renderNudge(c){
+  const k=$('#nk').value,h=parseFloat($('#nh').value)||0.001,q={...P};q[k]+=h;
+  const L0=c.L,L1=lossOf(q),g={w1:c.dw1,w2:c.dw2,b:c.db}[k],name={w1:'w₁',w2:'w₂',b:'b'}[k];
+  $('#nudge').innerHTML=`Loss now: <b>${L0.toFixed(8)}</b><br>Loss with ${name} + ${h}: <b>${L1.toFixed(8)}</b><br>
+    Actual change: <b>${(L1-L0).toExponential(4)}</b><br>Gradient × h = ${f4(g)} × ${h} = <b>${(g*h).toExponential(4)}</b><br>
+    <span class="muted small">${Math.abs(g)<1e-12?'The gradient is 0, so nudging barely changes the loss.':'Almost identical! The gradient predicts the effect of a small nudge. The smaller h is, the closer the match.'}</span>`;
+}
+const fl=v=>{const s=String(+v.toPrecision(12));return /[.e]/.test(s)?s:s+'.0';};   // always a float literal
+function renderGen(c){
+  const A=ACT[P.act],lines=[
+    `<span class="k">import</span> torch`,
+    `x1, x2, y = torch.tensor(${fl(P.x1)}), torch.tensor(${fl(P.x2)}), torch.tensor(${fl(P.y)})`,
+    `w1 = torch.tensor(${fl(P.w1)}, requires_grad=<span class="k">True</span>)`,
+    `w2 = torch.tensor(${fl(P.w2)}, requires_grad=<span class="k">True</span>)`,
+    `b  = torch.tensor(${fl(P.b)}, requires_grad=<span class="k">True</span>)`,``,
+    `z = w1 * x1 + w2 * x2 + b`,`a = ${A.torch}`,`loss = (a - y) ** 2`,`loss.backward()`,``,
+    `print(<span class="s">"loss"</span>, round(loss.item(), 4))            <span class="c"># expect ${f4(c.L)}</span>`,
+    `print(<span class="s">"w1.grad"</span>, round(w1.grad.item(), 4))   <span class="c"># expect ${f4(c.dw1)}</span>`,
+    `print(<span class="s">"w2.grad"</span>, round(w2.grad.item(), 4))   <span class="c"># expect ${f4(c.dw2)}</span>`,
+    `print(<span class="s">"b.grad"</span>,  round(b.grad.item(), 4))    <span class="c"># expect ${f4(c.db)}</span>`];
+  $('#gen').innerHTML=lines.join('\n');
+}
+function drawHist(){
+  const {ctx,w:W,h:H}=setupCanvas($('#hist'));ctx.clearRect(0,0,W,H);ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  if(lossHist.length<2){ctx.textAlign='center';ctx.fillText('Press "Train 20 steps" or "Apply update"',W/2,H/2);return;}
+  const L=40,T=6,pw=W-L-6,ph=H-T-16,mx=Math.max(...lossHist.filter(Number.isFinite)),mn=Math.min(0,...lossHist);
+  ctx.textAlign='right';ctx.fillText(mx.toFixed(3),L-3,T+9);ctx.fillText(mn.toFixed(1),L-3,T+ph);
+  ctx.strokeStyle='#e2e4e9';ctx.strokeRect(L,T,pw,ph);ctx.strokeStyle='#e03131';ctx.lineWidth=2;ctx.beginPath();
+  lossHist.forEach((v,i)=>{const x=L+i/(lossHist.length-1)*pw,y=T+(mx-v)/((mx-mn)||1)*ph;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+  ctx.textAlign='center';ctx.fillText(`${lossHist.length-1} steps · loss ${lossHist[0].toFixed(4)} → ${lossHist[lossHist.length-1].toFixed(4)}`,L+pw/2,H-3);
+}
+function stopAuto(){if(autoT){clearInterval(autoT);autoT=null;$('#auto').textContent='▶ Auto';}}
+$('#next').onclick=()=>{stopAuto();if(step<12)step++;else{applyUpdate();step=0;}render();};
+$('#back').onclick=()=>{stopAuto();if(step>0)step--;render();};
+$('#auto').onclick=()=>{if(autoT){stopAuto();return;}$('#auto').textContent='⏸ Pause';if(step===12)step=0;
+  autoT=setInterval(()=>{if(step<12){step++;render();}else stopAuto();},1600);};
+$('#again').onclick=()=>{stopAuto();applyUpdate();step=0;render();};
+$('#train20').onclick=()=>{stopAuto();for(let i=0;i<20;i++)applyUpdate();step=12;render();};
+$('#restore').onclick=()=>{stopAuto();P={...DEFAULTS};lossHist=[];writeInputs();step=0;render();};
+document.querySelectorAll('.inputs input,.inputs select').forEach(el=>el.addEventListener('input',()=>{if(el.id==='nk'||el.id==='nh'){render();return;}readInputs();lossHist=[];render();}));
+$('#nk').onchange=()=>render();
+$('#copy').onclick=async()=>{const txt=$('#gen').innerText;let ok=false;
+  try{await navigator.clipboard.writeText(txt);ok=true;}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{ok=document.execCommand('copy');}catch(_){}ta.remove();}
+  $('#copied').textContent=ok?'Copied ✔ – paste it into a notebook cell':'Copy failed – select the code and press Ctrl+C';};
+window.addEventListener('resize',drawHist);
+writeInputs();render();
+</script>
+</body>
+</html>

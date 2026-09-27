@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1 · What is a model? — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" class="on" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 1 of 8 · ≈ 25–30 min</div>
+  <h1>What is a model?</h1>
+  <p class="one-liner">A model is a <b>formula with knobs</b>. Training means <b>turning the knobs</b> until the formula's guesses are good.
+  Today <b>you</b> are the training algorithm.</p>
+</section>
+
+<section class="card">
+  <h2>🍦 The story: an ice-cream shop</h2>
+  <div class="grid2">
+    <div>
+      <p>An ice-cream shop wrote down, for 20 days, the <b>temperature</b> and <b>how many cups they sold</b>.
+      The owner wants to guess tomorrow's sales from the weather forecast.</p>
+      <p>We guess that sales grow in a straight line with temperature, so our model is:</p>
+      <p class="center" style="font-size:1.35rem;font-family:var(--mono)">cups = <b style="color:var(--blue)">w</b> × temperature + <b style="color:var(--orange)">b</b></p>
+    </div>
+    <div>
+      <ul>
+        <li><b style="color:var(--blue)">w</b> (the <b>weight</b>): how many <i>extra</i> cups we sell for each extra degree.</li>
+        <li><b style="color:var(--orange)">b</b> (the <b>bias</b>): where the line starts, i.e. sales at 0 °C.</li>
+        <li><b>w</b> and <b>b</b> are the model's <b>parameters</b>: the knobs. The model's "knowledge" is <i>just these numbers</i>.</li>
+        <li>A big neural network has the same idea with <b>millions</b> of knobs. ResNet-18 has 11.7 million; our Day-2 MobileNetV2 has 2.2 million.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🎛️ Your turn: fit the line by hand</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>The two knobs</h3>
+      <div class="ctl"><label>w (weight) <output id="wOut"></output></label>
+        <input type="range" id="w" min="-2" max="6" step="0.01" value="0.5"></div>
+      <div class="ctl"><label>b (bias) <output id="bOut"></output></label>
+        <input type="range" id="b" min="-80" max="80" step="0.1" value="10"></div>
+      <div class="btn-row">
+        <button class="btn" id="resetKnobs">↺ Reset knobs</button>
+        <button class="btn primary" id="autofit">🤖 Let the computer fit it</button>
+      </div>
+
+      <h3>How we measure "wrong"</h3>
+      <div class="seg" id="lossSeg">
+        <button data-v="mse" class="on">MSE (squared)</button>
+        <button data-v="mae">MAE (absolute)</button>
+      </div>
+      <label class="check"><input type="checkbox" id="showSq" checked> Show the error squares</label>
+      <label class="check"><input type="checkbox" id="showBest"> Reveal the best possible line</label>
+
+      <h3>The data</h3>
+      <div class="ctl"><label>Number of days <output id="nOut"></output></label>
+        <input type="range" id="n" min="5" max="60" step="1" value="20"></div>
+      <div class="ctl"><label>Noise (randomness) <output id="noiseOut"></output></label>
+        <input type="range" id="noise" min="0" max="25" step="1" value="8"></div>
+      <label class="check"><input type="checkbox" id="outlier"> Add a festival day (outlier)</label>
+      <div class="btn-row"><button class="btn" id="newData">🎲 New data</button></div>
+    </aside>
+
+    <div class="stage">
+      <div class="stats">
+        <div class="stat blue"><b id="lossNow">–</b><span id="lossLabel">Your loss (MSE)</span></div>
+        <div class="stat good"><b id="lossBest">–</b><span>Best possible</span></div>
+        <div class="stat"><b id="yourBest">–</b><span>Your best by hand</span></div>
+        <div class="stat"><b id="tries">0</b><span>Knob moves</span></div>
+        <div class="stat orange"><b id="compSteps">–</b><span>Computer steps</span></div>
+      </div>
+      <div id="goal" class="banner info">🎯 Goal: get your loss within 10% of the best possible, using only the two sliders.</div>
+      <div class="grid2">
+        <div class="canvas-box">
+          <div class="canvas-title">Data and your line (click a dot to follow it)</div>
+          <canvas id="plot" style="height:360px"></canvas>
+        </div>
+        <div class="canvas-box">
+          <div class="canvas-title">The loss landscape: every (w, b) you could choose. Click to jump.</div>
+          <canvas id="heat" style="height:360px"></canvas>
+          <div class="legend"><span><i style="background:#0b3d91"></i>dark = low loss (good)</span>
+            <span><i style="background:#fde68a"></i>light = high loss</span>
+            <span>⚪ you</span><span style="color:#2f9e44">★ best</span><span style="color:#f08c00">— computer's path</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- <section class="card">
+  <h2>🧩 What just happened: six words you will hear all week</h2>
+  <ol class="steps">
+    <li><b>Model</b> A formula that turns an input (temperature) into an output (cups).</li>
+    <li><b>Parameters</b> The knobs inside the formula (w, b). Training changes <i>only</i> these.</li>
+    <li><b>Prediction</b> What the model says for one input, e.g. "27 °C → 61 cups".</li>
+    <li><b>Error</b> Prediction minus truth. The red dashed lines in the chart.</li>
+    <li><b>Loss</b> <i>One number</i> that summarises all the errors. MSE = average of squared errors. Smaller = better.</li>
+    <li><b>Training</b> Changing the parameters to make the loss smaller. You just did it by hand. The computer does it with <b>gradient descent</b> (Lesson 2).</li>
+  </ol>
+</section> -->
+
+<section class="callout try">
+  <h3>🧪 Try this (predict first, then check!)</h3>
+  <ol class="challenges">
+    <li><b>Beat the goal.</b> Reach the green banner using only the sliders. How many knob moves did you need?
+      Now imagine doing this for 11 million knobs.
+      <details class="answer"><summary>Why this matters</summary>
+      With 2 knobs you can "feel" your way to a good answer. With millions of knobs, guessing is hopeless. We need a method that tells us
+      <i>which direction</i> to turn <i>every</i> knob at once. That method is the <b>gradient</b> (Lessons 2 and 3).</details></li>
+    <li><b>Why is the best loss not zero?</b> Set <i>Noise</i> to 0 and press 🤖. What loss do you get now?
+      <details class="answer"><summary>Answer</summary>
+      With zero noise the points lie exactly on a line, so the loss can reach (almost) 0. Real data has noise: things the model does not know about
+      (holidays, a football match, a broken freezer). <b>No model can predict noise</b>, so the best possible loss is above zero.</details></li>
+    <li><b>MSE vs MAE and the outlier.</b> Tick <i>Add a festival day</i>. Press 🤖 in MSE mode, then switch to MAE and press 🤖 again.
+      Which line gets pulled towards the festival day more?
+      <details class="answer"><summary>Answer</summary>
+      MSE <i>squares</i> the errors, so one error of 100 counts like 100 errors of 10. The MSE line bends towards the outlier.
+      MAE counts every error just by its size, so it mostly ignores the one weird day.
+      <b>Choosing the loss is a design decision</b>: it defines what "good" means.</details></li>
+    <li><b>The shape of the landscape.</b> Look at the right-hand chart. Is the dark valley round or a long thin diagonal?
+      Click different places inside it and watch the line.
+      <details class="answer"><summary>Answer</summary>
+      It is a long, thin, <b>diagonal</b> valley. If you make w bigger, you can make b smaller and get almost the same line in the middle
+      of the data, so the two knobs "fight" each other. Long thin valleys are hard for gradient descent, which is why we <b>normalize inputs</b>
+      (Day 1 notebook, <code>transforms.Normalize</code>). The 🤖 button secretly normalizes the temperature before fitting.</details></li>
+    <li><b>Small data is unreliable.</b> Set days = 5, noise = 25, then press 🎲 several times and reveal the best line each time.
+      <details class="answer"><summary>Answer</summary>
+      With 5 noisy points the "best" line jumps around a lot between datasets. With 60 points it hardly moves.
+      More data gives a more trustworthy model. We come back to this in Lesson 6 (overfitting).</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 The same thing in PyTorch</h2>
+  <pre class="code"><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
+
+model = nn.Linear(<span class="n">1</span>, <span class="n">1</span>)             <span class="c"># cups = w * temp + b ; w and b start random</span>
+print(model.weight, model.bias)     <span class="c"># the two knobs (parameters)</span>
+
+loss_fn = nn.MSELoss()              <span class="c"># or nn.L1Loss() for MAE</span>
+temps = torch.tensor([[<span class="n">21.0</span>], [<span class="n">30.5</span>], [<span class="n">35.2</span>]])   <span class="c"># shape (N, 1)</span>
+cups  = torch.tensor([[<span class="n">44.0</span>], [<span class="n">70.0</span>], [<span class="n">88.0</span>]])
+pred  = model(temps)                <span class="c"># predictions</span>
+loss  = loss_fn(pred, cups)         <span class="c"># one number: how wrong we are</span>
+print(loss.item())</pre>
+  <p class="small muted">In Lesson 4 we add the three lines that let PyTorch turn the knobs for us:
+  <code>zero_grad()</code>, <code>backward()</code>, <code>step()</code>.</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Which numbers change during training: the data, or the parameters?
+      <details class="answer"><summary>Answer</summary>Only the parameters (w, b). The data stays fixed.</details></li>
+    <li>Your loss is 0.0 on the 20 days you have. Does that guarantee good predictions for tomorrow?
+      <details class="answer"><summary>Answer</summary>No. It only says you fit <i>these</i> days. Tomorrow is new data.
+      We must always measure on data the model has never seen (a validation or test set). See Lesson 6.</details></li>
+    <li>Why do we need <i>one</i> number (the loss) instead of looking at all 20 errors?
+      <details class="answer"><summary>Answer</summary>To compare two settings of the knobs we need to say "this one is better".
+      One number can be compared; 20 separate errors cannot (one might go up while another goes down).</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="index.html"><small>← Back</small>Home</a>
+  <a class="next" href="02_gradient_descent.html"><small>Next →</small>2 · Rolling downhill: gradient descent</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline · no data leaves this page</footer>
+
+<script>
+// ---------- small helpers ----------
+const $ = s => document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const fmt=(v,d=1)=>Number.isFinite(v)?v.toFixed(d):'–';
+
+// ---------- state ----------
+const X_MIN=5,X_MAX=45,Y_MIN=-20,Y_MAX=160, W_MIN=-2,W_MAX=6,B_MIN=-80,B_MAX=80;
+let seed=7,nPts=20,noise=8,outlier=false,lossType='mse',showSq=true,showBest=false;
+let w=0.5,b=10,data=[],sel=0,tries=0,yourBest=Infinity,best=null,path=[],anim=null,heatImg=null;
+
+function makeData(){
+  const r=mulberry32(seed);data=[];
+  for(let i=0;i<nPts;i++){const x=Math.round((10+30*r())*10)/10;data.push({x,y:Math.round(3*x-20+noise*gauss(r)),out:false});}
+  if(outlier)data.push({x:14,y:140,out:true});
+  sel=Math.min(sel,data.length-1);yourBest=Infinity;path=[];computeBest();heatImg=null;$('#compSteps').textContent='–';
+}
+function lossAt(wv,bv,type=lossType){let s=0;for(const p of data){const e=wv*p.x+bv-p.y;s+=type==='mse'?e*e:Math.abs(e);}return s/data.length;}
+function computeBest(){
+  const n=data.length;let mx=0,my=0;for(const p of data){mx+=p.x;my+=p.y;}mx/=n;my/=n;
+  if(lossType==='mse'){let sxy=0,sxx=0;for(const p of data){sxy+=(p.x-mx)*(p.y-my);sxx+=(p.x-mx)**2;}
+    const bw=sxx>0?sxy/sxx:0;best={w:bw,b:my-bw*mx};}
+  else{ // least-absolute-deviation: an optimal line always passes through two data points -> try all pairs
+    best={w:0,b:my};let bl=lossAt(0,my,'mae');
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const dx=data[j].x-data[i].x;if(Math.abs(dx)<1e-9)continue;
+      const ww=(data[j].y-data[i].y)/dx,bb=data[i].y-ww*data[i].x,l=lossAt(ww,bb,'mae');if(l<bl){bl=l;best={w:ww,b:bb};}}}
+  best.loss=lossAt(best.w,best.b);
+}
+
+// ---------- drawing: scatter ----------
+const plot=$('#plot'),heat=$('#heat');
+function drawPlot(){
+  const {ctx,w:W,h:H}=setupCanvas(plot),L=46,R=10,T=10,B=38,pw=W-L-R,ph=H-T-B;
+  const sx=x=>L+(x-X_MIN)/(X_MAX-X_MIN)*pw, sy=y=>T+(Y_MAX-y)/(Y_MAX-Y_MIN)*ph;
+  ctx.clearRect(0,0,W,H);ctx.font='12px Segoe UI, system-ui, sans-serif';
+  ctx.strokeStyle='#eceef2';ctx.fillStyle='#6b7385';ctx.lineWidth=1;
+  for(let x=10;x<=40;x+=10){ctx.beginPath();ctx.moveTo(sx(x),T);ctx.lineTo(sx(x),T+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText(x+'°',sx(x),T+ph+15);}
+  for(let y=0;y<=150;y+=50){ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-6,sy(y)+4);}
+  ctx.textAlign='center';ctx.fillText('Temperature (°C)',L+pw/2,H-4);
+  ctx.save();ctx.translate(12,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Cups sold',0,0);ctx.restore();
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+  // errors
+  data.forEach((p,i)=>{const pr=w*p.x+b,x=sx(p.x),y1=sy(p.y),y2=sy(pr),side=Math.abs(y2-y1);
+    if(showSq&&lossType==='mse'){ctx.fillStyle=i===sel?'rgba(224,49,49,.22)':'rgba(224,49,49,.09)';ctx.fillRect(x,Math.min(y1,y2),side,side);}
+    ctx.strokeStyle='rgba(224,49,49,.85)';ctx.setLineDash([4,3]);ctx.lineWidth=i===sel?2.2:1.3;
+    ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y2);ctx.stroke();ctx.setLineDash([]);});
+  if(showBest){ctx.strokeStyle='#2f9e44';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.beginPath();
+    ctx.moveTo(sx(X_MIN),sy(best.w*X_MIN+best.b));ctx.lineTo(sx(X_MAX),sy(best.w*X_MAX+best.b));ctx.stroke();ctx.setLineDash([]);}
+  ctx.strokeStyle='#2f6fed';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(sx(X_MIN),sy(w*X_MIN+b));ctx.lineTo(sx(X_MAX),sy(w*X_MAX+b));ctx.stroke();
+  data.forEach((p,i)=>{ctx.beginPath();ctx.arc(sx(p.x),sy(p.y),i===sel?7:5,0,7);ctx.fillStyle=p.out?'#d6336c':'#1c2230';ctx.fill();
+    if(i===sel){ctx.lineWidth=3;ctx.strokeStyle='#f08c00';ctx.stroke();}});
+  ctx.restore();
+  plot._map={sx,sy};
+}
+// ---------- drawing: loss landscape ----------
+function colorRamp(t){const st=[[11,61,145],[31,120,180],[55,182,164],[168,221,125],[253,230,138]];
+  t=Math.min(1,Math.max(0,t))*(st.length-1);const i=Math.min(st.length-2,Math.floor(t)),f=t-i;
+  return st[i].map((c,k)=>Math.round(c+(st[i+1][k]-c)*f));}
+function buildHeat(){
+  const GW=160,GH=110,vals=new Float64Array(GW*GH);let lo=Infinity,hi=-Infinity;
+  for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const wv=W_MIN+(i+.5)/GW*(W_MAX-W_MIN),bv=B_MAX-(j+.5)/GH*(B_MAX-B_MIN);
+    const v=Math.log(lossAt(wv,bv)+1e-6);vals[j*GW+i]=v;lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  lo=Math.min(lo,Math.log(best.loss+1e-6));
+  const c=document.createElement('canvas');c.width=GW;c.height=GH;const g=c.getContext('2d'),img=g.createImageData(GW,GH);
+  for(let k=0;k<GW*GH;k++){const t=(vals[k]-lo)/(hi-lo),band=Math.floor(t*14)/14,[r,gg,bb]=colorRamp(band);
+    img.data[4*k]=r;img.data[4*k+1]=gg;img.data[4*k+2]=bb;img.data[4*k+3]=255;}
+  g.putImageData(img,0,0);heatImg=c;
+}
+function drawHeat(){
+  if(!heatImg)buildHeat();
+  const {ctx,w:W,h:H}=setupCanvas(heat),L=46,R=10,T=10,B=38,pw=W-L-R,ph=H-T-B;
+  const sx=v=>L+(v-W_MIN)/(W_MAX-W_MIN)*pw, sy=v=>T+(B_MAX-v)/(B_MAX-B_MIN)*ph;
+  ctx.clearRect(0,0,W,H);ctx.imageSmoothingEnabled=true;ctx.drawImage(heatImg,L,T,pw,ph);
+  ctx.font='12px Segoe UI, system-ui, sans-serif';ctx.fillStyle='#6b7385';ctx.textAlign='center';
+  for(let v=-2;v<=6;v+=2)ctx.fillText(v,sx(v),T+ph+15);ctx.fillText('w (weight)',L+pw/2,H-4);
+  ctx.textAlign='right';for(let v=-80;v<=80;v+=40)ctx.fillText(v,L-6,sy(v)+4);
+  ctx.save();ctx.translate(12,T+ph/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('b (bias)',0,0);ctx.restore();
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+  if(path.length>1){ctx.strokeStyle='#f08c00';ctx.lineWidth=2.5;ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1])));ctx.stroke();}
+  ctx.fillStyle='#2f9e44';ctx.font='bold 20px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('★',sx(best.w),sy(best.b)+7);
+  ctx.beginPath();ctx.arc(sx(w),sy(b),7,0,7);ctx.fillStyle='#fff';ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#1c2230';ctx.stroke();
+  ctx.restore();heat._map={L,T,pw,ph};
+}
+
+// ---------- UI text ----------
+function updateText(){
+  const l=lossAt(w,b),tag=lossType==='mse'?'MSE':'MAE';
+  $('#wOut').textContent=w.toFixed(2);$('#bOut').textContent=b.toFixed(1);
+  $('#lossNow').textContent=fmt(l);$('#lossLabel').textContent='Your loss ('+tag+')';
+  $('#lossBest').textContent=fmt(best.loss);$('#yourBest').textContent=fmt(yourBest);$('#tries').textContent=tries;
+  const goal=$('#goal');
+  if(yourBest<=best.loss*1.10+1e-9){goal.className='banner good';goal.textContent='🎉 Goal reached by hand in '+tries+' knob moves: within 10% of the best possible '+tag+'.';}
+  else{goal.className='banner info';goal.textContent='🎯 Goal: get your '+tag+' below '+fmt(best.loss*1.10)+' (within 10% of the best possible), using only the two sliders.';}
+  const p=data[sel],pr=w*p.x+b,e=pr-p.y;
+  $('#follow').innerHTML=
+    `<b>${p.out?'Festival day':'Day '+(sel+1)}</b>: it was <b>${p.x} °C</b>.<br>`+
+    `① The model predicts: <span class="formula">cups = w × temp + b = ${w.toFixed(2)} × ${p.x} ${b<0?'−':'+'} ${Math.abs(b).toFixed(1)} = ${pr.toFixed(1)} cups</span>`+
+    `② The shop actually sold <b>${p.y}</b> cups.<br>`+
+    `③ Error = prediction − truth = ${pr.toFixed(1)} − ${p.y} = <b style="color:var(--red)">${e.toFixed(1)}</b> `+
+    (lossType==='mse'?`→ squared error = <b>${(e*e).toFixed(1)}</b> (the area of this day's red square)<br>`:`→ absolute error = <b>${Math.abs(e).toFixed(1)}</b><br>`)+
+    `④ Do this for all ${data.length} days and take the average: <b>${tag} = ${fmt(l)}</b>. That single number is the <b>loss</b>.`;
+}
+function redraw(){drawPlot();drawHeat();updateText();}
+function setKnobs(nw,nb){w=Math.min(W_MAX,Math.max(W_MIN,nw));b=Math.min(B_MAX,Math.max(B_MIN,nb));$('#w').value=w;$('#b').value=b;}
+function userMoved(){tries++;yourBest=Math.min(yourBest,lossAt(w,b));}
+function stopAnim(){if(anim){clearInterval(anim);anim=null;$('#autofit').disabled=false;}}
+
+// ---------- the computer's way: gradient descent (on normalized temperature) ----------
+function autofit(){
+  stopAnim();const n=data.length;let mx=0,m2=0,my=0,sy2=0;
+  for(const p of data){mx+=p.x;my+=p.y;}mx/=n;my/=n;for(const p of data){m2+=(p.x-mx)**2;sy2+=(p.y-my)**2;}
+  const sxd=Math.sqrt(m2/n)||1,syd=Math.sqrt(sy2/n)||1;
+  let ww=w*sxd,bb=b+w*mx,t=0;              // same line written with normalized x' = (x - mean) / std
+  path=[[w,b]];$('#autofit').disabled=true;
+  const steps=lossType==='mse'?60:200;
+  anim=setInterval(()=>{
+    let gw=0,gb=0;
+    for(const p of data){const xn=(p.x-mx)/sxd,e=ww*xn+bb-p.y;
+      if(lossType==='mse'){gw+=2*e*xn;gb+=2*e;}else{const s=Math.sign(e);gw+=s*xn;gb+=s;}}
+    gw/=n;gb/=n;
+    const lr=lossType==='mse'?0.1:syd*0.25/(1+t/15);
+    ww-=lr*gw;bb-=lr*gb;t++;
+    setKnobs(ww/sxd,bb-ww*mx/sxd);path.push([w,b]);$('#compSteps').textContent=t;redraw();
+    if(t>=steps)stopAnim();
+  },lossType==='mse'?45:20);
+}
+
+// ---------- events ----------
+$('#w').addEventListener('input',e=>{stopAnim();w=+e.target.value;redraw();});
+$('#b').addEventListener('input',e=>{stopAnim();b=+e.target.value;redraw();});
+$('#w').addEventListener('change',()=>{userMoved();updateText();});
+$('#b').addEventListener('change',()=>{userMoved();updateText();});
+$('#resetKnobs').onclick=()=>{stopAnim();setKnobs(0.5,10);path=[];$('#compSteps').textContent='–';redraw();};
+$('#autofit').onclick=autofit;
+$('#lossSeg').addEventListener('click',e=>{const v=e.target.dataset.v;if(!v)return;stopAnim();lossType=v;
+  [...$('#lossSeg').children].forEach(c=>c.classList.toggle('on',c===e.target));computeBest();yourBest=Infinity;tries=0;path=[];heatImg=null;$('#compSteps').textContent='–';redraw();});
+$('#showSq').onchange=e=>{showSq=e.target.checked;redraw();};
+$('#showBest').onchange=e=>{showBest=e.target.checked;redraw();};
+$('#n').oninput=e=>{nPts=+e.target.value;$('#nOut').textContent=nPts;stopAnim();makeData();redraw();};
+$('#noise').oninput=e=>{noise=+e.target.value;$('#noiseOut').textContent=noise;stopAnim();makeData();redraw();};
+$('#outlier').onchange=e=>{outlier=e.target.checked;stopAnim();makeData();if(outlier)sel=data.length-1;redraw();};
+$('#newData').onclick=()=>{seed++;stopAnim();makeData();redraw();};
+plot.addEventListener('click',e=>{const r=plot.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,{sx,sy}=plot._map;
+  let bi=-1,bd=18;data.forEach((p,i)=>{const d=Math.hypot(sx(p.x)-mx,sy(p.y)-my);if(d<bd){bd=d;bi=i;}});if(bi>=0){sel=bi;redraw();}});
+heat.addEventListener('click',e=>{const r=heat.getBoundingClientRect(),{L,T,pw,ph}=heat._map,x=e.clientX-r.left-L,y=e.clientY-r.top-T;
+  if(x<0||y<0||x>pw||y>ph)return;stopAnim();setKnobs(W_MIN+x/pw*(W_MAX-W_MIN),B_MAX-y/ph*(B_MAX-B_MIN));userMoved();redraw();});
+window.addEventListener('resize',redraw);
+
+$('#nOut').textContent=nPts;$('#noiseOut').textContent=noise;
+makeData();redraw();
+</script>
+</body>
+</html>

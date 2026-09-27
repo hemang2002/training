@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 · Overfitting — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" class="on" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 6 of 8 · ≈ 30 min</div>
+  <h1>Underfitting, overfitting, and just right</h1>
+  <p class="one-liner">Two students prepare for an exam. One only learns "the answer is usually C" (<b>underfitting</b>).
+  The other memorises every practice question word for word, typos included (<b>overfitting</b>). Both fail the real exam.
+  We want the student who learned the <b>pattern</b>.</p>
+</section>
+
+<section class="card">
+  <h2>🎯 The setup</h2>
+  <p>The hidden truth is the smooth <b style="color:#2f9e44">green curve</b>. We only get a few noisy measurements of it: the <b style="color:#2f6fed">blue training points</b>.
+  Our model is a <b>polynomial</b>, and its <b>degree</b> is its complexity: degree 1 is a straight line, and degree 15 can wiggle a lot.
+  The <b style="color:#f08c00">orange validation points</b> come from the same truth but are <b>never used for fitting</b>. They play the role of "the real exam".</p>
+</section>
+
+<section class="card">
+  <div class="lab">
+    <aside class="controls">
+      <h3>Model</h3>
+      <div class="ctl"><label>Polynomial degree <output id="dOut"></output></label><input type="range" id="deg" min="0" max="15" step="1" value="1"></div>
+      <div class="ctl"><label>L2 regularization λ <output id="lamOut"></output></label><input type="range" id="lam" min="0" max="7" step="1" value="0"></div>
+      <h3>Data</h3>
+      <div class="ctl"><label>Training points <output id="nOut"></output></label><input type="range" id="n" min="5" max="100" step="1" value="12"></div>
+      <div class="ctl"><label>Noise <output id="sOut"></output></label><input type="range" id="sig" min="0" max="3" step="1" value="2"></div>
+      <div class="btn-row"><button class="btn" id="newData">🎲 New training data</button></div>
+      <label class="check"><input type="checkbox" id="showTrue" checked> Show the hidden truth (green)</label>
+      <label class="check"><input type="checkbox" id="showVal" checked> Show validation points</label>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat blue"><b id="trE">–</b><span>Training error (MSE)</span></div>
+        <div class="stat orange"><b id="vaE">–</b><span>Validation error (MSE)</span></div>
+        <div class="stat"><b id="floor">–</b><span>Noise floor (σ²)</span></div>
+      </div>
+      <div id="verdict" class="banner info">–</div>
+      <div class="grid2">
+        <div class="canvas-box"><div class="canvas-title">Data and the fitted polynomial</div><canvas id="fitc" style="height:340px"></canvas></div>
+        <div class="canvas-box"><div class="canvas-title">Error vs model complexity (log scale). ★ = best degree on validation</div><canvas id="degc" style="height:340px"></canvas>
+          <div class="legend"><span><i style="background:#2f6fed"></i>training error</span><span><i style="background:#f08c00"></i>validation error</span><span><i style="background:#ced4da"></i>noise floor</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🍝 Bias vs variance: fit 20 different training sets</h2>
+  <div class="grid2">
+    <div>
+      <p>Imagine collecting the training data again: 20 times, same size, new noise. We fit the <b>same degree</b> to each set.</p>
+      <ul>
+        <li><b>High bias</b> (too simple): all 20 curves agree with each other, but they are all wrong in the same way.</li>
+        <li><b>High variance</b> (too complex): each curve chases its own noise, so the 20 curves disagree wildly.</li>
+      </ul>
+      <div class="btn-row"><button class="btn primary" id="spag">🍝 Fit 20 training sets at the current degree</button></div>
+      <div class="stats"><div class="stat"><b id="bias">–</b><span>Bias² (avg error of the mean curve)</span></div><div class="stat"><b id="vari">–</b><span>Variance (how much curves disagree)</span></div></div>
+      <p class="small muted">Measured on x ∈ [−0.9, 0.9]. Expected error ≈ bias² + variance + noise. A good model balances the first two.</p>
+    </div>
+    <div class="canvas-box"><canvas id="spagc" style="height:320px"></canvas>
+      <div class="legend"><span><i style="background:#9fb8f5"></i>20 fits</span><span><i style="background:#1c2230"></i>their average</span><span><i style="background:#2f9e44"></i>truth</span></div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⏱️ Early stopping: when to stop training</h2>
+  <div class="grid2">
+    <div>
+      <p>Now we train a <b>degree-15</b> polynomial (λ = 0) with <b>gradient descent</b>, starting from all-zero coefficients, on the current training data.
+      Gradient descent learns the big, smooth shape first and the noisy wiggles last. So validation error first falls, then rises again.</p>
+      <div class="btn-row"><button class="btn primary" id="gd">▶ Train with gradient descent</button></div>
+      <div class="ctl"><label>Look at iteration <output id="itOut">–</output></label><input type="range" id="it" min="0" max="0" value="0" disabled></div>
+      <div class="stats"><div class="stat good"><b id="bestIt">–</b><span>Best iteration (lowest validation)</span></div><div class="stat"><b id="bestV">–</b><span>Validation error there</span></div></div>
+      <p class="small muted">The purple curve in the top chart shows the model at the chosen iteration. In PyTorch you would save the checkpoint with the lowest validation loss.</p>
+    </div>
+    <div class="canvas-box"><div class="canvas-title">Error vs training iterations (log–log)</div><canvas id="gdc" style="height:300px"></canvas>
+      <div class="legend"><span><i style="background:#2f6fed"></i>training</span><span><i style="background:#f08c00"></i>validation</span><span><i style="background:#2f9e44"></i>best time to stop</span></div></div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (default: 12 points, noise 0.25, λ = 0)</h3>
+  <ol class="challenges">
+    <li><b>Walk the degree slider</b> from 0 to 15, slowly. Watch both errors and the verdict. Which degree is best?
+      <details class="answer"><summary>Answer</summary>Training error keeps going down as the degree grows; it can only get better at fitting the points it sees.
+      Validation error goes down, then <b>shoots up</b>. With the default data the best degree is 3 (validation ≈ 0.10, close to the noise floor 0.0625).
+      This U-shape is the most important picture in machine learning.</details></li>
+    <li><b>The perfect score trap.</b> Set degree 11. What is the training error? Would you deploy this model?
+      <details class="answer"><summary>Answer</summary>Training error 0.000: the curve passes through all 12 points exactly (12 coefficients, 12 points).
+      But look between and beyond the points: validation error is in the hundreds of thousands. A perfect training score is a warning sign, not a success.</details></li>
+    <li><b>More data.</b> Keep degree 15 and slide training points from 12 to 30 to 100.
+      <details class="answer"><summary>Answer</summary>Validation error drops dramatically (≈ 55 → ≈ 4.6 → ≈ 0.16). With more points there is less room to wiggle between them.
+      More data is the most reliable cure for overfitting. That's why data collection is often worth more than model tuning.</details></li>
+    <li><b>Regularization.</b> Back to 12 points, degree 15. Step λ up from 0 to 1 and watch the curve and the errors.
+      <details class="answer"><summary>Answer</summary>λ penalises large coefficients, so the curve is forced to be calmer. Validation error: ≈ 55 at λ = 0, ≈ 1.1 at 0.001, ≈ 0.34 at 0.01.
+      At λ = 1 the curve becomes too stiff: training error rises to ≈ 0.14 (underfitting starts).
+      In PyTorch this is the <code>weight_decay</code> argument of the optimizer.</details></li>
+    <li><b>See bias and variance.</b> Press 🍝 at degree 1, then degree 3, then degree 12.
+      <details class="answer"><summary>Answer</summary>Degree 1: the 20 lines are similar (low variance) but can't follow the curve (high bias).
+      Degree 3: close to the truth and fairly consistent, the best balance. Degree 12: a bowl of spaghetti. Variance is huge, and each fit mostly describes its own noise.</details></li>
+    <li><b>Stop at the right time.</b> Train with gradient descent (default data). Where is the best iteration? What happens after 100,000 iterations?
+      <details class="answer"><summary>Answer</summary>Validation error is lowest after a few hundred iterations (≈ 300 steps, error ≈ 0.33 with the default data). It then rises, and by 100,000 iterations
+      it reaches ≈ 55, the same as the exact degree-15 fit. Stopping early is a form of regularization: the model never gets time to memorise the noise.
+      This is why training scripts track validation loss every epoch and keep the best checkpoint.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 The same ideas in PyTorch</h2>
+  <pre class="code">optimizer = torch.optim.Adam(model.parameters(), lr=<span class="n">1e-3</span>, weight_decay=<span class="n">1e-4</span>)   <span class="c"># L2 regularization</span>
+
+best_val = float(<span class="s">"inf"</span>)
+<span class="k">for</span> epoch <span class="k">in</span> range(<span class="n">100</span>):
+    train_one_epoch(model, train_loader, optimizer)
+    val_loss = evaluate(model, val_loader)          <span class="c"># model.eval() + torch.no_grad() inside</span>
+    <span class="k">if</span> val_loss &lt; best_val:                         <span class="c"># early stopping: keep the best checkpoint</span>
+        best_val = val_loss
+        torch.save(model.state_dict(), <span class="s">"best.pth"</span>)</pre>
+  <p class="small muted">Other anti-overfitting tools you will meet: data augmentation (Day 2: random crops and flips), Dropout, and smaller or pretrained models (transfer learning).</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why can't we pick the degree using the <i>training</i> error?
+      <details class="answer"><summary>Answer</summary>Training error always prefers the most complex model (challenge 1). It can't see overfitting. Only data the model hasn't trained on can.</details></li>
+    <li>We tried 16 degrees and picked the best one by validation error. Is that validation error an honest estimate of real-world performance?
+      <details class="answer"><summary>Answer</summary>Slightly optimistic, because we used the validation set to make a choice. That's why we keep a third, untouched <b>test set</b>
+      and look at it only once, at the very end.</details></li>
+    <li>Your model has 95% training accuracy and 94% validation accuracy, but you need 99%. Overfitting or underfitting? What would you try?
+      <details class="answer"><summary>Answer</summary>Underfitting (both scores are similar and too low). Try a bigger or better model, better features, longer training, or less regularization.
+      More data helps less here.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="05_neural_network_playground.html"><small>← Previous</small>5 · Neural network playground</a>
+  <a class="next" href="07_cnn_convolution.html"><small>Next →</small>7 · How a CNN sees</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const fe=v=>!Number.isFinite(v)?'∞':v>=1e4?v.toExponential(1):v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(3);
+
+const truth=x=>Math.sin(3*x);
+const LAMS=[0,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1,1],SIGS=[0,0.1,0.25,0.5];
+let seed=1,train=[],val=[],gdRun=null,gdTimer=null;
+const P=()=>({d:+$('#deg').value,lam:LAMS[+$('#lam').value],n:+$('#n').value,sig:SIGS[+$('#sig').value]});
+
+function sample(n,sig,sd){const r=mulberry32(sd),p=[];for(let i=0;i<n;i++){const x=r()*2-1;p.push({x,y:truth(x)+sig*gauss(r)});}return p;}
+function cheb(x,d){const t=[1];if(d>=1)t.push(x);for(let k=2;k<=d;k++)t.push(2*x*t[k-1]-t[k-2]);return t;}   // Chebyshev basis: numerically stable
+function solve(A,b){const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;[M[c],M[p]]=[M[p],M[c]];
+    const piv=M[c][c]||1e-300;for(let r=c+1;r<n;r++){const k=M[r][c]/piv;if(k)for(let j=c;j<=n;j++)M[r][j]-=k*M[c][j];}}
+  const x=new Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=M[i][n];for(let j=i+1;j<n;j++)s-=M[i][j]*x[j];x[i]=s/(M[i][i]||1e-300);}return x;}
+// ridge regression: minimise mean squared error + λ·(sum of squared coefficients, except the constant)
+function fit(tr,d,lam){const n=tr.length,m=d+1,A=Array.from({length:m},()=>new Array(m).fill(0)),b=new Array(m).fill(0);
+  for(const p of tr){const t=cheb(p.x,d);for(let i=0;i<m;i++){b[i]+=t[i]*p.y/n;for(let j=0;j<m;j++)A[i][j]+=t[i]*t[j]/n;}}
+  for(let i=0;i<m;i++)A[i][i]+=(i>0?lam:0)+1e-10;return solve(A,b);}
+const pred=(c,x)=>{const t=cheb(x,c.length-1);let s=0;for(let i=0;i<c.length;i++)s+=t[i]*c[i];return s;};
+const mse=(c,s)=>s.reduce((a,p)=>a+(pred(c,p.x)-p.y)**2,0)/s.length;
+
+function makeData(){const p=P();train=sample(p.n,p.sig,seed);val=sample(60,p.sig,999);gdRun=null;resetGDui();}
+
+// ---------- drawing helpers ----------
+const YR=2.5;
+function frame(cv){const o=setupCanvas(cv),L=38,T=8,R=8,B=26,pw=o.w-L-R,ph=o.h-T-B;return {...o,L,T,pw,ph,sx:x=>L+(x+1)/2*pw,sy:y=>T+(YR-y)/(2*YR)*ph};}
+function axes(F){const {ctx,L,T,pw,ph,sx,sy}=F;ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.strokeStyle='#eef0f3';
+  for(const y of [-2,-1,0,1,2]){ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-4,sy(y)+4);}
+  for(const x of [-1,-0.5,0,0.5,1]){ctx.textAlign='center';ctx.fillText(x,sx(x),T+ph+15);}}
+function curve(F,fn,col,lw,dash=[]){const {ctx,L,T,pw,ph,sx,sy}=F;ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash);
+  // lift the pen while the curve is far outside the chart, so wild fits don't draw vertical bars
+  ctx.beginPath();let down=false;for(let i=0;i<=600;i++){const x=-1+i/300,y=fn(x),ok=Number.isFinite(y)&&Math.abs(y)<=YR*1.3;
+    if(ok){down?ctx.lineTo(sx(x),sy(y)):ctx.moveTo(sx(x),sy(y));down=true;}else if(down){ctx.lineTo(sx(x),sy(Math.sign(y)*YR*1.3));down=false;}}
+  ctx.stroke();ctx.restore();}
+
+function drawFit(c){
+  const F=frame($('#fitc')),{ctx}=F;axes(F);
+  if($('#showTrue').checked)curve(F,truth,'#2f9e44',2.5,[7,5]);
+  curve(F,x=>pred(c,x),'#2f6fed',3);
+  if(gdRun&&gdRun.view!==null){const s=gdRun.snaps[gdRun.view];curve(F,x=>pred(s.c,x),'#7048e8',2.5);}
+  if($('#showVal').checked)for(const p of val){ctx.beginPath();ctx.arc(F.sx(p.x),F.sy(p.y),3.5,0,7);ctx.fillStyle='rgba(240,140,0,.85)';ctx.fill();}
+  for(const p of train){ctx.beginPath();ctx.arc(F.sx(p.x),F.sy(p.y),5,0,7);ctx.fillStyle='#2f6fed';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#fff';ctx.stroke();}
+}
+function drawDeg(sweep,d,best,floor){
+  const cv=$('#degc'),o=setupCanvas(cv),{ctx}=o,L=44,T=8,pw=o.w-L-10,ph=o.h-T-28;
+  const lo=-3,hi=3,ly=v=>T+(hi-Math.max(lo,Math.min(hi,Math.log10(Math.max(v,1e-3)))))/(hi-lo)*ph,sx=k=>L+k/15*pw;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let e=lo;e<=hi;e++){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,ly(10**e));ctx.lineTo(L+pw,ly(10**e));ctx.stroke();ctx.textAlign='right';ctx.fillText(e<0?(10**e).toString():(10**e).toString(),L-4,ly(10**e)+4);}
+  for(let k=0;k<=15;k+=3){ctx.textAlign='center';ctx.fillText(k,sx(k),T+ph+14);}ctx.fillText('polynomial degree',L+pw/2,o.h-2);
+  if(floor>0){ctx.strokeStyle='#ced4da';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,ly(floor));ctx.lineTo(L+pw,ly(floor));ctx.stroke();ctx.setLineDash([]);}
+  ctx.fillStyle='rgba(240,140,0,.07)';ctx.fillRect(sx(best)+(pw/15)/2,T,L+pw-sx(best)-(pw/15)/2,ph);ctx.fillStyle='rgba(47,111,237,.06)';ctx.fillRect(L,T,sx(best)-L-(pw/15)/2,ph);
+  ctx.fillStyle='#adb5bd';ctx.textAlign='left';ctx.fillText('← underfitting',L+4,T+12);ctx.textAlign='right';ctx.fillText('overfitting →',L+pw-4,T+12);
+  for(const [key,col] of [['tr','#2f6fed'],['va','#f08c00']]){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();sweep.forEach((s,k)=>k?ctx.lineTo(sx(k),ly(s[key])):ctx.moveTo(sx(k),ly(s[key])));ctx.stroke();
+    ctx.fillStyle=col;sweep.forEach((s,k)=>{ctx.beginPath();ctx.arc(sx(k),ly(s[key]),2.6,0,7);ctx.fill();});}
+  ctx.strokeStyle='#1c2230';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(sx(d),T);ctx.lineTo(sx(d),T+ph);ctx.stroke();
+  ctx.fillStyle='#2f9e44';ctx.font='bold 18px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('★',sx(best),ly(sweep[best].va)-6);
+}
+function update(){
+  const p=P();$('#dOut').textContent=p.d;$('#lamOut').textContent=p.lam;$('#nOut').textContent=p.n;$('#sOut').textContent=p.sig;
+  const c=fit(train,p.d,p.lam),tr=mse(c,train),va=mse(c,val),floor=p.sig*p.sig;
+  const sweep=[];for(let k=0;k<=15;k++){const ck=fit(train,k,p.lam);sweep.push({tr:mse(ck,train),va:mse(ck,val)});}
+  let best=0;sweep.forEach((s,k)=>{if(s.va<sweep[best].va)best=k;});
+  // reference: best validation error over all degrees, with and without the current λ
+  let bestAll=sweep[best].va,bestDeg0=best;
+  if(p.lam>0){let b0=Infinity;for(let k=0;k<=15;k++){const v0=mse(fit(train,k,0),val);if(v0<b0){b0=v0;bestDeg0=k;}}bestAll=Math.min(bestAll,b0);}
+  $('#trE').textContent=fe(tr);$('#vaE').textContent=fe(va);$('#floor').textContent=floor.toFixed(4);
+  const v=$('#verdict');
+  if(va<=bestAll*1.5+0.01){v.className='banner good';v.innerHTML=`✅ <b>Just right</b> (or close): validation error ${fe(va)} is near the best we can get on this data (${fe(bestAll)}).`;}
+  else if(p.d<bestDeg0){v.className='banner info';v.innerHTML=`🟦 <b>Underfitting</b>: the model is too simple. Both errors are high. Try a higher degree (best here: ${best}).`;}
+  else if(p.lam>0&&tr>1.8*floor+0.02){v.className='banner info';v.innerHTML=`🟦 <b>Underfitting from too much regularization</b>: λ = ${p.lam} keeps the curve so stiff that even the training error (${fe(tr)}) is high. Lower λ.`;}
+  else{v.className='banner bad';v.innerHTML=`🟧 <b>Overfitting</b>: training error ${fe(tr)} looks great, but validation error ${fe(va)} is ${fe(va/Math.max(tr,1e-9))}× bigger. The curve is fitting noise.`;}
+  drawFit(c);drawDeg(sweep,p.d,best,floor);
+}
+
+// ---------- bias / variance ----------
+function spaghetti(){
+  const p=P(),F=frame($('#spagc')),{ctx}=F,fits=[];axes(F);
+  for(let k=0;k<20;k++)fits.push(fit(sample(p.n,p.sig,1000+k),p.d,p.lam));
+  const xs=[];for(let i=0;i<=90;i++)xs.push(-0.9+i*0.02);
+  let b2=0,vr=0;const mean=xs.map(x=>fits.reduce((s,c)=>s+pred(c,x),0)/fits.length);
+  xs.forEach((x,i)=>{b2+=(mean[i]-truth(x))**2;vr+=fits.reduce((s,c)=>s+(pred(c,x)-mean[i])**2,0)/fits.length;});
+  b2/=xs.length;vr/=xs.length;
+  fits.forEach(c=>curve(F,x=>pred(c,x),'rgba(47,111,237,.35)',1.4));
+  curve(F,truth,'#2f9e44',2.5,[7,5]);
+  curve(F,x=>fits.reduce((s,c)=>s+pred(c,x),0)/fits.length,'#1c2230',2.8);
+  ctx.fillStyle='#495057';ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign='left';ctx.fillText(`degree ${p.d}, ${p.n} points, λ = ${p.lam}`,F.L+6,F.T+14);
+  $('#bias').textContent=fe(b2);$('#vari').textContent=fe(vr);
+}
+
+// ---------- early stopping with gradient descent ----------
+function resetGDui(){if(gdTimer){cancelAnimationFrame(gdTimer);gdTimer=null;}$('#it').disabled=true;$('#it').max=0;$('#itOut').textContent='–';$('#bestIt').textContent='–';$('#bestV').textContent='–';
+  $('#gd').disabled=false;drawGD();}
+function runGD(){
+  resetGDui();const d=15,m=d+1,n=train.length,Phi=train.map(p=>cheb(p.x,d)),Y=train.map(p=>p.y);
+  let v=new Array(m).fill(1),Lm=1;   // largest eigenvalue of Phi^T Phi / n (power iteration) -> safe step size
+  for(let it=0;it<200;it++){const Av=new Array(m).fill(0);for(const t of Phi){let s=0;for(let i=0;i<m;i++)s+=t[i]*v[i];for(let i=0;i<m;i++)Av[i]+=t[i]*s/n;}Lm=Math.hypot(...Av)||1;v=Av.map(q=>q/Lm);}
+  const lr=1/Lm,c=new Array(m).fill(0),MAX=200000,marks=new Set();
+  for(let e=0;e<=Math.log10(MAX)*25;e++)marks.add(Math.round(10**(e/25)));
+  gdRun={snaps:[{it:0,c:[...c],tr:mse(c,train),va:mse(c,val)}],view:null,best:0};let it=0;$('#gd').disabled=true;
+  const chunk=()=>{const stopAt=Math.min(MAX,it+Math.max(200,Math.floor(it*0.08)));
+    while(it<stopAt){const g=new Array(m).fill(0);for(let k=0;k<n;k++){const t=Phi[k];let e=-Y[k];for(let i=0;i<m;i++)e+=t[i]*c[i];for(let i=0;i<m;i++)g[i]+=e*t[i]/n;}
+      for(let i=0;i<m;i++)c[i]-=lr*g[i];it++;
+      if(marks.has(it)){const s={it,c:[...c],tr:mse(c,train),va:mse(c,val)};gdRun.snaps.push(s);if(s.va<gdRun.snaps[gdRun.best].va)gdRun.best=gdRun.snaps.length-1;}}
+    gdRun.view=gdRun.snaps.length-1;showSnap();
+    if(it<MAX)gdTimer=requestAnimationFrame(chunk);else{gdTimer=null;$('#gd').disabled=false;$('#it').disabled=false;$('#it').max=gdRun.snaps.length-1;$('#it').value=gdRun.best;gdRun.view=gdRun.best;showSnap();}};
+  gdTimer=requestAnimationFrame(chunk);
+}
+function showSnap(){const s=gdRun.snaps[gdRun.view],b=gdRun.snaps[gdRun.best];$('#itOut').textContent=`${s.it.toLocaleString('en-US')} (train ${fe(s.tr)}, val ${fe(s.va)})`;
+  $('#bestIt').textContent=b.it.toLocaleString('en-US');$('#bestV').textContent=fe(b.va);drawGD();update();}
+function drawGD(){
+  const cv=$('#gdc'),o=setupCanvas(cv),{ctx}=o,L=44,T=8,pw=o.w-L-10,ph=o.h-T-28;
+  const lx=it=>L+Math.log10(Math.max(1,it))/Math.log10(200000)*pw,lo=-3,hi=3,ly=v=>T+(hi-Math.max(lo,Math.min(hi,Math.log10(Math.max(v,1e-3)))))/(hi-lo)*ph;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let e=lo;e<=hi;e++){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,ly(10**e));ctx.lineTo(L+pw,ly(10**e));ctx.stroke();ctx.textAlign='right';ctx.fillText((10**e).toString(),L-4,ly(10**e)+4);}
+  for(let e=0;e<=5;e++){ctx.textAlign='center';ctx.fillText((10**e).toLocaleString('en-US'),lx(10**e),T+ph+14);}ctx.fillText('iteration',L+pw/2,o.h-2);
+  if(!gdRun){ctx.textAlign='center';ctx.fillText('Press ▶ Train with gradient descent',L+pw/2,T+ph/2);return;}
+  const S=gdRun.snaps.filter(s=>s.it>0);
+  for(const [key,col] of [['tr','#2f6fed'],['va','#f08c00']]){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();S.forEach((s,i)=>i?ctx.lineTo(lx(s.it),ly(s[key])):ctx.moveTo(lx(s.it),ly(s[key])));ctx.stroke();}
+  const b=gdRun.snaps[gdRun.best];if(b.it>0){ctx.strokeStyle='#2f9e44';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(lx(b.it),T);ctx.lineTo(lx(b.it),T+ph);ctx.stroke();ctx.setLineDash([]);}
+  if(gdRun.view!==null){const s=gdRun.snaps[gdRun.view];if(s.it>0){ctx.fillStyle='#7048e8';ctx.beginPath();ctx.arc(lx(s.it),ly(s.va),5,0,7);ctx.fill();}}
+}
+
+// ---------- events ----------
+['#deg','#lam'].forEach(id=>$(id).addEventListener('input',update));
+['#n','#sig'].forEach(id=>$(id).addEventListener('input',()=>{makeData();update();}));
+['#showTrue','#showVal'].forEach(id=>$(id).addEventListener('change',update));
+$('#newData').onclick=()=>{seed++;makeData();update();};
+$('#spag').onclick=spaghetti;
+$('#gd').onclick=runGD;
+$('#it').addEventListener('input',e=>{if(!gdRun)return;gdRun.view=+e.target.value;showSnap();});
+window.addEventListener('resize',()=>{update();drawGD();});
+makeData();update();
+(()=>{const F=frame($('#spagc'));axes(F);F.ctx.fillStyle='#868e96';F.ctx.textAlign='center';F.ctx.font='12px Segoe UI, sans-serif';F.ctx.fillText('Press 🍝 to fit 20 training sets',F.L+F.pw/2,F.T+F.ph/2);})();
+</script>
+</body>
+</html>

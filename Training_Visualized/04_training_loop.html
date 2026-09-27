@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4 · The training loop — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .loopgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:1rem}
+  @media (max-width:1000px){.loopgrid{grid-template-columns:1fr}}
+  .param{display:grid;grid-template-columns:3.2rem 1fr 5.2rem;gap:.4rem;align-items:center;font-family:var(--mono);font-size:.88rem;margin:.25rem 0}
+  .bar{height:14px;background:#f1f3f5;border-radius:4px;position:relative;overflow:hidden}
+  .bar i{position:absolute;top:0;bottom:0;background:var(--red);opacity:.75}
+  .bar::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:#adb5bd}
+  .tbl td.new{animation:flash .8s}
+  @keyframes flash{from{background:#ffe066}to{background:transparent}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" class="on" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 4 of 8 · ≈ 35 min</div>
+  <h1>The training loop, one line at a time</h1>
+  <p class="one-liner">Every PyTorch training script, from this toy up to GPT, has the same six-line heartbeat:
+  <b>take a batch → predict → measure the loss → clear old gradients → backpropagate → step</b>. Here you can run it one line at a time and watch what each line does.</p>
+</section>
+
+<section class="card">
+  <h2>🎯 The task</h2>
+  <p>Each dot is a student. The x-axis is hours studied and the y-axis is hours slept (both rescaled). <b style="color:#f08c00">Orange = failed</b>, <b style="color:#2f6fed">blue = passed</b>.
+  The model is <b>logistic regression</b>: a line that separates the two colours. It has three knobs: w₁, w₂ and b.
+  It outputs a probability p = sigmoid(w₁·x₁ + w₂·x₂ + b) that the student passes. The background colour shows that probability everywhere.</p>
+</section>
+
+<section class="card">
+  <div class="loopgrid">
+    <div>
+      <div class="codeview" id="code"></div>
+      <div class="explain" id="explain" style="margin-top:.7rem"></div>
+      <div class="btn-row" style="margin-top:.7rem">
+        <button class="btn primary" id="bLine">Next line ▶</button>
+        <button class="btn" id="bBatch">Next batch ⏭</button>
+        <button class="btn" id="bEpoch">Next epoch ⏩</button>
+        <button class="btn" id="bRun">▶ Run</button>
+        <button class="btn" id="bReset">↺ Reset</button>
+      </div>
+      <div class="stats">
+        <div class="stat blue"><b id="sEpoch">0</b><span>Epoch</span></div>
+        <div class="stat"><b id="sBatch">–</b><span>Batch in epoch</span></div>
+        <div class="stat"><b id="sIter">0</b><span>Iterations (steps)</span></div>
+        <div class="stat orange"><b id="sLoss">–</b><span>Loss on all data</span></div>
+        <div class="stat good"><b id="sAcc">–</b><span>Accuracy</span></div>
+        <div class="stat blue"><b id="sPass">–</b><span>Model says "pass"</span></div>
+      </div>
+      <div class="small muted" id="iterInfo"></div>
+    </div>
+    <div>
+      <div class="canvas-box"><div class="canvas-title">Data, the current batch (ringed) and the model's line</div><canvas id="plot" style="height:380px"></canvas>
+        <div class="legend"><span><i style="background:#f08c00;border-radius:50%"></i>failed (y = 0)</span><span><i style="background:#2f6fed;border-radius:50%"></i>passed (y = 1)</span>
+          <span>◯ in current batch</span><span>— line now</span><span style="color:#868e96">- - line before the last step</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="grid2">
+    <div>
+      <h3>Inside the current batch</h3>
+      <div class="tbl-wrap"><table class="tbl" id="btbl"><thead><tr><th>#</th><th>x₁</th><th>x₂</th><th>y</th><th>p (pred)</th><th>loss</th><th>p − y</th></tr></thead><tbody></tbody></table></div>
+      <p class="small muted">"p − y" is each sample's error signal. Backprop turns it into the gradients: ∂L/∂w = average of (p − y)·x.</p>
+    </div>
+    <div>
+      <h3>The knobs and their gradients</h3>
+      <div id="params"></div>
+      <p class="small muted">Red bars = the gradient currently stored in <code>.grad</code>. The step moves each knob by −lr × gradient.</p>
+      <div class="canvas-box" style="margin-top:.5rem"><div class="canvas-title">Loss: each iteration (grey) and average per epoch (blue)</div><canvas id="lossc" style="height:190px"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🎛️ Settings &amp; bug switches</h2>
+  <div class="grid3">
+    <div>
+      <div class="ctl"><label>Batch size <output id="bsOut"></output></label>
+        <select id="bs"><option>1</option><option>2</option><option>4</option><option selected>8</option><option>16</option><option value="32">32 (all data)</option></select></div>
+      <div class="ctl"><label>Learning rate</label>
+        <select id="lr"><option>0.05</option><option>0.1</option><option selected>0.5</option><option>1</option><option>2</option></select></div>
+    </div>
+    <div>
+      <div class="ctl"><label>Epochs</label><select id="ep"><option>5</option><option selected>20</option><option>50</option></select></div>
+      <div class="ctl"><label>Run speed</label><select id="speed"><option value="line">Line by line (slow)</option><option value="batch" selected>One batch per tick</option><option value="epoch">One epoch per tick</option></select></div>
+      <button class="btn" id="bData">🎲 New data</button>
+    </div>
+    <div>
+      <p style="margin:0 0 .3rem;font-weight:700">🐞 Bug switches (classic mistakes)</p>
+      <label class="check"><input type="checkbox" id="bugZero"> I forgot <code>optimizer.zero_grad()</code></label>
+      <label class="check"><input type="checkbox" id="bugShuffle"> I forgot <code>shuffle=True</code> (data sorted by class)</label>
+      <p class="small muted">Changing a setting restarts training from the same starting knobs, so comparisons are fair.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>📖 Words you now know</h2>
+  <table class="plain">
+    <tr><th style="width:11rem">Batch (mini-batch)</th><td>A small group of samples used for one step. The gradient from a batch is a <i>cheap, slightly noisy estimate</i> of the gradient on all data.</td></tr>
+    <tr><th>Iteration / step</th><td>One pass through the inner loop: one batch, one <code>optimizer.step()</code>.</td></tr>
+    <tr><th>Epoch</th><td>One full pass over the whole dataset. Iterations per epoch = ⌈N / batch size⌉.</td></tr>
+    <tr><th>zero_grad()</th><td>PyTorch <b>adds</b> new gradients to <code>.grad</code> instead of replacing them. So you must clear them before every backward pass.</td></tr>
+    <tr><th>shuffle=True</th><td>Mixes the order of samples every epoch, so every batch looks like a fair sample of the data.</td></tr>
+  </table>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this</h3>
+  <ol class="challenges">
+    <li><b>Count first.</b> 32 samples, batch size 8: how many iterations in one epoch? And with batch size 1? And 32? Check with "Next epoch".
+      <details class="answer"><summary>Answer</summary>4, 32 and 1. With batch size 32 the "mini-batch" is the whole dataset: that is plain (full-batch) gradient descent from Lesson 2.
+      In Day 1's FashionMNIST notebook: 60,000 images at batch size 64 gives 938 iterations per epoch (the last batch has only 32 images).</details></li>
+    <li><b>Noisy vs smooth.</b> Run 20 epochs with batch size 1, then with batch size 32 (tip: set Run speed to "One epoch per tick"). Compare the grey per-iteration loss curves and the number of iterations.
+      <details class="answer"><summary>Answer</summary>Batch size 1: 640 tiny, noisy steps. Each one follows a single student, so the line jitters.
+      Batch size 32: 20 smooth steps. Small batches give more updates per epoch but noisier ones; large batches give fewer, more accurate updates (and use the GPU better).
+      Typical real values are 32–256.</details></li>
+    <li><b>Bug: no zero_grad.</b> Tick "I forgot zero_grad()" and run. Watch the gradient bars and the line.
+      <details class="answer"><summary>Answer</summary>The gradients never reset, because every backward pass <b>adds</b> to the old ones. Each step then uses the sum of <i>all</i>
+      previous gradients, so the line overshoots and swings back and forth. With the default settings the loss on all data gets <b>worse</b> epoch after epoch
+      (≈ 0.24 after epoch 1, ≈ 1.0 after epoch 20), while the correct loop goes down to ≈ 0.22.
+      There is no error message; the code "runs fine". This is one of the most common silent bugs in PyTorch.</details></li>
+    <li><b>Bug: no shuffle.</b> Batch size 1, learning rate 2. Run 20 epochs with shuffle, then tick "I forgot shuffle=True" and run again.
+      Compare the final loss and the "Model says pass" counter (16 students truly passed). Finally set batch size 32 with the bug still on.
+      <details class="answer"><summary>Answer</summary>With shuffle: final loss ≈ 0.21 and the model says "pass" for 17 students.
+      Without shuffle the model sees 16 orange students in a row, then 16 blue ones, so the line swings back and forth every epoch.
+      Each epoch <i>ends</i> after a long run of blue, so the final model says "pass" for 22 students and its loss is ≈ 0.49, more than twice as bad.
+      With batch size 32 the bug has <b>no effect at all</b> (identical numbers), because every batch contains all the data and the order inside a batch doesn't matter.
+      Real datasets are often stored sorted by class (a folder per class), which is why <code>shuffle=True</code> matters.</details></li>
+    <li><b>One batch vs everything.</b> In line-by-line mode, note the batch loss at the <code>loss =</code> line, finish the step, and compare with "Loss on all data".
+      Does one step always improve the loss on <i>all</i> data?
+      <details class="answer"><summary>Answer</summary>Not always. A step is chosen to help <i>this</i> batch, and it can slightly hurt other samples.
+      On average, over many batches, the loss on all data goes down. That is why we judge training by the per-epoch curve, not by single steps.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 The full script (run it on Day 1)</h2>
+  <pre class="code"><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
+<span class="k">from</span> torch.utils.data <span class="k">import</span> TensorDataset, DataLoader
+
+X = torch.randn(<span class="n">32</span>, <span class="n">2</span>); Y = (X[:, <span class="n">0</span>] + X[:, <span class="n">1</span>] > <span class="n">0</span>).float().unsqueeze(<span class="n">1</span>)   <span class="c"># toy data</span>
+loader = DataLoader(TensorDataset(X, Y), batch_size=<span class="n">8</span>, shuffle=<span class="k">True</span>)
+
+model = nn.Linear(<span class="n">2</span>, <span class="n">1</span>)                                   <span class="c"># w1, w2, b</span>
+loss_fn = nn.BCEWithLogitsLoss()                          <span class="c"># sigmoid + log-loss in one, numerically stable</span>
+optimizer = torch.optim.SGD(model.parameters(), lr=<span class="n">0.5</span>)
+
+<span class="k">for</span> epoch <span class="k">in</span> range(<span class="n">20</span>):
+    <span class="k">for</span> xb, yb <span class="k">in</span> loader:
+        pred = model(xb)
+        loss = loss_fn(pred, yb)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    print(epoch, loss.item())</pre>
+  <p class="small muted">Two more lines appear in real scripts: <code>model.train()</code> before the loop and <code>model.eval()</code> + <code>torch.no_grad()</code>
+  for validation after each epoch. They matter for Dropout and BatchNorm, which this tiny model doesn't have.</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why is <code>zero_grad()</code> placed <i>before</i> <code>backward()</code> and not after <code>step()</code>? Does it matter?
+      <details class="answer"><summary>Answer</summary>Either placement works as long as the gradients are cleared once between two backward passes.
+      "Before backward" is the safest habit, because it also clears anything left over from earlier code.</details></li>
+    <li>Why would anyone <i>want</i> gradients to accumulate?
+      <details class="answer"><summary>Answer</summary>Gradient accumulation: if a batch of 256 doesn't fit in GPU memory, run 4 batches of 64 with backward() each,
+      then step() and zero_grad() once. You get the same update as one batch of 256. So the "bug" is sometimes a feature, when it's done on purpose.</details></li>
+    <li>You have 1,000 images and batch size 100. After 30 epochs, how many times has <code>optimizer.step()</code> run?
+      <details class="answer"><summary>Answer</summary>1,000 / 100 = 10 steps per epoch, × 30 = 300 steps.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="03_backpropagation.html"><small>← Previous</small>3 · Backpropagation</a>
+  <a class="next" href="05_neural_network_playground.html"><small>Next →</small>5 · Neural network playground</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const f3=v=>Number.isFinite(v)?(Math.abs(v)<5e-4&&v!==0?v.toExponential(1):v.toFixed(3)):'–';
+const sig=z=>1/(1+Math.exp(-z));
+const D=3.5, N=32, INIT={w1:-1.0,w2:0.2,b:0.5};
+
+const CODE=[
+  ['model = nn.Linear(2, 1)                        <span class="c"># w1, w2, b</span>',-1],
+  ['loss_fn = nn.BCEWithLogitsLoss()',-1],
+  ['optimizer = torch.optim.SGD(model.parameters(), lr=LR)',-1],
+  ['loader = DataLoader(dataset, batch_size=BS, shuffle=SH)',-1],
+  ['',-1],
+  ['for epoch in range(EP):',0],
+  ['    for xb, yb in loader:',1],
+  ['        pred = model(xb)',2],
+  ['        loss = loss_fn(pred, yb)',3],
+  ['        optimizer.zero_grad()',4],
+  ['        loss.backward()',5],
+  ['        optimizer.step()',6],
+];
+let seed=3,data=[],S=null,timer=null;
+const cfg=()=>({bs:+$('#bs').value,lr:+$('#lr').value,ep:+$('#ep').value,bugZero:$('#bugZero').checked,bugShuffle:$('#bugShuffle').checked});
+
+function makeData(){const r=mulberry32(seed);data=[];
+  for(let i=0;i<N;i++){const y=i<N/2?0:1,c=y?[1,0.8]:[-1,-0.6];data.push({x1:c[0]+0.85*gauss(r),x2:c[1]+0.85*gauss(r),y});}}
+function newState(){
+  return {w:[INIT.w1,INIT.w2,INIT.b],prev:null,g:[0,0,0],pc:0,epoch:0,bi:0,order:[],batch:[],preds:null,loss:null,iter:0,
+    iterLoss:[],epochLoss:[],epLosses:[],done:false,msg:'',rng:mulberry32(777),last:-1};
+}
+function fullLoss(w){let s=0,c=0;for(const d of data){const p=sig(w[0]*d.x1+w[1]*d.x2+w[2]),pc=Math.min(1-1e-7,Math.max(1e-7,p));
+  s+=-(d.y*Math.log(pc)+(1-d.y)*Math.log(1-pc));c+=(p>=0.5)===(d.y===1)?1:0;}return {loss:s/data.length,acc:c/data.length};}
+function nBatches(){return Math.ceil(N/cfg().bs);}
+
+// ---------- one line of the loop ----------
+function nextLine(){
+  const C=cfg();if(S.done)return;
+  S.last=S.pc;
+  switch(S.pc){
+    case 0:{
+      if(S.epoch>=C.ep){S.done=true;S.msg=`Training finished: ${C.ep} epochs, ${S.iter} iterations. Final loss on all data ${f3(fullLoss(S.w).loss)}.`;return;}
+      const idx=[...Array(N).keys()];
+      if(C.bugShuffle){/* sorted: all y=0 first, then all y=1 (the data is stored that way) */}
+      else{for(let i=N-1;i>0;i--){const j=Math.floor(S.rng()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}}
+      S.order=idx;S.bi=0;S.epLosses=[];S.batch=[];S.preds=null;S.loss=null;
+      S.msg=`<b>Epoch ${S.epoch+1} starts.</b> ${C.bugShuffle?'⚠️ The data is <b>not shuffled</b>: all orange students come first, then all blue.':'The DataLoader <b>shuffles</b> the 32 students into a new random order.'}
+        It will serve them in ${nBatches()} batches of ${C.bs}.`;
+      S.pc=1;break;}
+    case 1:{
+      if(S.bi*C.bs>=N){
+        const m=S.epLosses.reduce((a,b)=>a+b,0)/S.epLosses.length;S.epochLoss.push({iter:S.iter,loss:fullLoss(S.w).loss,mean:m});
+        S.epoch++;S.pc=0;S.batch=[];S.preds=null;S.loss=null;
+        S.msg=`<b>The loader is empty: epoch ${S.epoch} is done.</b> Every student was used exactly once. Average batch loss this epoch: ${f3(m)}. Back to the top of the outer loop.`;break;}
+      S.batch=S.order.slice(S.bi*C.bs,(S.bi+1)*C.bs);S.preds=null;S.loss=null;
+      S.msg=`<b>Grab the next mini-batch</b> (batch ${S.bi+1} of ${nBatches()}): ${S.batch.length} student${S.batch.length>1?'s':''}, ringed in the chart.
+        xb holds their (x₁, x₂) and yb holds their labels.`;
+      S.pc=2;break;}
+    case 2:{
+      S.preds=S.batch.map(i=>{const d=data[i],z=S.w[0]*d.x1+S.w[1]*d.x2+S.w[2];return {z,p:sig(z)};});
+      const d0=data[S.batch[0]],p0=S.preds[0];
+      S.msg=`<b>Forward pass.</b> The model computes a score for each student in the batch, and sigmoid turns it into a probability of passing.<br>
+        First one: z = ${f3(S.w[0])}·${f3(d0.x1)} + ${f3(S.w[1])}·${f3(d0.x2)} + ${f3(S.w[2])} = ${f3(p0.z)} → p = sigmoid(z) = <b>${f3(p0.p)}</b> (truth y = ${d0.y}).
+        <br><span class="muted small">In PyTorch <code>model(xb)</code> returns the score z; BCEWithLogitsLoss applies the sigmoid inside.</span>`;
+      S.pc=3;break;}
+    case 3:{
+      const ls=S.batch.map((i,k)=>{const p=Math.min(1-1e-7,Math.max(1e-7,S.preds[k].p)),y=data[i].y;return -(y*Math.log(p)+(1-y)*Math.log(1-p));});
+      S.lossItems=ls;S.loss=ls.reduce((a,b)=>a+b,0)/ls.length;
+      S.msg=`<b>Loss.</b> Log-loss punishes confident wrong answers hard: −log(p) if the truth is 1, −log(1 − p) if it is 0.
+        Averaged over the batch: <b>loss = ${f3(S.loss)}</b>. (Loss on all data right now: ${f3(fullLoss(S.w).loss)}.)`;
+      S.pc=4;break;}
+    case 4:{
+      if(C.bugZero){S.msg=`<b>🐞 zero_grad() was forgotten!</b> The old gradients [${S.g.map(f3).join(', ')}] are still sitting in <code>.grad</code>. The next backward() will <b>add</b> to them.`;}
+      else{S.g=[0,0,0];S.msg=`<b>Clear the old gradients.</b> PyTorch <i>adds</i> new gradients to <code>.grad</code>, so we reset them to zero first. (Watch the red bars empty.)`;}
+      S.pc=5;break;}
+    case 5:{
+      const B=S.batch.length,gn=[0,0,0];
+      S.batch.forEach((i,k)=>{const e=S.preds[k].p-data[i].y;gn[0]+=e*data[i].x1/B;gn[1]+=e*data[i].x2/B;gn[2]+=e/B;});
+      S.g=S.g.map((v,k)=>v+gn[k]);
+      S.msg=`<b>Backward pass.</b> Backprop (Lesson 3) computes how each knob should change:
+        <span class="formula">∂L/∂w₁ = avg((p − y)·x₁) = ${f3(gn[0])}
+∂L/∂w₂ = avg((p − y)·x₂) = ${f3(gn[1])}
+∂L/∂b  = avg(p − y)      = ${f3(gn[2])}</span>${C.bugZero?`⚠️ Added to the leftovers → .grad is now [${S.g.map(f3).join(', ')}].`:'Stored in <code>.grad</code>.'}`;
+      S.pc=6;break;}
+    case 6:{
+      S.prev=[...S.w];S.w=S.w.map((v,k)=>v-C.lr*S.g[k]);S.iter++;S.epLosses.push(S.loss);S.iterLoss.push({iter:S.iter,loss:S.loss});
+      const fl=fullLoss(S.w).loss;
+      S.msg=`<b>Step!</b> Every knob moves by −lr × gradient (lr = ${C.lr}):
+        <span class="formula">w₁: ${f3(S.prev[0])} → ${f3(S.w[0])}
+w₂: ${f3(S.prev[1])} → ${f3(S.w[1])}
+b : ${f3(S.prev[2])} → ${f3(S.w[2])}</span>The line moved (dashed = before). Loss on all data is now ${f3(fl)}. <b>Iteration ${S.iter} done.</b>`;
+      S.bi++;S.pc=1;break;}
+  }
+}
+function nextBatch(){if(S.done)return;let guard=0;do{nextLine();guard++;}while(!S.done&&S.last!==6&&guard<20);}
+function nextEpoch(){if(S.done)return;const e=S.epoch;let guard=0;while(!S.done&&S.epoch===e&&guard<5000){nextLine();guard++;}
+  if(!S.done&&S.pc===0){/* show the start of the next epoch cleanly */}}
+
+// ---------- rendering ----------
+function render(){
+  const C=cfg(),hl=S.done?-1:S.pc;
+  $('#code').innerHTML=CODE.map(([t,pc])=>{let s=t.replace('LR',C.lr).replace('BS',C.bs).replace('SH',C.bugShuffle?'False':'True').replace('EP',C.ep);
+    const skip=pc===4&&C.bugZero;return `<span class="ln${pc===S.last&&!S.done?' on':''}${skip?' skip':''}">${s||' '}</span>`;}).join('');
+  $('#explain').innerHTML=S.msg||'Press <b>Next line ▶</b> to run the first line of the loop. The highlighted line is the one that just ran.';
+  const fl=fullLoss(S.w);
+  $('#sEpoch').textContent=`${Math.min(S.epoch+(S.pc===0?0:1),C.ep)} / ${C.ep}`;$('#sBatch').textContent=S.pc===0||!S.batch.length?'–':`${S.bi+(S.pc===1?0:1)} / ${nBatches()}`;
+  $('#sIter').textContent=S.iter;$('#sLoss').textContent=f3(fl.loss);$('#sAcc').textContent=Math.round(fl.acc*100)+'%';
+  $('#sPass').textContent=data.filter(d=>sig(S.w[0]*d.x1+S.w[1]*d.x2+S.w[2])>=0.5).length+' / '+N;
+  $('#bsOut').textContent='';
+  $('#iterInfo').innerHTML=`Iterations per epoch = ⌈N / batch size⌉ = ⌈${N} / ${C.bs}⌉ = <b>${nBatches()}</b> · total planned = ${nBatches()*C.ep}`;
+  // batch table
+  const tb=$('#btbl tbody'),fresh=S.last;
+  tb.innerHTML=S.batch.length?S.batch.slice(0,16).map((i,k)=>{const d=data[i],p=S.preds?S.preds[k].p:null,l=S.lossItems&&S.loss!==null?S.lossItems[k]:null;
+    return `<tr><td>${i}</td><td>${f3(d.x1)}</td><td>${f3(d.x2)}</td><td style="color:${d.y?'#2f6fed':'#f08c00'};font-weight:700">${d.y}</td>
+      <td class="${fresh===2?'new':''}">${p===null?'':f3(p)}</td><td class="${fresh===3?'new':''}">${l===null?'':f3(l)}</td><td class="${fresh===5?'new':''}">${p!==null&&(fresh===5||fresh===6)?f3(p-d.y):''}</td></tr>`;}).join('')
+    +(S.batch.length>16?`<tr><td colspan="7" class="muted">… and ${S.batch.length-16} more</td></tr>`:'')
+    :'<tr><td colspan="7" class="muted">No batch loaded yet</td></tr>';
+  // params
+  const gmax=Math.max(0.5,...S.g.map(Math.abs));
+  $('#params').innerHTML=['w₁','w₂','b'].map((n,k)=>{const g=S.g[k],wd=Math.min(50,Math.abs(g)/gmax*50);
+    return `<div class="param"><span>${n}</span><div class="bar"><i style="${g>=0?'left:50%':'right:50%'};width:${wd}%"></i></div><span>${f3(S.w[k])}</span></div>
+      <div class="param" style="margin-top:-.2rem"><span></span><span class="small muted">.grad = ${f3(g)}</span><span></span></div>`;}).join('');
+  drawPlot();drawLoss();
+  $('#bLine').disabled=$('#bBatch').disabled=$('#bEpoch').disabled=S.done;
+}
+function drawPlot(){
+  const cv=$('#plot'),{ctx,w:W,h:H}=setupCanvas(cv),sz=Math.min(W,H)-8,L=(W-sz)/2,T=(H-sz)/2;
+  const sx=x=>L+(x+D)/(2*D)*sz,sy=y=>T+(D-y)/(2*D)*sz;
+  const G=50,cell=sz/G;
+  for(let j=0;j<G;j++)for(let i=0;i<G;i++){const x=-D+(i+.5)/G*2*D,y=D-(j+.5)/G*2*D,p=sig(S.w[0]*x+S.w[1]*y+S.w[2]);
+    const c=p>=0.5?[47,111,237]:[240,140,0],a=Math.abs(p-0.5)*0.55;ctx.fillStyle=`rgba(${c},${a})`;ctx.fillRect(L+i*cell,T+j*cell,cell+0.6,cell+0.6);}
+  ctx.strokeStyle='#dee2e6';ctx.strokeRect(L,T,sz,sz);
+  const line=(w,style,lw,dash)=>{ctx.save();ctx.beginPath();ctx.rect(L,T,sz,sz);ctx.clip();ctx.strokeStyle=style;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();
+    if(Math.abs(w[1])>Math.abs(w[0])){ctx.moveTo(sx(-D),sy(-(w[0]*-D+w[2])/w[1]));ctx.lineTo(sx(D),sy(-(w[0]*D+w[2])/w[1]));}
+    else if(Math.abs(w[0])>1e-9){ctx.moveTo(sx(-(w[1]*-D+w[2])/w[0]),sy(-D));ctx.lineTo(sx(-(w[1]*D+w[2])/w[0]),sy(D));}
+    ctx.stroke();ctx.restore();};
+  if(S.prev)line(S.prev,'#868e96',2,[6,5]);line(S.w,'#1c2230',3,[]);
+  const inB=new Set(S.batch);
+  data.forEach((d,i)=>{ctx.beginPath();ctx.arc(sx(d.x1),sy(d.x2),inB.has(i)?7:5.5,0,7);ctx.fillStyle=d.y?'#2f6fed':'#f08c00';ctx.fill();
+    ctx.lineWidth=inB.has(i)?3:1.2;ctx.strokeStyle=inB.has(i)?'#1c2230':'#fff';ctx.stroke();});
+  ctx.fillStyle='#6b7385';ctx.font='12px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('x₁ (hours studied)',L+sz/2,T+sz-6);
+  ctx.save();ctx.translate(L+12,T+sz/2);ctx.rotate(-Math.PI/2);ctx.fillText('x₂ (hours slept)',0,0);ctx.restore();
+}
+function drawLoss(){
+  const cv=$('#lossc'),{ctx,w:W,h:H}=setupCanvas(cv),L=40,T=8,pw=W-L-10,ph=H-T-22,C=cfg(),tot=Math.max(1,nBatches()*C.ep);
+  const all=[...S.iterLoss.map(p=>p.loss),...S.epochLoss.map(p=>p.loss),fullLoss([INIT.w1,INIT.w2,INIT.b]).loss],mx=Math.max(1,...all);
+  const sx=i=>L+i/tot*pw,sy=v=>T+(mx-Math.min(mx,v))/mx*ph;
+  ctx.strokeStyle='#e2e4e9';ctx.strokeRect(L,T,pw,ph);ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='right';
+  ctx.fillText(mx.toFixed(2),L-4,T+9);ctx.fillText('0',L-4,T+ph);ctx.textAlign='center';ctx.fillText('iteration',L+pw/2,H-4);
+  ctx.strokeStyle='rgba(134,142,150,.7)';ctx.lineWidth=1;ctx.beginPath();S.iterLoss.forEach((p,i)=>i?ctx.lineTo(sx(p.iter),sy(p.loss)):ctx.moveTo(sx(p.iter),sy(p.loss)));ctx.stroke();
+  ctx.strokeStyle='#2f6fed';ctx.fillStyle='#2f6fed';ctx.lineWidth=2.5;ctx.beginPath();
+  const ep=[{iter:0,loss:fullLoss([INIT.w1,INIT.w2,INIT.b]).loss},...S.epochLoss];ep.forEach((p,i)=>i?ctx.lineTo(sx(p.iter),sy(p.loss)):ctx.moveTo(sx(p.iter),sy(p.loss)));ctx.stroke();
+  ep.forEach(p=>{ctx.beginPath();ctx.arc(sx(p.iter),sy(p.loss),3,0,7);ctx.fill();});
+}
+function stop(){if(timer){clearInterval(timer);timer=null;}$('#bRun').textContent='▶ Run';}
+function reset(){stop();S=newState();render();}
+$('#bLine').onclick=()=>{stop();nextLine();render();};
+$('#bBatch').onclick=()=>{stop();nextBatch();render();};
+$('#bEpoch').onclick=()=>{stop();nextEpoch();render();};
+$('#bReset').onclick=reset;
+$('#bRun').onclick=()=>{if(timer){stop();return;}if(S.done)reset();$('#bRun').textContent='⏸ Pause';
+  const sp=$('#speed').value;timer=setInterval(()=>{if(sp==='line')nextLine();else if(sp==='batch')nextBatch();else nextEpoch();render();if(S.done)stop();},sp==='line'?700:sp==='batch'?120:350);};
+['#bs','#lr','#ep','#bugZero','#bugShuffle'].forEach(id=>$(id).addEventListener('change',reset));
+$('#speed').onchange=()=>{if(timer){stop();$('#bRun').click();}};
+$('#bData').onclick=()=>{seed++;makeData();reset();};
+window.addEventListener('resize',render);
+makeData();reset();
+</script>
+</body>
+</html>

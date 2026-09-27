@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 · Neural network playground — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .pg{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(280px,420px);gap:1rem;align-items:start}
+  @media (max-width:1100px){.pg{grid-template-columns:1fr}}
+  .feat{display:flex;align-items:center;gap:.45rem;margin:.3rem 0;cursor:pointer;font-weight:600;font-size:.9rem;padding:.15rem .3rem;border-radius:8px}
+  .feat canvas{width:34px;height:34px;border-radius:5px;border:2px solid transparent}
+  .feat.on canvas{border-color:var(--blue)}
+  .feat:not(.on){opacity:.45}
+  .ds{display:flex;flex-wrap:wrap;gap:.4rem}
+  .ds button{border:2px solid var(--line);background:#fff;border-radius:10px;padding:.25rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;font:inherit;font-size:.75rem;color:var(--muted)}
+  .ds button canvas{width:46px;height:46px;border-radius:6px}
+  .ds button.on{border-color:var(--blue);color:var(--blue);font-weight:700}
+  .layerbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.4rem;font-size:.88rem}
+  .layerbar .lay{display:inline-flex;align-items:center;gap:.2rem;background:var(--soft);border-radius:8px;padding:.15rem .35rem}
+  .mini{font:inherit;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:6px;width:1.6rem;height:1.6rem;cursor:pointer;line-height:1}
+  .topctl{display:flex;flex-wrap:wrap;gap:.8rem 1.2rem;align-items:flex-end}
+  .topctl .ctl{margin:0;min-width:8.5rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_neural_network_playground.html" class="on" title="Neural network playground">5</a>
+    <a href="06_overfitting.html" title="Overfitting">6</a>
+    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
+    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 5 of 8 · ≈ 45 min</div>
+  <h1>Neural network playground</h1>
+  <p class="one-liner">One neuron can only draw a <b>straight line</b>. Stack neurons in layers and the network can draw <b>curves, circles and spirals</b>.
+  Build a network, press play, and watch every neuron learn its own little piece of the picture.</p>
+</section>
+
+<section class="card">
+  <div class="topctl">
+    <div class="btn-row" style="margin:0">
+      <button class="btn primary" id="play">▶ Train</button>
+      <button class="btn" id="stepE">+1 epoch</button>
+      <button class="btn" id="newW">🎲 New weights</button>
+    </div>
+    <div class="stat blue" style="margin:0"><b id="sEpoch">0</b><span>Epoch</span></div>
+    <div class="ctl"><label>Learning rate</label><select id="lr"></select></div>
+    <div class="ctl"><label>Optimizer</label><select id="opt"><option value="adam" selected>Adam</option><option value="sgd">SGD</option></select></div>
+    <div class="ctl"><label>Activation</label><select id="act"><option value="tanh" selected>tanh</option><option value="relu">ReLU</option><option value="sigmoid">sigmoid</option><option value="linear">linear (none)</option></select></div>
+    <div class="ctl"><label>L2 regularization</label><select id="l2"><option>0</option><option>0.001</option><option>0.003</option><option>0.01</option><option>0.03</option><option>0.1</option></select></div>
+    <div class="ctl"><label>Speed</label><select id="speed"><option value="1">1 epoch / frame</option><option value="5" selected>5 epochs / frame</option><option value="20">20 epochs / frame</option></select></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="pg">
+    <!-- data + features -->
+    <div>
+      <h3 style="margin-bottom:.3rem">Data</h3>
+      <div class="ds" id="ds"></div>
+      <div class="ctl"><label>Noise <output id="noiseOut"></output></label><input type="range" id="noise" min="0" max="50" step="5" value="0"></div>
+      <div class="ctl"><label>Training data <output id="trOut"></output></label><input type="range" id="tr" min="10" max="90" step="10" value="50"></div>
+      <div class="ctl"><label>Batch size <output id="bsOut"></output></label><input type="range" id="bs" min="1" max="30" step="1" value="10"></div>
+      <button class="btn small" id="newData">🎲 New data</button>
+      <h3 style="margin:.9rem 0 .2rem">Features (inputs)</h3>
+      <div class="small muted" style="margin-bottom:.2rem">Click to switch on/off</div>
+      <div id="feats"></div>
+    </div>
+    <!-- network -->
+    <div>
+      <div class="layerbar" id="layerbar"></div>
+      <div class="canvas-box"><canvas id="netc" style="height:440px"></canvas></div>
+      <div class="legend"><span><i style="background:#2f6fed"></i>positive weight</span><span><i style="background:#f08c00"></i>negative weight</span>
+        <span>line thickness = weight size</span><span>each square = what that neuron "sees" over the whole plane</span></div>
+      <div class="small muted" id="pcount"></div>
+    </div>
+    <!-- output -->
+    <div>
+      <h3 style="margin-bottom:.3rem">Output</h3>
+      <div class="stats" style="margin-top:0;display:grid;grid-template-columns:1fr 1fr">
+        <div class="stat"><b id="trL">–</b><span>Train loss</span></div>
+        <div class="stat orange"><b id="teL">–</b><span>Test loss</span></div>
+        <div class="stat"><b id="trA">–</b><span>Train acc</span></div>
+        <div class="stat good"><b id="teA">–</b><span>Test acc</span></div>
+      </div>
+      <div class="canvas-box"><canvas id="outc" style="height:360px"></canvas></div>
+      <label class="check"><input type="checkbox" id="showTest" checked> Show test data (black ring)</label>
+      <label class="check"><input type="checkbox" id="disc"> Show only the final decision (no shading)</label>
+      <div class="canvas-box" style="margin-top:.4rem"><div class="canvas-title">Loss per epoch: <span style="color:#1c2230">train</span> · <span style="color:#f08c00">test</span></div><canvas id="lossc" style="height:130px"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧠 How to read this page</h2>
+  <div class="grid3">
+    <div><h3>Left: the inputs</h3><p>Each dot has a position (X₁, X₂). You can also feed the network <b>engineered features</b> such as X₁² or sin(X₁).
+      Choosing good inputs is called <b>feature engineering</b>. Deep learning's big promise is that hidden layers can learn such features by themselves.</p></div>
+    <div><h3>Middle: the neurons</h3><p>Each small square shows what one neuron outputs for every point of the plane.
+      First-layer neurons can only draw straight edges. Later layers <b>combine</b> those edges into curved shapes.
+      Watch the squares change while training runs.</p></div>
+    <div><h3>Right: the result</h3><p>Background = the network's prediction (blue = class 1, orange = class 0). Filled dots are <b>training</b> data (the network learns from them).
+      Ringed dots are <b>test</b> data: never used for training, only to check if the network <b>generalizes</b>.</p></div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Challenges (predict first, then train!)</h3>
+  <ol class="challenges">
+    <li><b>Warm-up.</b> Default settings (Circle, 2 hidden layers of 4 and 2, tanh, Adam 0.03). Press Train. Roughly how many epochs until test accuracy reaches 100%?
+      <details class="answer"><summary>Answer</summary>About 25 epochs. Look at the neuron squares: the first-layer neurons draw straight edges, and the later layers combine them into a closed "blob" around the centre.</details></li>
+    <li><b>The XOR puzzle.</b> Choose XOR and remove all hidden layers (press − until 0). Train. Then switch on the <b>X₁·X₂</b> feature.
+      <details class="answer"><summary>Answer</summary>With only X₁ and X₂ and no hidden layer, the model is a single straight line. No line can separate XOR (opposite corners share a colour), so the loss stays at 0.69, which is guessing level.
+      (Accuracy may still show about 70%: the best any straight line can do is get 3 of the 4 corners right.)
+      X₁·X₂ is positive in the blue corners and negative in the orange ones, so with that feature one "line" solves it (100%).
+      This exact problem (Minsky &amp; Papert, 1969) is famous for stalling neural-network research for years.</details></li>
+    <li><b>Features vs layers.</b> Circle, 0 hidden layers, only X₁ and X₂: train. Now switch X₁, X₂ <b>off</b> and X₁², X₂² <b>on</b>.
+      <details class="answer"><summary>Answer</summary>With X₁ and X₂ it fails (about 0.69 loss). With X₁² + X₂² it reaches 100%, because X₁² + X₂² is the squared distance from the centre, and a threshold on it is a circle.
+      A good feature can replace a whole hidden layer. Hidden layers are how the network <b>learns</b> such features when we don't know them.</details></li>
+    <li><b>How many neurons?</b> Circle, <b>one</b> hidden layer. Try 2 neurons, then 3, then 4. For each, press 🎲 New weights and train 200 epochs, at least 6 times. Count your successes.
+      <details class="answer"><summary>Answer</summary>2 neurons: never. Two straight edges can only make a band or a wedge, so it gets stuck around 80% every time.
+      3 neurons: <i>sometimes</i>. Three edges can make a triangle around the centre (≈ 100%), but in our test only 6 of 10 random starts found it (the first four tries all got stuck at ≈ 80%).
+      4 neurons: every try succeeded. A bit of extra capacity makes training far more <b>reliable</b>, not just more accurate.
+      Where you start matters, which is why results vary between random seeds.</details></li>
+    <li><b>Why activations?</b> Circle, 3 hidden layers of 8 neurons, activation <b>linear</b>. Train.
+      <details class="answer"><summary>Answer</summary>It fails, just like 0 hidden layers. A stack of linear layers is still one linear function (a line), no matter how deep.
+      The nonlinear activation (tanh, ReLU) is what gives depth its power.</details></li>
+    <li><b>The spiral boss.</b> Spiral, 3 hidden layers of 8, tanh. Train about 300 epochs. Then switch the activation to ReLU and train again (try 2–3 New weights). Finally switch back to tanh and add sin(X₁) and sin(X₂).
+      <details class="answer"><summary>Answer</summary>tanh struggles: roughly 75–88% on training data and only 60–70% on test data after 300–500 epochs.
+      ReLU <i>can</i> do much better (95%+ test on good tries by epoch ~300), but it is fickle: some starts get stuck around 75%, and a good run can suddenly get worse again (watch the loss curve jump).
+      With the sin features the problem becomes easy: 94–100% on training data within 25 epochs, and 85–98% on test data.
+      Hard problems need the right mix of architecture, activation and inputs, and trying them out <i>is</i> the job.</details></li>
+    <li><b>Memorising instead of learning.</b> Circle, noise 50, training data 10%, 4 hidden layers of 8. Train about 1000 epochs. Watch train vs test loss. Then set L2 = 0.01 and retrain (New weights). Then try L2 = 0.03.
+      <details class="answer"><summary>Answer</summary>Without L2: training loss drops to ≈ 0 (100% train accuracy) but test loss climbs above 2 (≈ 73% test accuracy). The network memorised 30 noisy points,
+      including their noise: <b>overfitting</b>. With L2 0.01: test loss stays around 0.7 and test accuracy improves (≈ 76%).
+      With L2 0.03 the penalty is so strong that the weights collapse to zero and the network predicts nothing useful (50%). That is <b>underfitting</b>.
+      Regularisation is a dial: too little overfits, too much underfits. More on this in Lesson 6.</details></li>
+    <li><b>Too fast.</b> Default circle, Adam with learning rate 1.
+      <details class="answer"><summary>Answer</summary>The picture flickers and accuracy hovers around 50%. Every step overshoots (Lesson 2). With 0.03 it learns in about 25 epochs.</details></li>
+    <li><b>Vanishing gradients.</b> Circle, 6 hidden layers of 8, activation sigmoid, optimizer SGD, lr 0.3. Train 300 epochs. Then switch the activation to tanh.
+      <details class="answer"><summary>Answer</summary>Sigmoid: nothing happens (loss stuck at 0.69). Sigmoid's slope is at most 0.25, and the chain rule multiplies one such factor per layer,
+      so the blame reaching the first layers is tiny (Lesson 3). tanh (slope up to 1) learns the circle within about 25 epochs with the same settings.
+      This is why deep networks switched to ReLU-like activations, and later added BatchNorm and residual connections.</details></li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>🐍 The default network in PyTorch</h2>
+  <pre class="code"><span class="k">import</span> torch.nn <span class="k">as</span> nn
+
+model = nn.Sequential(
+    nn.Linear(<span class="n">2</span>, <span class="n">4</span>), nn.Tanh(),     <span class="c"># hidden layer 1: 4 neurons</span>
+    nn.Linear(<span class="n">4</span>, <span class="n">2</span>), nn.Tanh(),     <span class="c"># hidden layer 2: 2 neurons</span>
+    nn.Linear(<span class="n">2</span>, <span class="n">1</span>),                <span class="c"># output: one score (BCEWithLogitsLoss adds the sigmoid)</span>
+)
+optimizer = torch.optim.Adam(model.parameters(), lr=<span class="n">0.03</span>, weight_decay=<span class="n">0.0</span>)   <span class="c"># weight_decay ≈ L2</span></pre>
+  <p class="small muted">Parameters: (2×4 + 4) + (4×2 + 2) + (2×1 + 1) = 25. The counter under the network shows this number for whatever you build.
+  This playground's engine implements exactly the same forward and backward pass as PyTorch (checked against finite differences).
+  One detail: here L2 is added to the weights only, not to the biases.</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why do we need a separate test set at all? Isn't training accuracy enough?
+      <details class="answer"><summary>Answer</summary>Challenge 7 shows 100% training accuracy with only ≈ 73% on test data. Training accuracy measures memory; test accuracy measures what we actually want: performance on new data.</details></li>
+    <li>A bigger network always does better. True or false?
+      <details class="answer"><summary>Answer</summary>False. Bigger networks <i>can</i> fit more complex shapes, but they also overfit small, noisy datasets more easily, and they cost more to run.
+      (That cost is Day 2's topic: quantization and pruning.)</details></li>
+    <li>What is the role of the activation function, in one sentence?
+      <details class="answer"><summary>Answer</summary>It bends the straight-line output of each neuron, so that stacked layers can build curved decision boundaries.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="04_training_loop.html"><small>← Previous</small>4 · The training loop</a>
+  <a class="next" href="06_overfitting.html"><small>Next →</small>6 · Underfitting, overfitting, just right</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+// ===== NN CORE (same engine as Lesson 8) =====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+const ACTS={
+  tanh:{f:z=>Math.tanh(z),d:(z,a)=>1-a*a},
+  relu:{f:z=>z>0?z:0,d:z=>z>0?1:0},
+  sigmoid:{f:z=>1/(1+Math.exp(-z)),d:(z,a)=>a*(1-a)},
+  linear:{f:z=>z,d:()=>1},
+};
+const FEATURES={
+  x1:{label:'X₁',f:(x,y)=>x/6}, x2:{label:'X₂',f:(x,y)=>y/6},
+  x1sq:{label:'X₁²',f:(x,y)=>(x/6)**2}, x2sq:{label:'X₂²',f:(x,y)=>(y/6)**2}, x1x2:{label:'X₁·X₂',f:(x,y)=>x*y/36},
+  sin1:{label:'sin(X₁)',f:(x,y)=>Math.sin(x)}, sin2:{label:'sin(X₂)',f:(x,y)=>Math.sin(y)},
+};
+function makeDataset(kind,n,noise,seed){
+  const r=mulberry32(seed),pts=[],s=noise/100*2.0;
+  const push=(x,y,l)=>pts.push({x:x+s*gauss(r),y:y+s*gauss(r),l});
+  if(kind==='circle'){for(let i=0;i<n;i++){const l=i<n/2?1:0,rad=l?r()*2.5:3.5+r()*1.5,t=r()*2*Math.PI;push(rad*Math.sin(t),rad*Math.cos(t),l);}}
+  else if(kind==='xor'){for(let i=0;i<n;i++){let x=r()*10-5,y=r()*10-5;x+=x>0?0.3:-0.3;y+=y>0?0.3:-0.3;push(x,y,x*y>=0?1:0);}}
+  else if(kind==='gauss'){for(let i=0;i<n;i++){const l=i<n/2?1:0,c=l?2:-2;push(c+gauss(r),c+gauss(r),l);}}
+  else if(kind==='spiral'){const m=Math.floor(n/2);for(let k=0;k<2;k++)for(let i=0;i<m;i++){const rr=i/m*5,t=1.75*i/m*2*Math.PI+k*Math.PI;push(rr*Math.sin(t),rr*Math.cos(t),k===0?1:0);}}
+  else if(kind==='moons'){for(let i=0;i<n;i++){const l=i<n/2?1:0,t=r()*Math.PI;
+    if(l)push(3*Math.cos(t)-1.5,3*Math.sin(t)-1,l);else push(3*Math.cos(t)+1.5,-3*Math.sin(t)+1,l);}}
+  for(let i=pts.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pts[i],pts[j]]=[pts[j],pts[i]];}
+  return pts;
+}
+class Net{
+  constructor(sizes,act,seed){
+    this.sizes=sizes;this.act=act;this.L=sizes.length-1;const r=mulberry32(seed);
+    this.W=[];this.b=[];this.mW=[];this.vW=[];this.mb=[];this.vb=[];this.t=0;
+    for(let l=0;l<this.L;l++){const ni=sizes[l],no=sizes[l+1],sd=Math.sqrt((act==='relu'?2:1)/ni);
+      const W=new Float64Array(no*ni);for(let k=0;k<W.length;k++)W[k]=gauss(r)*sd;
+      this.W.push(W);this.b.push(new Float64Array(no).fill(act==='relu'&&l<this.L-1?0.1:0));
+      this.mW.push(new Float64Array(no*ni));this.vW.push(new Float64Array(no*ni));this.mb.push(new Float64Array(no));this.vb.push(new Float64Array(no));}
+    this.mask=null;
+  }
+  forward(x){
+    const A=[x],Z=[],F=ACTS[this.act].f;
+    for(let l=0;l<this.L;l++){const ni=this.sizes[l],no=this.sizes[l+1],W=this.W[l],b=this.b[l],a=A[l],z=new Float64Array(no),o=new Float64Array(no);
+      for(let j=0;j<no;j++){let s=b[j];const off=j*ni;for(let i=0;i<ni;i++)s+=W[off+i]*a[i];z[j]=s;
+        o[j]=l===this.L-1?1/(1+Math.exp(-s)):F(s);}
+      Z.push(z);A.push(o);}
+    return {A,Z};
+  }
+  predict(x){return this.forward(x).A[this.L][0];}
+  trainBatch(batch,opt,lr,l2){
+    const gW=this.W.map(w=>new Float64Array(w.length)),gb=this.b.map(b=>new Float64Array(b.length)),D=ACTS[this.act].d;let loss=0;
+    for(const s of batch){const {A,Z}=this.forward(s.v),p=A[this.L][0],pc=Math.min(1-1e-12,Math.max(1e-12,p));
+      loss+=-(s.l*Math.log(pc)+(1-s.l)*Math.log(1-pc));
+      let delta=new Float64Array([p-s.l]);
+      for(let l=this.L-1;l>=0;l--){const ni=this.sizes[l],no=this.sizes[l+1],a=A[l],W=this.W[l];
+        for(let j=0;j<no;j++){const dj=delta[j],off=j*ni;gb[l][j]+=dj;for(let i=0;i<ni;i++)gW[l][off+i]+=dj*a[i];}
+        if(l>0){const prev=new Float64Array(ni);for(let i=0;i<ni;i++){let s2=0;for(let j=0;j<no;j++)s2+=W[j*ni+i]*delta[j];prev[i]=s2*D(Z[l-1][i],A[l][i]);}delta=prev;}}
+    }
+    const B=batch.length;this.t++;
+    for(let l=0;l<this.L;l++){
+      const W=this.W[l],b=this.b[l],M=this.mask?this.mask[l]:null;
+      for(let k=0;k<W.length;k++){let g=gW[l][k]/B+l2*W[k];if(M&&!M[k]){W[k]=0;continue;}W[k]-=this.step(opt,lr,g,this.mW[l],this.vW[l],k);}
+      for(let k=0;k<b.length;k++){const g=gb[l][k]/B;b[k]-=this.step(opt,lr,g,this.mb[l],this.vb[l],k);}
+    }
+    return loss/B;
+  }
+  step(opt,lr,g,m,v,k){
+    if(opt==='sgd')return lr*g;
+    m[k]=0.9*m[k]+0.1*g;v[k]=0.999*v[k]+0.001*g*g;
+    return lr*(m[k]/(1-0.9**this.t))/(Math.sqrt(v[k]/(1-0.999**this.t))+1e-8);
+  }
+  paramCount(){return this.W.reduce((s,w)=>s+w.length,0)+this.b.reduce((s,b)=>s+b.length,0);}
+}
+function evalSet(net,set){let loss=0,c=0;for(const s of set){const p=net.predict(s.v),pc=Math.min(1-1e-12,Math.max(1e-12,p));
+  loss+=-(s.l*Math.log(pc)+(1-s.l)*Math.log(1-pc));c+=(p>=0.5)===(s.l===1)?1:0;}return {loss:loss/set.length,acc:c/set.length};}
+// ===== END NN CORE =====
+
+const $=s=>document.querySelector(s);
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const LRS=[0.0001,0.001,0.003,0.01,0.03,0.1,0.3,1,3];
+$('#lr').innerHTML=LRS.map(v=>`<option${v===0.03?' selected':''}>${v}</option>`).join('');
+const DATASETS=[['circle','Circle'],['xor','XOR'],['gauss','Blobs'],['spiral','Spiral'],['moons','Moons']];
+const N_POINTS=300,G=60;   // G = heat-map resolution
+const ST={kind:'circle',dataSeed:1,netSeed:7,feats:['x1','x2'],hidden:[4,2],pts:[],tr:[],te:[],net:null,epoch:0,hist:[],running:false,rng:null,grid:null};
+
+// ---------- data ----------
+function colorFor(p,alpha){const c=p>=0.5?[47,111,237]:[240,140,0];return `rgba(${c},${alpha})`;}
+function buildData(){
+  ST.pts=makeDataset(ST.kind,N_POINTS,+$('#noise').value,ST.dataSeed);
+  const nTr=Math.round(ST.pts.length*(+$('#tr').value)/100);
+  ST.pts.forEach((p,i)=>p.train=i<nTr);
+  vectorize();
+}
+function vectorize(){
+  const F=ST.feats.map(f=>FEATURES[f].f),toV=p=>({v:new Float64Array(F.map(f=>f(p.x,p.y))),l:p.l});
+  ST.tr=ST.pts.filter(p=>p.train).map(toV);ST.te=ST.pts.filter(p=>!p.train).map(toV);
+}
+function buildNet(){
+  ST.net=new Net([ST.feats.length,...ST.hidden,1],$('#act').value,ST.netSeed);ST.epoch=0;ST.hist=[];ST.rng=mulberry32(99);
+  recordEval();render();
+}
+function recordEval(){const a=evalSet(ST.net,ST.tr),b=evalSet(ST.net,ST.te);ST.hist.push({e:ST.epoch,trL:a.loss,teL:b.loss});ST.last={a,b};}
+function trainEpoch(){
+  const tr=ST.tr,idx=[...tr.keys()],r=ST.rng,bs=+$('#bs').value,opt=$('#opt').value,lr=+$('#lr').value,l2=+$('#l2').value;
+  for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+  for(let s=0;s<idx.length;s+=bs)ST.net.trainBatch(idx.slice(s,s+bs).map(i=>tr[i]),opt,lr,l2);
+  ST.epoch++;recordEval();
+}
+
+// ---------- rendering ----------
+function computeGrid(){
+  // activations of every neuron at G×G points of the plane
+  const net=ST.net,F=ST.feats.map(f=>FEATURES[f].f),layers=net.sizes.map(n=>Array.from({length:n},()=>new Float32Array(G*G)));
+  for(let j=0;j<G;j++)for(let i=0;i<G;i++){const x=-6+(i+.5)/G*12,y=6-(j+.5)/G*12,v=new Float64Array(F.map(f=>f(x,y))),{A}=net.forward(v);
+    for(let l=0;l<A.length;l++)for(let k=0;k<A[l].length;k++)layers[l][k][j*G+i]=A[l][k];}
+  ST.grid=layers;
+}
+const thumbCache={};
+function neuronImage(vals,isOut,key){
+  let c=thumbCache[key];if(!c){c=document.createElement('canvas');c.width=G;c.height=G;thumbCache[key]=c;}
+  const g=c.getContext('2d'),img=g.createImageData(G,G);let lo=Infinity,hi=-Infinity;
+  if(!isOut){for(const v of vals){lo=Math.min(lo,v);hi=Math.max(hi,v);}}
+  for(let k=0;k<G*G;k++){let t;if(isOut)t=vals[k]*2-1;else{const m=Math.max(Math.abs(lo),Math.abs(hi),1e-9);t=vals[k]/m;}
+    const c1=t>=0?[47,111,237]:[240,140,0],a=Math.min(1,Math.abs(t));img.data[4*k]=255+(c1[0]-255)*a;img.data[4*k+1]=255+(c1[1]-255)*a;img.data[4*k+2]=255+(c1[2]-255)*a;img.data[4*k+3]=255;}
+  g.putImageData(img,0,0);return c;
+}
+function drawNet(){
+  const cv=$('#netc'),{ctx,w:W,h:H}=setupCanvas(cv),net=ST.net,sizes=net.sizes,nL=sizes.length;
+  const box=Math.min(58,Math.max(24,(H-24)/Math.max(...sizes)-12)),colX=l=>30+box/2+l*((W-60-box)/(nL-1)),
+    rowY=(l,k)=>{const n=sizes[l],gap=Math.min(box+14,(H-20)/n);return H/2+(k-(n-1)/2)*gap;};
+  let wmax=1e-9;net.W.forEach(w=>w.forEach(v=>wmax=Math.max(wmax,Math.abs(v))));
+  for(let l=0;l<nL-1;l++){const ni=sizes[l],no=sizes[l+1];for(let j=0;j<no;j++)for(let i=0;i<ni;i++){const v=net.W[l][j*ni+i],x1=colX(l)+box/2,y1=rowY(l,i),x2=colX(l+1)-box/2,y2=rowY(l+1,j),mx=(x1+x2)/2;
+    ctx.strokeStyle=v>=0?'rgba(47,111,237,.75)':'rgba(240,140,0,.75)';ctx.lineWidth=Math.max(0.3,Math.min(6,Math.abs(v)/wmax*6));
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.bezierCurveTo(mx,y1,mx,y2,x2,y2);ctx.stroke();}}
+  ctx.imageSmoothingEnabled=true;ctx.font='11px Segoe UI, sans-serif';ctx.textAlign='center';
+  for(let l=0;l<nL;l++)for(let k=0;k<sizes[l];k++){const x=colX(l)-box/2,y=rowY(l,k)-box/2,img=neuronImage(ST.grid[l][k],l===nL-1,l+'_'+k);
+    ctx.drawImage(img,x,y,box,box);ctx.strokeStyle='#1c2230';ctx.lineWidth=1;ctx.strokeRect(x,y,box,box);
+    if(l===0){ctx.fillStyle='#495057';ctx.textAlign='right';ctx.fillText(FEATURES[ST.feats[k]].label,x-4,y+box/2+4);ctx.textAlign='center';}}
+  ctx.fillStyle='#868e96';
+  for(let l=0;l<nL;l++){ctx.fillText(l===0?'inputs':l===nL-1?'output':'layer '+l,colX(l),12);}
+}
+function drawOut(){
+  const cv=$('#outc'),{ctx,w:W,h:H}=setupCanvas(cv),sz=Math.min(W,H),L=(W-sz)/2,T=(H-sz)/2,out=ST.grid[ST.grid.length-1][0],cell=sz/G,disc=$('#disc').checked;
+  for(let j=0;j<G;j++)for(let i=0;i<G;i++){const p=out[j*G+i];ctx.fillStyle=colorFor(p,disc?0.35:Math.min(0.85,Math.abs(p-0.5)*1.7));ctx.fillRect(L+i*cell,T+j*cell,cell+0.5,cell+0.5);}
+  ctx.strokeStyle='#dee2e6';ctx.strokeRect(L,T,sz,sz);
+  const sx=x=>L+(x+6)/12*sz,sy=y=>T+(6-y)/12*sz,showTe=$('#showTest').checked;
+  for(const p of ST.pts){if(!p.train&&!showTe)continue;ctx.beginPath();ctx.arc(sx(p.x),sy(p.y),p.train?3.6:4.2,0,7);ctx.fillStyle=p.l?'#2f6fed':'#f08c00';ctx.fill();
+    ctx.lineWidth=p.train?1:2;ctx.strokeStyle=p.train?'#fff':'#1c2230';ctx.stroke();}
+}
+function drawLoss(){
+  const cv=$('#lossc'),{ctx,w:W,h:H}=setupCanvas(cv),L=34,T=6,pw=W-L-8,ph=H-T-18,h=ST.hist;
+  const mx=Math.max(0.8,...h.map(p=>Math.max(p.trL,p.teL)).filter(Number.isFinite)),n=Math.max(1,h[h.length-1].e);
+  ctx.strokeStyle='#e2e4e9';ctx.strokeRect(L,T,pw,ph);ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='right';
+  ctx.fillText(mx.toFixed(2),L-3,T+9);ctx.fillText('0',L-3,T+ph);ctx.textAlign='center';ctx.fillText('epoch '+ST.epoch,L+pw/2,H-3);
+  for(const [key,col] of [['trL','#1c2230'],['teL','#f08c00']]){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+    h.forEach((p,i)=>{const x=L+p.e/n*pw,y=T+(mx-Math.min(mx,p[key]))/mx*ph;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}
+}
+function render(){
+  computeGrid();drawNet();drawOut();drawLoss();
+  const {a,b}=ST.last;$('#sEpoch').textContent=ST.epoch;
+  $('#trL').textContent=a.loss.toFixed(3);$('#teL').textContent=b.loss.toFixed(3);$('#trA').textContent=Math.round(a.acc*100)+'%';$('#teA').textContent=Math.round(b.acc*100)+'%';
+  $('#pcount').innerHTML=`Architecture ${[ST.feats.length,...ST.hidden,1].join(' → ')} · <b>${ST.net.paramCount()}</b> trainable parameters · ${ST.tr.length} training / ${ST.te.length} test points`;
+}
+function renderLayerBar(){
+  const bar=$('#layerbar');
+  bar.innerHTML=`<span><b>Hidden layers:</b></span><button class="mini" data-a="rmL">−</button><b>${ST.hidden.length}</b><button class="mini" data-a="addL">+</button>`+
+    ST.hidden.map((n,i)=>`<span class="lay">L${i+1}: <button class="mini" data-a="rmN" data-i="${i}">−</button><b>${n}</b><button class="mini" data-a="addN" data-i="${i}">+</button></span>`).join('');
+  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{const a=b.dataset.a,i=+b.dataset.i;
+    if(a==='addL'&&ST.hidden.length<6)ST.hidden.push(4);if(a==='rmL'&&ST.hidden.length>0)ST.hidden.pop();
+    if(a==='addN'&&ST.hidden[i]<8)ST.hidden[i]++;if(a==='rmN'&&ST.hidden[i]>1)ST.hidden[i]--;
+    renderLayerBar();buildNet();});
+}
+function renderFeats(){
+  const box=$('#feats');box.innerHTML='';
+  for(const k in FEATURES){const d=document.createElement('div');d.className='feat'+(ST.feats.includes(k)?' on':'');
+    const c=document.createElement('canvas');c.width=30;c.height=30;const g=c.getContext('2d'),img=g.createImageData(30,30);let mx=1e-9;const vals=[];
+    for(let j=0;j<30;j++)for(let i=0;i<30;i++){const v=FEATURES[k].f(-6+(i+.5)/30*12,6-(j+.5)/30*12);vals.push(v);mx=Math.max(mx,Math.abs(v));}
+    vals.forEach((v,q)=>{const t=v/mx,c1=t>=0?[47,111,237]:[240,140,0],a=Math.abs(t);img.data[4*q]=255+(c1[0]-255)*a;img.data[4*q+1]=255+(c1[1]-255)*a;img.data[4*q+2]=255+(c1[2]-255)*a;img.data[4*q+3]=255;});
+    g.putImageData(img,0,0);d.appendChild(c);d.appendChild(document.createTextNode(FEATURES[k].label));
+    d.onclick=()=>{if(ST.feats.includes(k)){if(ST.feats.length===1)return;ST.feats=ST.feats.filter(f=>f!==k);}else ST.feats=Object.keys(FEATURES).filter(f=>f===k||ST.feats.includes(f));
+      renderFeats();vectorize();buildNet();};
+    box.appendChild(d);}
+}
+function renderDatasets(){
+  const box=$('#ds');box.innerHTML='';
+  for(const [k,name] of DATASETS){const b=document.createElement('button');b.className=ST.kind===k?'on':'';
+    const c=document.createElement('canvas');c.width=46;c.height=46;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,46,46);
+    for(const p of makeDataset(k,160,0,3)){g.fillStyle=p.l?'#2f6fed':'#f08c00';g.fillRect((p.x+6)/12*46-1,(6-p.y)/12*46-1,2.2,2.2);}
+    b.appendChild(c);b.appendChild(document.createTextNode(name));b.onclick=()=>{ST.kind=k;renderDatasets();buildData();buildNet();};box.appendChild(b);}
+}
+// ---------- loop ----------
+let raf=null;
+function loop(){const k=+$('#speed').value;for(let i=0;i<k;i++)trainEpoch();render();raf=requestAnimationFrame(loop);}
+function stop(){if(raf)cancelAnimationFrame(raf);raf=null;$('#play').textContent='▶ Train';}
+$('#play').onclick=()=>{if(raf){stop();return;}$('#play').textContent='⏸ Pause';raf=requestAnimationFrame(loop);};
+$('#stepE').onclick=()=>{stop();trainEpoch();render();};
+$('#newW').onclick=()=>{ST.netSeed++;buildNet();};
+$('#newData').onclick=()=>{ST.dataSeed++;buildData();buildNet();};
+$('#act').onchange=()=>buildNet();
+['#noise','#tr'].forEach(id=>$(id).addEventListener('change',()=>{buildData();buildNet();}));
+const outs=()=>{$('#noiseOut').textContent=$('#noise').value;$('#trOut').textContent=$('#tr').value+'%';$('#bsOut').textContent=$('#bs').value;};
+['#noise','#tr','#bs'].forEach(id=>$(id).addEventListener('input',outs));
+['#showTest','#disc'].forEach(id=>$(id).addEventListener('change',()=>{drawOut();}));
+window.addEventListener('resize',()=>render());
+outs();renderDatasets();renderFeats();renderLayerBar();buildData();buildNet();
+</script>
+</body>
+</html>
