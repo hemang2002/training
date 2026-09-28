@@ -13,6 +13,12 @@
   .prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
   .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
   .twin canvas#photoO,.twin canvas#photoQ{aspect-ratio:4/3;image-rendering:pixelated}
+  .scen{display:flex;flex-direction:column;gap:.35rem;margin:.5rem 0}
+  .scen .btn{text-align:left;font-size:.86rem;padding:.4rem .6rem}
+  .scen .btn.on{border-color:var(--blue);background:#e7f0ff}
+  table.d2{border-collapse:collapse;width:100%;font-size:.85rem}
+  table.d2 th,table.d2 td{border-bottom:1px solid var(--line);padding:.32rem .4rem;text-align:left;white-space:nowrap}
+  table.d2 th{background:var(--soft);color:var(--muted)}
 </style>
 </head>
 <body>
@@ -37,10 +43,10 @@
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 12 of 12 · ≈ 30 min</div>
+  <div class="kicker">Lesson 12 of 12 · ≈ 50 min</div>
   <h1>Making models small</h1>
   <p class="one-liner">A trained model is just a <b>giant list of numbers</b> (its weights), like 0.0371528… To make it smaller we can
-  <b>① round</b> every number (keep fewer digits) or <b>② delete</b> the tiny numbers. The model gets smaller. <b>But does it still work?</b> Let's find out.</p>
+  <b>① round</b> every number (keep fewer digits), <b>② delete</b> the tiny numbers or whole neurons, or <b>③ train a much smaller student</b> to copy it. The model gets smaller. <b>But does it still work, and is it really faster?</b> Let's find out.</p>
 </section>
 <section class="start">
   <h2>👋 New here? The 30-second version</h2>
@@ -110,8 +116,8 @@
       <div class="ctl"><label>Bits per weight <output id="nbOut"></output></label><input type="range" id="nbits" min="2" max="9" value="9"></div>
       <div class="adv"><label class="check"><input type="checkbox" id="perch"> Per-channel (one ruler per neuron)</label></div>
       <h3>Delete weights</h3>
-      <div class="ctl"><label>Remove weights <output id="spOut"></output></label><input type="range" id="sp" min="0" max="95" step="5" value="0"></div>
-      <div class="ctl"><label>Which ones?</label><select id="method"><option value="mag">The smallest ones (smart)</option><option value="rand">Random ones (careless)</option></select></div>
+      <div class="ctl"><label><span id="spLab">Remove weights</span> <output id="spOut"></output></label><input type="range" id="sp" min="0" max="95" step="5" value="0"></div>
+      <div class="ctl"><label>Which ones?</label><select id="method"><option value="mag">The smallest weights (smart)</option><option value="rand">Random weights (careless)</option><option value="neuron">Whole neurons, weakest first (structured)</option></select></div>
       <div class="btn-row"><button class="btn primary" id="ft">🔧 Retrain a little (fine-tune)</button></div>
       <div class="btn-row"><button class="btn" id="undo">↺ Back to the original model</button></div>
     </aside>
@@ -121,6 +127,7 @@
         <div class="stat good"><b id="accC">–</b><span>Accuracy after</span></div>
         <div class="stat"><b id="nz">–</b><span>Weights kept</span></div>
         <div class="stat blue"><b id="size">–</b><span>Model size</span></div>
+        <div class="stat orange"><b id="mults">–</b><span>Multiplications per answer</span></div>
       </div>
       <div class="twin">
         <div><div class="canvas-title">Before: the original model</div><canvas id="bO" width="240" height="240"></canvas></div>
@@ -130,12 +137,13 @@
         If the <b>After</b> picture still puts every dot in the area of its own colour, the squeezed model still works.</div>
       <div class="canvas-box" style="margin-top:.7rem"><div class="canvas-title">🔌 The wiring of the model after squeezing</div><canvas id="wires" style="height:260px"></canvas>
         <div class="look">👀 Every line is one weight (a connection between two neurons). Thick, dark lines are big weights; thin, faint lines are small ones.
-          Deleting weights <b>cuts lines</b>. Deleting the smallest ones first removes the faint lines that matter least.</div></div>
+          Deleting weights <b>cuts lines</b>. Deleting the smallest ones first removes the faint lines that matter least.
+          <b>Structured</b> pruning removes whole neurons (grey rings): the layer really gets narrower, so the matrices shrink and the computer does fewer multiplications.</div></div>
       <div class="grid2" style="margin-top:.7rem">
         <div class="canvas-box"><div class="canvas-title">Accuracy vs bits</div><canvas id="cBits" style="height:180px"></canvas>
           <div class="look">👀 Flat line = rounding does no harm. A drop = the model breaks.</div></div>
-        <div class="canvas-box"><div class="canvas-title">Accuracy vs weights removed (before retraining)</div><canvas id="cSp" style="height:180px"></canvas>
-          <div class="legend"><span><i style="background:#2f6fed"></i>smallest removed first</span><span><i style="background:#f08c00"></i>random</span></div></div>
+        <div class="canvas-box"><div class="canvas-title">Accuracy vs % removed (before retraining)</div><canvas id="cSp" style="height:180px"></canvas>
+          <div class="legend"><span><i style="background:#2f6fed"></i>smallest weights</span><span><i style="background:#f08c00"></i>random weights</span><span><i style="background:#2f9e44"></i>whole neurons</span></div></div>
       </div>
     </div>
   </div>
@@ -199,6 +207,98 @@
   </div>
 </section>
 
+<section class="card">
+  <h2>③ Rounding the numbers <i>between</i> the layers: calibration</h2>
+  <p>Rounding the weights is only half of int8. <b>Static</b> int8 (Day 2) also rounds the <b>activations</b>: the numbers that flow from layer to layer while the model runs.
+  Weights are known in advance, but activations depend on the input. So we first run a few <b>calibration</b> examples through the model and write down the range of every layer.
+  At prediction time, every activation is rounded onto a ruler that covers that range; anything outside is <b>clipped</b> to the edge.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Rounding</h3>
+      <div class="ctl"><label>Bits per activation</label><select id="aqBits"><option>8</option><option>6</option><option>4</option><option>3</option></select></div>
+      <h3>Calibration</h3>
+      <div class="ctl"><label>Calibration examples</label><select id="aqN"><option>3</option><option>10</option><option selected>100</option></select></div>
+      <label class="check"><input type="checkbox" id="aqWrong"><span>Calibration used the <b>wrong preprocessing</b> (forgot to scale the inputs)</span></label>
+      <div class="scen" id="aqScen">
+        <button class="btn" data-s="good">✅ 8 bits, 100 examples</button>
+        <button class="btn" data-s="few">❌ Only 3 calibration examples</button>
+        <button class="btn" data-s="wrong">❌ Wrong preprocessing, 4 bits</button>
+      </div>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat"><b id="aqF">–</b><span>Accuracy, no rounding</span></div>
+        <div class="stat" id="aqAbox"><b id="aqA">–</b><span>Accuracy, rounded activations</span></div>
+        <div class="stat orange"><b id="aqC">–</b><span>Activations clipped</span></div>
+      </div>
+      <div id="aqV" class="banner info">–</div>
+      <div class="canvas-box"><div class="canvas-title">The inputs the model really sees (grey) and the calibrated ruler (red dashes = its ends)</div><canvas id="aqc" style="height:210px"></canvas>
+        <div class="look">👀 Grey = where the real input numbers fall. Thin blue ticks = the values the rounded numbers may take. If the ruler is <b>too short</b> (red dashes inside the grey hump), big values get clipped.
+          If it's <b>far too long</b>, the ticks are spread thin and almost all real values fall between the same two ticks.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>④ Smaller ≠ faster: the real Day-2 numbers</h2>
+  <div class="grid2">
+    <div class="canvas-box"><div class="canvas-title">MobileNetV2 on CIFAR-10, trainer's laptop CPU (batch 1)</div>
+      <div class="tbl-wrap"><table class="d2" id="d2t"></table></div>
+      <div class="look">👀 <b>Short bars are good</b> in both columns: a small file and a short time per picture (the time bars use a log scale, so each step to the right is many times slower).
+        Notice how many techniques shrink the file but not the time, and how one makes the time explode.</div></div>
+    <div>
+      <h3>✅ What helped</h3>
+      <ul><li><b>ONNX Runtime</b> alone: 8.8 → 1.3 ms, same weights, same size. A fused, pre-planned graph beats Python overhead.</li>
+        <li><b>Static int8</b> (with calibration, per-channel): 3.5× smaller and the fastest (0.9 ms), −0.6 pp accuracy. This is what Day 3 serves.</li></ul>
+      <h3>➖ / ❌ What didn't</h3>
+      <ul><li><b>Dynamic int8</b> in PyTorch: only the last Linear layer is rounded, so a CNN barely changes (9.15 MB, even slower).</li>
+        <li><b>FP16</b>: half the size, but no speed-up on a CPU. <b>BF16</b>: ≈ 26× <i>slower</i> (227 ms): this CPU has no BF16 hardware, so it's emulated.</li>
+        <li><b>Unstructured pruning</b>: same file size, same speed (the zeros are still stored and multiplied, challenge 6). 50% without retraining collapses to 33%.</li></ul>
+      <p class="small muted">Latencies are medians on one laptop and vary from run to run: compare ratios, and always measure on the machine you will deploy to.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑤ A third way: teach a small student (knowledge distillation)</h2>
+  <p>Rounding and deleting squeeze a <b>given</b> network. Distillation trains a <b>much smaller</b> network, the <b>student</b>, to copy the answers of the big trained <b>teacher</b>.
+  The trick: the teacher can label as many <b>unlabelled</b> examples as we like, and its answers are <b>soft</b> ("80% blue") instead of just "blue", so they carry more information.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Student</h3>
+      <div class="ctl"><label>Student size</label><select id="kdH"><option value="4" selected>4 neurons (17 weights, 70× smaller)</option><option value="2">2 neurons (9 weights, too small?)</option></select></div>
+      <p class="small">Both students start from the same random weights. The labelled data is scarce: only <b>20 labelled dots</b>.</p>
+      <div class="btn-row"><button class="btn primary" id="kdGo" disabled>▶ Train both students</button></div>
+    </aside>
+    <div class="stage">
+      <div class="twin3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:.6rem">
+        <div><div class="canvas-title">Teacher: 2 → 32 → 32 → 1</div><canvas id="kdT" width="200" height="200" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:8px"></canvas>
+          <div class="stats"><div class="stat"><b id="kdTa">–</b><span>Test acc</span></div><div class="stat"><b>1,185</b><span>Weights</span></div></div></div>
+        <div><div class="canvas-title">Student learns from the 20 labels</div><canvas id="kdH1" width="200" height="200" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:8px"></canvas>
+          <div class="stats"><div class="stat"><b id="kdHa">–</b><span>Test acc</span></div></div></div>
+        <div><div class="canvas-title">Student learns from the teacher's answers on 1,000 unlabelled dots</div><canvas id="kdS1" width="200" height="200" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:8px"></canvas>
+          <div class="stats"><div class="stat"><b id="kdSa">–</b><span>Test acc</span></div></div></div>
+      </div>
+      <div id="kdV" class="banner info">Press ▶ Train both students.</div>
+      <div class="look">👀 Big dots = the 20 labelled training dots the first student gets. Small dots = test dots nobody trains on. A good student draws the same border as the teacher,
+        with a fraction of the weights.</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑥ Which method when? A quick guide</h2>
+  <div class="grid2">
+    <div>
+      <div class="ctl"><label>Where will the model run?</label><select id="wzHw"><option value="cpu" selected>Server or laptop CPU</option><option value="gpu">NVIDIA GPU</option><option value="phone">Phone / Raspberry Pi (ARM)</option><option value="mcu">Microcontroller (tiny memory)</option></select></div>
+      <div class="ctl"><label>What kind of model?</label><select id="wzM"><option value="cnn" selected>CNN (images)</option><option value="tr">Transformer / LSTM (text, sequences)</option></select></div>
+      <div class="ctl"><label>How much accuracy may you lose?</label><select id="wzAcc"><option value="1" selected>about 1 point is fine</option><option value="0">almost nothing (medical, safety)</option></select></div>
+      <div class="ctl"><label>Do you have a few hundred example inputs (no labels needed)?</label><select id="wzCal"><option value="y" selected>yes</option><option value="n">no</option></select></div>
+    </div>
+    <div class="explain" id="wzOut"></div>
+  </div>
+</section>
+
 <section class="callout try">
   <h3>🧪 Try this (guess first, then check!)</h3>
   <ol class="challenges">
@@ -225,6 +325,20 @@
       <details class="answer"><summary>Answer</summary>No! The deleted weights are stored as zeros, and zeros still take space and are still multiplied.
       To really gain you must store the model in a special "sparse" format, use hardware that skips zeros, or delete whole neurons so the layers really get smaller.
       Our Live Demo measured exactly this: deleting weights gave <b>no speed-up</b>.</details></li>
+    <li><b>Delete whole neurons.</b> Back to the original. Set "Which ones?" to <b>Whole neurons</b> and remove 50%. Watch accuracy, size and multiplications. Then 75%, then 🔧 Retrain.
+      <details class="answer"><summary>Answer</summary>50% of the neurons: 93% accuracy, and the layers really shrink (32 → 16 neurons), so the file drops from 4.63 KB to 1.32 KB and the model needs only 304 multiplications instead of 1,120.
+      75%: the model breaks (67%, layers 8-8), but after retraining it is back at 98%, with 88 multiplications: <b>13× less work</b> per answer. That's structured pruning: it can lose more accuracy at first,
+      but unlike deleting single weights it makes the model genuinely smaller <i>and</i> faster on any hardware.</details></li>
+    <li><b>Calibration matters.</b> In ③, try ❌ Only 3 calibration examples, then ❌ Wrong preprocessing. Then keep the wrong preprocessing but go back to 8 bits.
+      <details class="answer"><summary>Answer</summary>3 examples: the measured ranges are too narrow, 1.5% of all activations get clipped, and accuracy falls from 97% to 75.5%. With 100 examples: 97%, nothing lost.
+      Wrong preprocessing at 4 bits: the ruler is 6× too long, so the real inputs only use a few of its 16 ticks → 87%. At 8 bits the same mistake is hidden (97.5%): 256 ticks are enough to survive it.
+      A hidden bug is still a bug. On Day 2 (Lab Ex. 3) a forgotten <code>Normalize</code> in calibration dropped the int8 model from ≈ 90% to ≈ 30%.</details></li>
+    <li><b>A student with 70× fewer weights.</b> In ⑤, train the 4-neuron students. Then try the 2-neuron student.
+      <details class="answer"><summary>Answer</summary>4 neurons (17 weights): trained on the 20 labels only, 74.5%; trained on the teacher's answers for 1,000 unlabelled dots, <b>98%</b>, as good as the 1,185-weight teacher (97%).
+      The teacher turns cheap unlabelled data into lessons. 2 neurons: 77.5% vs 82%, both far below the teacher. A student that is too small can't learn the border, however good the teacher.</details></li>
+    <li><b>Read the real numbers.</b> In ④, which technique is fastest? Which one shrinks the file most? Which one is slowest, and why?
+      <details class="answer"><summary>Answer</summary>Fastest and nearly smallest: ONNX Runtime static int8 (0.9 ms, 2.61 MB, 89.4%). Smallest: ONNX Runtime dynamic int8 (2.41 MB), but it is 13× slower than static int8 for a CNN.
+      Slowest by far: BF16 on the laptop CPU (227 ms), because the CPU has no BF16 hardware and emulates it. "Smaller" and "faster" are different questions.</details></li>
     <li class="adv"><b>Bits vs error (Detailed).</b> Slide from 8 bits down to 2. Watch the SQNR and the blue spikes. About how many dB do you lose per bit?
       <details class="answer"><summary>Answer</summary>About 6 dB per bit (each bit doubles the number of marks and halves the spacing).
       At 2 bits there are only 3 marks (−s, 0, +s), and most weights collapse to 0.</details></li>
@@ -246,7 +360,9 @@
     <tr><td><b>Dynamic quantization</b> <code>quantize_dynamic</code></td><td>Weights → int8 ahead of time; activations quantized on the fly. Mainly Linear/LSTM layers.</td><td>① and ② (weight rounding)</td></tr>
     <tr><td><b>Static PTQ</b> (+ calibration)</td><td>Also quantizes activations, using ranges measured on calibration images.</td><td>Choosing the Range (min–max vs percentile)</td></tr>
     <tr><td><b>QAT</b> (quantization-aware training)</td><td>Simulates rounding during training so the weights adapt to the coarse ruler.</td><td>"Retrain a little" after squeezing</td></tr>
-    <tr><td><b>Pruning</b> <code>torch.nn.utils.prune</code></td><td>Zeroes the smallest weights (L1 unstructured) or whole channels (structured).</td><td>"Remove weights" slider</td></tr>
+    <tr><td><b>Pruning</b> <code>torch.nn.utils.prune</code></td><td>Zeroes the smallest weights (L1 unstructured) or whole channels (structured; Lab Ex. 4, <code>torch-pruning</code>).</td><td>"Remove weights" slider, "Whole neurons" option</td></tr>
+    <tr><td><b>Calibration</b> (static PTQ, <code>quantize_static</code>)</td><td>Runs representative inputs through the model to set every activation's range.</td><td>③ Rounding the numbers between the layers</td></tr>
+    <tr><td><b>Knowledge distillation</b> (homework 1)</td><td>A small student learns from a big teacher's soft outputs (softmax with temperature, Lesson 5).</td><td>⑤ Teach a small student</td></tr>
     <tr><td><b>FP16 / BF16</b></td><td>Halves the size. Fast on GPUs; on most CPUs it's <i>slower</i> (no native half-precision math).</td><td>The size table at the top</td></tr>
   </table>
   <pre class="code"><span class="k">import</span> torch, torch.nn.utils.prune <span class="k">as</span> prune
@@ -417,9 +533,21 @@ function partB(){
 const C={net:null,te:[],tr:[],cur:null,mask:null,tuned:null,curves:null};
 function toV(p){return {v:new Float64Array([p.x/6,p.y/6]),l:p.l};}
 function cloneNet(n){const m=new Net(n.sizes,n.act,1);m.W=n.W.map(w=>Float64Array.from(w));m.b=n.b.map(b=>Float64Array.from(b));return m;}
-function pruneMask(net,sp,method,seed=0){const all=[];net.W.forEach((w,l)=>w.forEach((v,k)=>all.push({l,k,a:Math.abs(v)})));
+function pruneMask(net,sp,method,seed=0){
+  if(method==='neuron')return neuronMask(net,sp);
+  const all=[];net.W.forEach((w,l)=>w.forEach((v,k)=>all.push({l,k,a:Math.abs(v)})));
   if(method==='rand'){const r=mulberry32(seed);all.forEach(o=>o.a=r());}all.sort((a,b)=>a.a-b.a);const cut=Math.floor(all.length*sp);
   const mask=net.W.map(w=>new Uint8Array(w.length).fill(1));for(let i=0;i<cut;i++)mask[all[i].l][all[i].k]=0;return mask;}
+// structured pruning: remove whole hidden neurons (all incoming and outgoing weights), weakest first, the same share in every hidden layer
+function neuronMask(net,sp){const mask=net.W.map(w=>new Uint8Array(w.length).fill(1));
+  for(let h=0;h<net.L-1;h++){const ni=net.sizes[h],n=net.sizes[h+1],no=net.sizes[h+2],score=[];
+    for(let j=0;j<n;j++){let a=0,b=0;for(let i=0;i<ni;i++)a+=Math.abs(net.W[h][j*ni+i]);for(let k=0;k<no;k++)b+=Math.abs(net.W[h+1][k*n+j]);score.push({j,s:a*b});}
+    score.sort((x,y)=>x.s-y.s);const cut=Math.min(n-1,Math.floor(n*sp));
+    for(let q=0;q<cut;q++){const j=score[q].j;for(let i=0;i<ni;i++)mask[h][j*ni+i]=0;for(let k=0;k<no;k++)mask[h+1][k*n+j]=0;}}
+  return mask;}
+// which neurons still do anything (inputs and output always count); a hidden neuron with no outgoing weight can be removed from the file
+function aliveNeurons(net){return net.sizes.map((n,l)=>Array.from({length:n},(_,j)=>{if(l===0||l===net.L)return true;const W=net.W[l],no=net.sizes[l+1];for(let k=0;k<no;k++)if(W[k*n+j]!==0)return true;return false;}));}
+function realCost(net){const al=aliveNeurons(net).map(a=>a.filter(Boolean).length);let w=0,b=0;for(let l=0;l<net.L;l++){w+=al[l]*al[l+1];b+=al[l+1];}return {w,b,al};}
 function applyMask(net,mask){net.W=net.W.map((w,l)=>w.map((v,k)=>mask[l][k]?v:0));return net;}
 function quantNet(net,bits,perCh){if(bits>=32)return net;
   net.W=net.W.map((w,l)=>{const ni=net.sizes[l],no=net.sizes[l+1],out=Float64Array.from(w);
@@ -434,13 +562,13 @@ function trainTiny(){
   const chunk=()=>{for(let k=0;k<15&&e<E;k++,e++){const idx=[...C.tr.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
       for(let s=0;s<idx.length;s+=10)net.trainBatch(idx.slice(s,s+10).map(i=>C.tr[i]),'adam',0.03,0);}
     $('#prog').style.width=(e/E*100)+'%';$('#progTxt').textContent=`Training the tiny model first: round ${e} / ${E}`;
-    if(e<E)requestAnimationFrame(chunk);else{C.net=net;$('#progTxt').textContent=`✅ Model trained! It gets ${pct(evalSet(net,C.te).acc)} of the test dots right. Now squeeze it with the sliders.`;computeCurves();partC();}};
+    if(e<E)requestAnimationFrame(chunk);else{C.net=net;$('#progTxt').textContent=`✅ Model trained! It gets ${pct(evalSet(net,C.te).acc)} of the test dots right. Now squeeze it with the sliders.`;computeCurves();partC();partAQ();drawKD($('#kdT'),C.net,null);$('#kdTa').textContent=pct(evalSet(C.net,C.te).acc);$('#kdGo').disabled=false;}};
   requestAnimationFrame(chunk);
 }
 function computeCurves(){
   const bits=[8,7,6,5,4,3,2].map(b=>({b,acc:evalSet(compressed(b,false,0,'mag'),C.te).acc}));
   const sps=[];for(let s=0;s<=95;s+=5){let rnd=0;for(let k=0;k<5;k++){const n=cloneNet(C.net);applyMask(n,pruneMask(C.net,s/100,'rand',k));rnd+=evalSet(n,C.te).acc/5;}
-    sps.push({s,mag:evalSet(compressed(32,false,s/100,'mag'),C.te).acc,rnd});}
+    sps.push({s,mag:evalSet(compressed(32,false,s/100,'mag'),C.te).acc,rnd,neu:evalSet(compressed(32,false,s/100,'neuron'),C.te).acc});}
   C.curves={bits,sps};
 }
 function drawBoundary(cv,net){const g=cv.getContext('2d'),W=cv.width,G=48,c=W/G;
@@ -470,19 +598,22 @@ function readBits(){const v=+$('#nbits').value;return v===9?32:v;}
 function partC(){
   const bits=readBits();
   const sp=+$('#sp').value/100,method=$('#method').value,perCh=$('#perch').checked;
-  $('#nbOut').textContent=bits===32?'32 (original)':bits;$('#spOut').textContent=Math.round(sp*100)+'%';
+  $('#nbOut').textContent=bits===32?'32 (original)':bits;$('#spOut').textContent=Math.round(sp*100)+'%';$('#spLab').textContent=method==='neuron'?'Remove neurons':'Remove weights';
   if(!C.net)return;
   const tuned=C.tuned&&C.tuned.sp===sp&&C.tuned.method===method,base=tuned?C.tuned.net:C.net;
   const n=tuned?quantNet(cloneNet(base),bits,perCh):compressed(bits,perCh,sp,method,C.net);
   const acc=evalSet(n,C.te).acc,o=evalSet(C.net,C.te).acc;let nz=0,tot=0;n.W.forEach(w=>w.forEach(v=>{tot++;if(v!==0)nz++;}));
   $('#accO').textContent=pct(o);$('#accC').textContent=pct(acc);$('#accC').parentElement.className='stat '+(acc>=o-0.02?'good':'bad');
   $('#nz').textContent=`${nz} / ${tot}`;
-  const bytes=tot*(bits===32?4:bits/8)+n.b.reduce((s,b)=>s+b.length,0)*4;$('#size').textContent=(bytes/1024).toFixed(2)+' KB';
-  $('#cTitle').textContent=`After: ${bits===32?'32-bit (not rounded)':bits+'-bit weights'}, ${Math.round(sp*100)}% removed${sp>0?(method==='mag'?' (smallest)':' (random)'):''}${tuned?' + retrained':''}`;
+  // unstructured pruning keeps the dense matrices (zeros are stored and multiplied); structured pruning really shrinks them
+  const rc=realCost(n),structured=method==='neuron'&&sp>0,wStored=structured?rc.w:tot,bStored=structured?rc.b:n.b.reduce((s,b)=>s+b.length,0);
+  const bytes=wStored*(bits===32?4:bits/8)+bStored*4;$('#size').textContent=(bytes/1024).toFixed(2)+' KB';
+  $('#mults').textContent=wStored.toLocaleString('en-US');$('#mults').parentElement.className='stat '+(wStored<tot?'good':'orange');
+  $('#cTitle').textContent=`After: ${bits===32?'32-bit (not rounded)':bits+'-bit weights'}, ${Math.round(sp*100)}%${method==='neuron'?' of neurons':''} removed${sp>0?({mag:' (smallest)',rand:' (random)',neuron:` → layers ${rc.al.join('-')}`})[method]:''}${tuned?' + retrained':''}`;
   drawBoundary($('#bO'),C.net);drawBoundary($('#bC'),n);drawWires(n);
   const cb=C.curves.bits,m1=lineChart($('#cBits'),cb.map(c=>c.b),[{col:'#2f6fed',ys:cb.map(c=>c.acc)}],'bits per weight',x=>x);
   if(bits<32&&bits>=2&&!perCh&&sp===0){const ctx=$('#cBits').getContext('2d');ctx.strokeStyle='#e03131';ctx.lineWidth=2;ctx.beginPath();ctx.arc(m1.sx(bits),m1.sy(Math.max(0.4,acc)),6,0,7);ctx.stroke();}
-  const cs=C.curves.sps,m2=lineChart($('#cSp'),cs.map(c=>c.s),[{col:'#2f6fed',ys:cs.map(c=>c.mag)},{col:'#f08c00',ys:cs.map(c=>c.rnd)}],'% of weights removed',x=>x);
+  const cs=C.curves.sps,m2=lineChart($('#cSp'),cs.map(c=>c.s),[{col:'#2f6fed',ys:cs.map(c=>c.mag)},{col:'#f08c00',ys:cs.map(c=>c.rnd)},{col:'#2f9e44',ys:cs.map(c=>c.neu)}],'% removed',x=>x);
   if(sp>0){const ctx=$('#cSp').getContext('2d'),h=$('#cSp').getBoundingClientRect().height;ctx.strokeStyle='#1c2230';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(m2.sx(sp*100),8);ctx.lineTo(m2.sx(sp*100),h-26);ctx.stroke();ctx.setLineDash([]);}
   $('#ft').disabled=sp===0||tuned;
 }
@@ -535,19 +666,99 @@ function drawWires(net){
   let mx=1e-9;C.net.W.forEach(w=>w.forEach(v=>mx=Math.max(mx,Math.abs(v))));
   for(let l=0;l<nL-1;l++){const ni=sizes[l],no=sizes[l+1];for(let j=0;j<no;j++)for(let i=0;i<ni;i++){const v=net.W[l][j*ni+i];if(v===0)continue;const a=Math.min(1,Math.abs(v)/mx);
     ctx.strokeStyle=v>0?`rgba(47,111,237,${0.08+0.8*a})`:`rgba(240,140,0,${0.08+0.8*a})`;ctx.lineWidth=0.4+2.6*a;ctx.beginPath();ctx.moveTo(colX(l),rowY(l,i));ctx.lineTo(colX(l+1),rowY(l+1,j));ctx.stroke();}}
-  for(let l=0;l<nL;l++)for(let k=0;k<sizes[l];k++){ctx.beginPath();ctx.arc(colX(l),rowY(l,k),l===0||l===nL-1?6:3.2,0,7);ctx.fillStyle='#1c2230';ctx.fill();}
+  const al=aliveNeurons(net);
+  for(let l=0;l<nL;l++)for(let k=0;k<sizes[l];k++){ctx.beginPath();ctx.arc(colX(l),rowY(l,k),l===0||l===nL-1?6:3.2,0,7);
+    if(al[l][k]){ctx.fillStyle='#1c2230';ctx.fill();}else{ctx.strokeStyle='#adb5bd';ctx.lineWidth=1.2;ctx.stroke();}}
   ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='center';
   ['inputs','32 neurons','32 neurons','output'].forEach((t,l)=>ctx.fillText(t,colX(l)+(l===0?18:l===nL-1?-18:0),H-1));
 }
 
+// ---------- ③ activation rounding with calibration ----------
+const AQ_SCEN={good:{bits:8,n:100,wrong:false},few:{bits:8,n:3,wrong:false},wrong:{bits:4,n:100,wrong:true}};
+// per-layer [lo, hi] of the numbers that enter each layer, measured on the calibration inputs (min–max, per tensor)
+function calibrate(net,inputs){const R=net.sizes.slice(0,-1).map(()=>[Infinity,-Infinity]);
+  for(const v of inputs){const {A}=net.forward(v);for(let l=0;l<net.L;l++)for(const a of A[l]){R[l][0]=Math.min(R[l][0],a);R[l][1]=Math.max(R[l][1],a);}}
+  return R.map(([lo,hi])=>[Math.min(lo,0),Math.max(hi,0)]);}
+function predictAQ(net,v,R,bits,cnt){let a=v;const F=ACTS[net.act].f,Q=2**bits-1;
+  for(let l=0;l<net.L;l++){const [lo,hi]=R[l],s=(hi-lo)/Q||1e-12,ni=net.sizes[l],no=net.sizes[l+1],W=net.W[l],b=net.b[l];
+    const aq=a.map(x=>{const q=Math.round((x-lo)/s);if(q<0||q>Q)cnt.clip++;cnt.all++;return lo+Math.max(0,Math.min(Q,q))*s;});
+    const o=new Float64Array(no);for(let j=0;j<no;j++){let z=b[j];for(let i=0;i<ni;i++)z+=W[j*ni+i]*aq[i];o[j]=l===net.L-1?1/(1+Math.exp(-z)):F(z);}a=o;}
+  return a[0];}
+function partAQ(){
+  if(!C.net)return;const bits=+$('#aqBits').value,n=+$('#aqN').value,wrong=$('#aqWrong').checked;
+  const cal=C.tr.slice(0,n).map(s=>wrong?s.v.map(x=>x*6):s.v),R=calibrate(C.net,cal),cnt={clip:0,all:0};
+  let ok=0;for(const s of C.te)ok+=(predictAQ(C.net,s.v,R,bits,cnt)>=0.5)===(s.l===1)?1:0;
+  const acc=ok/C.te.length,fl=evalSet(C.net,C.te).acc;$('#aqF').textContent=pct(fl);$('#aqA').textContent=pct(acc);$('#aqC').textContent=(cnt.clip/cnt.all*100).toFixed(1)+'%';
+  $('#aqAbox').className='stat '+(acc>=fl-0.02?'good':'bad');
+  const v=$('#aqV');if(acc>=fl-0.02){v.className='banner good';v.innerHTML=`✅ <b>Works.</b> The calibration range fits the real inputs, so ${bits}-bit activations cost almost nothing (${pct(fl)} → ${pct(acc)}).`;}
+  else{v.className='banner bad';v.innerHTML=`❌ <b>Broken: ${pct(fl)} → ${pct(acc)}.</b> `+(wrong?'The calibration inputs were 6× too big, so the ruler is 6× too long: the real inputs only use a handful of its ticks.':n<10?`Only ${n} calibration examples: the measured range is too narrow, so ${(cnt.clip/cnt.all*100).toFixed(1)}% of all activations get clipped.`:'Too few bits for these activations.');}
+  // histogram of the real inputs (layer 0) + the calibrated ruler
+  const {ctx,w:W,h:H}=setupCanvas($('#aqc')),L=10,T=8,pw=W-20,ph=H-T-24,[lo,hi]=R[0],x0=Math.min(-1.3,lo),x1=Math.max(1.3,hi),sx=x=>L+(x-x0)/(x1-x0)*pw,NB=120,bins=new Array(NB).fill(0);
+  for(const s of C.te)for(const x of s.v)bins[Math.max(0,Math.min(NB-1,Math.floor((x-x0)/(x1-x0)*NB)))]++;
+  const mb=Math.max(...bins);ctx.fillStyle='#ced4da';bins.forEach((c,i)=>{const h=c/mb*ph*0.9;ctx.fillRect(L+i/NB*pw,T+ph-h,pw/NB+0.5,h);});
+  const Q=2**bits-1;ctx.strokeStyle=Q>64?'rgba(47,111,237,.18)':'rgba(47,111,237,.6)';ctx.lineWidth=1;for(let q=0;q<=Q;q++){const x=lo+q*(hi-lo)/Q;ctx.beginPath();ctx.moveTo(sx(x),T+ph-12);ctx.lineTo(sx(x),T+ph);ctx.stroke();}
+  ctx.strokeStyle='#e03131';ctx.setLineDash([5,4]);ctx.lineWidth=2;for(const x of [lo,hi]){ctx.beginPath();ctx.moveTo(sx(x),T);ctx.lineTo(sx(x),T+ph);ctx.stroke();}ctx.setLineDash([]);
+  ctx.fillStyle='#868e96';ctx.font='11px Segoe UI, sans-serif';ctx.textAlign='center';const step=(x1-x0)>6?2:0.5;for(let x=Math.ceil(x0/step)*step;x<=x1;x+=step)ctx.fillText(+x.toFixed(1),sx(x),H-8);
+  return {acc,clip:cnt.clip/cnt.all};
+}
+// ---------- ④ the real Day-2 results (Day 2 README, results table) ----------
+const D2=[['PyTorch FP32',9.19,8.8,0.900],['PyTorch dynamic int8',9.15,12.1,0.900],['PyTorch static int8',2.66,7.1,0.898],['PyTorch QAT int8',2.66,7.1,0.894],
+  ['FP16 weights',4.65,8.8,0.900],['BF16 on CPU',4.65,227,0.901],['Pruned 50% + fine-tune',9.19,8.8,0.874],['Pruned 50%, no retraining',9.19,8.8,0.331],
+  ['ONNX Runtime FP32',8.92,1.3,0.900],['ONNX Runtime static int8',2.61,0.9,0.894],['ONNX Runtime dynamic int8',2.41,11.7,0.895]];
+function drawD2(){
+  const lg=v=>(Math.log10(v)-Math.log10(0.5))/(Math.log10(300)-Math.log10(0.5));   // time bars: log scale 0.5 … 300 ms
+  const bar=(frac,col,label)=>`<div style="display:flex;align-items:center;gap:.35rem"><span style="display:inline-block;height:.7rem;width:${Math.max(2,frac*100).toFixed(0)}%;max-width:8rem;min-width:2px;background:${col};border-radius:3px"></span><span>${label}</span></div>`;
+  $('#d2t').innerHTML='<tr><th>Technique</th><th>File size</th><th>Time per picture</th><th>Accuracy</th></tr>'+D2.map(([name,mb,ms,acc])=>{const d=0.9-acc,col=d<=0.01?'#2f9e44':d<=0.03?'#f08c00':'#e03131';
+    return `<tr><td>${name}</td><td style="width:30%">${bar(mb/9.19,'#2f6fed',mb.toFixed(2)+' MB')}</td><td style="width:30%">${bar(lg(ms),ms>20?'#e03131':'#7048e8',ms+' ms')}</td><td style="color:${col};font-weight:700">${(acc*100).toFixed(1)}%</td></tr>`;}).join('');
+}
+// ---------- ⑤ knowledge distillation ----------
+const KD={run:null};
+function studentData(mode){const rl=mulberry32(101);const lab=[...C.tr].sort(()=>rl()-0.5).slice(0,20);
+  if(mode==='hard')return lab;const r0=mulberry32(56);return Array.from({length:1000},()=>{const v=new Float64Array([(-6+12*r0())/6,(-6+12*r0())/6]);return {v,l:C.net.predict(v)};});}
+function drawKD(cv,net,trainPts){const g=cv.getContext('2d'),W=cv.width,G=40,c=W/G;
+  for(let j=0;j<G;j++)for(let i=0;i<G;i++){const p=net?net.predict(new Float64Array([(-6+(i+.5)/G*12)/6,(6-(j+.5)/G*12)/6])):0.5,col=p>=0.5?[47,111,237]:[240,140,0],a=Math.min(0.85,Math.abs(p-0.5)*1.7);
+    g.clearRect(i*c,j*c,c+1,c+1);g.fillStyle=`rgba(${col},${a})`;g.fillRect(i*c,j*c,c+1,c+1);}
+  for(const p of C.pts.slice(200)){g.beginPath();g.arc((p.x+6)/12*W,(6-p.y)/12*W,2,0,7);g.fillStyle=p.l?'#2f6fed':'#f08c00';g.fill();}
+  for(const s of trainPts||[]){g.beginPath();g.arc((s.v[0]*6+6)/12*W,(6-s.v[1]*6)/12*W,5,0,7);g.fillStyle=s.l>=0.5?'#2f6fed':'#f08c00';g.fill();g.lineWidth=2;g.strokeStyle='#1c2230';g.stroke();}}
+async function runKD(){if(!C.net)return;$('#kdGo').disabled=true;const h=+$('#kdH').value,hard=studentData('hard'),soft=studentData('soft');
+  const S1=new Net([2,h,1],'tanh',1),S2=new Net([2,h,1],'tanh',1),r1=mulberry32(4),r2=mulberry32(4);const STEPS=3000;
+  const batches=(tr,r)=>{const idx=[...tr.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}const b=[];for(let q=0;q<idx.length;q+=10)b.push(idx.slice(q,q+10).map(i=>tr[i]));return b;};
+  let st=0,q1=[],q2=[];
+  while(st<STEPS){for(let k=0;k<150&&st<STEPS;k++,st++){if(!q1.length)q1=batches(hard,r1);if(!q2.length)q2=batches(soft,r2);S1.trainBatch(q1.shift(),'adam',0.03,0);S2.trainBatch(q2.shift(),'adam',0.03,0);}
+    drawKD($('#kdH1'),S1,hard);drawKD($('#kdS1'),S2,null);$('#kdHa').textContent=pct(evalSet(S1,C.te).acc);$('#kdSa').textContent=pct(evalSet(S2,C.te).acc);await new Promise(r=>requestAnimationFrame(r));}
+  const a1=evalSet(S1,C.te).acc,a2=evalSet(S2,C.te).acc,t=evalSet(C.net,C.te).acc,v=$('#kdV');
+  if(a2>=a1+0.03&&a2>=t-0.03){v.className='banner good';v.innerHTML=`✅ <b>Distillation works:</b> the ${S2.paramCount()}-weight student reaches ${pct(a2)} (teacher ${pct(t)}) by copying the teacher's answers. From the 20 labels alone: ${pct(a1)}.`;}
+  else if(a2<t-0.05){v.className='banner bad';v.innerHTML=`❌ <b>The student is too small:</b> ${h} neurons can't draw the teacher's border, however good the lessons (${pct(a2)} vs teacher ${pct(t)}). Distillation can't add capacity.`;}
+  else{v.className='banner info';v.innerHTML=`➖ Both students: ${pct(a1)} vs ${pct(a2)}.`;}
+  $('#kdGo').disabled=false;KD.last={a1,a2,t};return KD.last;}
+// ---------- ⑥ which method when? ----------
+function wizard(){
+  const hw=$('#wzHw').value,m=$('#wzM').value,strict=$('#wzAcc').value==='0',cal=$('#wzCal').value==='y',out=[];
+  if(hw==='gpu'){out.push('<b>FP16 or BF16</b>: half the size and much faster on GPU tensor cores, with practically no accuracy loss.','For even more speed: TensorRT with <b>int8</b> (needs calibration data).');}
+  else{
+    if(m==='tr')out.push('<b>Dynamic int8</b> (<code>quantize_dynamic</code>): made for Linear/LSTM-heavy models, one line, no data needed.');
+    else if(cal)out.push(`<b>Static int8</b> with calibration and <b>per-channel</b> weights, run with ONNX Runtime (Day 2 → 3.5× smaller, fastest).${hw==='phone'?' Use the ARM backend (qnnpack / XNNPACK) or the phone vendor\'s runtime.':''}`);
+    else out.push('Static int8 needs calibration inputs, but they don\'t need labels: collect a few hundred real inputs first. Dynamic int8 barely helps a CNN (Day 2: 9.19 → 9.15 MB).');
+    out.push('Export to <b>ONNX Runtime</b> first: on Day 2 it was 8× faster with the same weights.');}
+  if(hw==='mcu')out.push('Memory is the limit: <b>distil</b> into a much smaller student (⑤), use <b>structured pruning</b> (②, whole neurons/channels), then int8. Unstructured pruning won\'t save RAM.');
+  if(strict)out.push('Check <b>per-class</b> recall and FP32/int8 agreement, not just accuracy (Lesson 9). If static int8 loses too much: <b>QAT</b> (quantization-aware training).');
+  out.push('❌ Don\'t expect speed from unstructured pruning or from BF16/FP16 on a CPU without hardware support. ✅ Always <b>measure</b> size, latency and accuracy on the target device.');
+  $('#wzOut').innerHTML='<b>Suggested plan</b><ol style="margin:.4rem 0 0;padding-left:1.2rem">'+out.map(s=>`<li>${s}</li>`).join('')+'</ol>';
+}
+
 ['#bits','#scheme','#clip','#outlier','#zoom','#xval'].forEach(id=>$(id).addEventListener('input',partA));
+['#aqBits','#aqN','#aqWrong'].forEach(id=>$(id).addEventListener('input',()=>{document.querySelectorAll('#aqScen .btn').forEach(b=>b.classList.remove('on'));partAQ();}));
+document.querySelectorAll('#aqScen .btn').forEach(b=>b.onclick=()=>{const c=AQ_SCEN[b.dataset.s];$('#aqBits').value=c.bits;$('#aqN').value=c.n;$('#aqWrong').checked=c.wrong;
+  document.querySelectorAll('#aqScen .btn').forEach(x=>x.classList.toggle('on',x===b));partAQ();});
+$('#kdGo').onclick=runKD;
+['#wzHw','#wzM','#wzAcc','#wzCal'].forEach(id=>$(id).addEventListener('input',wizard));
 $('#bits2').addEventListener('input',partB);
 ['#nbits','#sp','#method','#perch'].forEach(id=>$(id).addEventListener('input',()=>partC()));
 $('#ft').onclick=fineTune;
 $('#undo').onclick=()=>{C.tuned=null;$('#nbits').value=9;$('#sp').value=0;$('#method').value='mag';$('#perch').checked=false;partC();};
 $('#gb').addEventListener('input',drawGame);
-window.addEventListener('resize',()=>{drawGame();partA();partB();partC();});
-drawGame();partA();partB();trainTiny();
+window.addEventListener('resize',()=>{drawGame();partA();partB();partC();partAQ();drawD2();});
+drawGame();partA();partB();drawD2();wizard();trainTiny();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */

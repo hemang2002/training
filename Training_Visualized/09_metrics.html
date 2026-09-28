@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9 · Is it any good? Metrics — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .cm{border-collapse:collapse;font-family:var(--mono);font-size:.95rem;margin:.4rem 0}
+  .cm td,.cm th{border:1px solid var(--line);padding:.45rem .6rem;text-align:center}
+  .cm th{background:var(--soft);font-family:var(--sans);font-size:.8rem;color:var(--muted)}
+  .cm td b{display:block;font-size:1.25rem}
+  .cm td span{font-family:var(--sans);font-size:.72rem;color:var(--muted)}
+  .cm .tp{background:#ffe3e3}.cm .fn{background:#fff5f5;outline:2px dashed #e03131;outline-offset:-4px}.cm .fp{background:#fff4e6}.cm .tn{background:#f1f3f5}
+  .big10{border-collapse:collapse;font-family:var(--mono);font-size:.78rem}
+  .big10 td,.big10 th{border:1px solid #edf0f4;padding:.22rem .28rem;text-align:center;min-width:2.5rem}
+  .big10 th{font-family:var(--sans);font-weight:600;color:var(--muted);background:#fff;cursor:pointer;white-space:nowrap}
+  .big10 th.row{text-align:right}
+  .big10 th.sel{color:var(--blue);background:#e7f0ff}
+  .big10 td.hl{outline:2px solid var(--blue);outline-offset:-2px}
+  .legend i.o{background:transparent;border:2px dashed #e03131}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" class="on" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 9 of 12 · ≈ 35 min</div>
+  <h1>Is it any good? Accuracy, precision, recall</h1>
+  <p class="one-liner">"My model is <b>99% accurate</b>!" sounds great, until you learn that only 1% of the cases were the ones you cared about, and the model simply said "no" every time.
+  One number is never enough. The <b>confusion matrix</b> shows <b>which</b> mistakes a model makes, and <b>precision</b> and <b>recall</b> tell you whether those are the mistakes you can live with.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A smoke alarm that <b>never</b> rings is right 99.9% of the time, because there is almost never a fire. It's also useless.
+      A good alarm must <b>catch the fires</b> (recall) without <b>crying wolf</b> too often (precision).</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, slide <b>How many are sick</b> down to 1% and look at the lazy model's accuracy.</li>
+      <li>In ②, drag the <b>threshold</b> and watch the four boxes of the confusion matrix change.</li>
+      <li>In ④, click <b>Shirt</b> in our real Day-1 results.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Moving the threshold never makes the model smarter. It only <b>trades</b> one kind of mistake (missed cases) for the other (false alarms). <b>You</b> have to decide which one is worse.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Accuracy</b> = share of all answers that are right</span><span><b>Recall</b> = of all real cases, how many did we <i>catch</i>?</span>
+    <span><b>Precision</b> = of all our alarms, how many were <i>real</i>?</span><span><b>Threshold</b> = how sure the model must be before it says "yes"</span>
+    <span><b>Confusion matrix</b> = a table of right and wrong answers, split by type</span><span><b>Imbalanced data</b> = one class is much rarer than the other</span></div>
+</section>
+
+<section class="card">
+  <h2>① The accuracy trap</h2>
+  <p>A screening test for 1,000 people. Some of them are sick. Meet the <b>lazy model</b>: it doesn't even look at the person and always answers <b>"healthy"</b>.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Population</h3>
+      <div class="ctl"><label>How many are sick? <output id="prevOut"></output></label><input type="range" id="prev" min="0" max="7" value="4"></div>
+      <p class="small muted">This slider also sets the population in ② and ③.</p>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat good"><b id="lzAcc">–</b><span>Lazy model's accuracy</span></div>
+        <div class="stat bad"><b id="lzRec">–</b><span>Sick people it found (recall)</span></div>
+        <div class="stat"><b id="lzSick">–</b><span>Sick people in total</span></div>
+      </div>
+      <div class="canvas-box"><div class="canvas-title">The 1,000 people (red = sick)</div><canvas id="popc" style="aspect-ratio:5/2"></canvas>
+        <div class="look">👀 Every square is one person. The lazy model calls <b>all</b> of them healthy. It's wrong only about the red squares, and when there are few red squares,
+          its accuracy looks fantastic. It still finds <b>zero</b> sick people.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② The confusion matrix and the threshold</h2>
+  <p>Now a real model. It gives every person a <b>score</b> from 0 to 1: "how sick does this person look?" (like the sigmoid output in Lesson 5).
+  We choose a <b>threshold</b>: everyone above it gets the alarm "sick". Every person then lands in one of four boxes.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Model</h3>
+      <div class="ctl"><label>Model quality <output id="qOut"></output></label><input type="range" id="qual" min="0" max="4" value="2"></div>
+      <h3>Decision</h3>
+      <div class="ctl"><label>Threshold <output id="thOut"></output></label><input type="range" id="th" min="0.01" max="0.99" step="0.01" value="0.5"></div>
+      <div class="btn-row"><button class="btn" id="th05">Back to 0.50</button><button class="btn" id="thBest">Best F1</button></div>
+      <table class="cm" id="cmTab">
+        <tr><th></th><th>alarm: "sick"</th><th>no alarm: "healthy"</th></tr>
+        <tr><th>really sick</th><td class="tp"><b id="cTP">–</b><span>✅ caught (TP)</span></td><td class="fn"><b id="cFN">–</b><span>❌ missed (FN)</span></td></tr>
+        <tr><th>really healthy</th><td class="fp"><b id="cFP">–</b><span>⚠️ false alarm (FP)</span></td><td class="tn"><b id="cTN">–</b><span>✅ correctly calm (TN)</span></td></tr>
+      </table>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat"><b id="mAcc">–</b><span>Accuracy</span></div>
+        <div class="stat blue"><b id="mRec">–</b><span>Recall: sick people caught</span></div>
+        <div class="stat orange"><b id="mPrec">–</b><span>Precision: alarms that were real</span></div>
+        <div class="stat"><b id="mF1">–</b><span>F1 (balance of both)</span></div>
+      </div>
+      <div class="canvas-box"><div class="canvas-title">Scores given by the model: healthy people (top, grey-blue) and sick people (bottom, red)</div><canvas id="histc" style="height:260px"></canvas>
+        <div class="look">👀 The dashed line is the threshold. Everything to its <b>right</b> gets the alarm. Red bars right of the line = <b>caught</b>, red bars left of it = <b>missed</b>.
+          Grey-blue bars right of the line = <b>false alarms</b>. Where the two humps overlap, no threshold can be perfect. (Each hump is scaled to fit, so a rare group still shows.)</div></div>
+      <div class="canvas-box" style="margin-top:.6rem"><div class="canvas-title">The same 1,000 people after the model's decision</div><canvas id="outc" style="aspect-ratio:5/2"></canvas>
+        <div class="legend"><span><i style="background:#e03131"></i>caught</span><span><i class="o"></i>missed</span><span><i style="background:#f59f00"></i>false alarm</span><span><i style="background:#e9ecef"></i>correctly calm</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ The trade-off: what does a mistake cost?</h2>
+  <div class="grid2">
+    <div>
+      <p>Every threshold gives one (recall, precision) pair. Sliding it from 1 down to 0 draws the <b>precision–recall curve</b>. A better model has a curve closer to the top-right corner.
+      Which point on the curve is "best" depends on <b>what a mistake costs</b>: missing a sick person is usually far worse than one extra check-up.</p>
+      <div class="ctl" style="max-width:24rem"><label>A missed sick person costs as much as <output id="costOut"></output> false alarms</label><input type="range" id="cost" min="0" max="5" value="0"></div>
+      <div class="btn-row"><button class="btn primary" id="useCost">Use the cheapest threshold</button></div>
+      <div class="stats"><div class="stat good"><b id="bestTh">–</b><span>Cheapest threshold</span></div><div class="stat"><b id="curCost">–</b><span>Total cost at your threshold</span></div><div class="stat"><b id="minCost">–</b><span>Lowest possible cost</span></div></div>
+    </div>
+    <div class="canvas-box"><div class="canvas-title">Precision–recall curve (● = your threshold, ★ = cheapest threshold)</div><canvas id="prc" style="height:300px"></canvas>
+      <div class="look">👀 Moving right = catching more sick people. Moving down = more of the alarms are false. You can't have both for free: to catch the last few sick people you must accept many false alarms.</div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>④ Many classes: our real Day-1 CNN on FashionMNIST</h2>
+  <p>With 10 classes the confusion matrix gets 10 × 10 boxes. These are the <b>real</b> results of the Day-1 CNN on the 10,000 test images (1,000 per class, notebook 02).
+  Rows = the true class, columns = what the model said. Click a class name.</p>
+  <div class="grid2">
+    <div class="tbl-wrap"><table class="big10" id="cm10"></table></div>
+    <div>
+      <div class="stats">
+        <div class="stat"><b id="c10acc">–</b><span>Overall accuracy</span></div>
+        <div class="stat blue"><b id="c10rec">–</b><span id="c10recL">Recall</span></div>
+        <div class="stat orange"><b id="c10prec">–</b><span id="c10precL">Precision</span></div>
+      </div>
+      <div class="explain" id="c10txt"></div>
+      <div class="look">👀 The <b>row</b> of a class shows where its pictures went (recall = the diagonal ÷ the row). The <b>column</b> shows which pictures got that label (precision = the diagonal ÷ the column).
+        Dark boxes off the diagonal are the model's favourite mistakes.</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧭 Which number should I look at?</h2>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th>Situation</th><th>Good choice</th><th>Why</th></tr>
+    <tr><td>Classes about equally common, all mistakes equally bad (FashionMNIST, CIFAR-10)</td><td><b>Accuracy</b> is fine, plus a look at the confusion matrix</td><td>Nothing is hidden by rare classes. The matrix still shows which classes are weak.</td></tr>
+    <tr><td>A rare class you must not miss (disease, fraud, defects, pedestrians)</td><td><b>Recall</b> (at an acceptable precision)</td><td>A missed case is expensive. Accuracy is fooled by the lazy "always no" model.</td></tr>
+    <tr><td>Every alarm costs time or annoys people (spam filter, legal review, search results)</td><td><b>Precision</b> (at an acceptable recall)</td><td>A false alarm is expensive: a real email in the spam folder.</td></tr>
+    <tr><td>Both matter, you need one number to compare models</td><td><b>F1</b>, or the whole <b>precision–recall curve</b> / its area (AP)</td><td>F1 is high only if both precision and recall are high. The Live Demo's detection model is judged with PR curves.</td></tr>
+    <tr><td>You'll pick the threshold later, or per customer</td><td><b>ROC-AUC</b> or <b>AP</b></td><td>They summarise the model over all thresholds.</td></tr>
+  </table></div>
+</section>
+
+<section class="card adv">
+  <h2>📏 Detailed: the formulas</h2>
+  <div class="grid2">
+    <p class="center" style="font-family:var(--mono);font-size:1rem;line-height:2">accuracy = (TP + TN) / all<br>recall (sensitivity, TPR) = TP / (TP + FN)<br>precision = TP / (TP + FP)<br>
+      F1 = 2 · P · R / (P + R)<br>specificity = TN / (TN + FP),  FPR = 1 − specificity</p>
+    <p class="small muted">The <b>ROC curve</b> plots recall against the false-positive rate. Its area (AUC) is the chance that a random sick person gets a higher score than a random healthy one,
+    and it doesn't change with prevalence, which makes it look good on rare-class problems. The <b>precision–recall curve</b> does change with prevalence (challenge 4), so it shows the pain of rare classes honestly.
+    For many classes, "macro" averages treat every class equally, "micro"/"weighted" averages treat every sample equally. Also check <b>calibration</b>: when the model says 80%, is it right about 80% of the time?</p>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first, then check!)</h3>
+  <ol class="challenges">
+    <li><b>The lazy model.</b> In ①, set 1% sick. What accuracy does the "always healthy" model get? How many sick people does it find?
+      <details class="answer"><summary>Answer</summary>99% accuracy, and it finds <b>0 of the 10</b> sick people (recall 0%). At 50% sick the same trick only gets 50%.
+      On imbalanced data, accuracy mostly measures how rare the rare class is.</details></li>
+    <li><b>Read the matrix.</b> Back to 10% sick, quality "OK", threshold 0.50. Read the four boxes and the metrics.
+      <details class="answer"><summary>Answer</summary>89 caught, 11 missed, 102 false alarms, 798 correctly calm. Accuracy 88.7%, recall 89%, precision 46.6%.
+      Accuracy looks decent, but <b>11 of the 100 sick people go home undetected</b>.</details></li>
+    <li><b>Lower the bar.</b> Drag the threshold from 0.50 down to 0.20.
+      <details class="answer"><summary>Answer</summary>Recall rises to 100% (only 0 missed), but false alarms jump to 511, so precision falls to 16.4%. Accuracy even goes <i>down</i> (48.9%).
+      The model didn't change; we only moved the line.</details></li>
+    <li><b>Rare is hard.</b> Keep quality "OK" and threshold 0.50. Compare 10% sick with 1% sick. Watch precision.
+      <details class="answer"><summary>Answer</summary>At 10% sick: precision 46.6%. At 1% sick: precision 6.5%, with the <b>same model and threshold</b>.
+      With only 10 sick people, even a small share of the 990 healthy people triggering the alarm outnumbers the real cases. This is why screening tests for rare diseases need a second, better test.</details></li>
+    <li><b>Money talks.</b> In ③, set "a missed sick person costs 10 false alarms" and press "Use the cheapest threshold".
+      <details class="answer"><summary>Answer</summary>The cheapest threshold drops from 0.73 (when both mistakes cost the same) to 0.48. You accept many more false alarms to miss fewer sick people.
+      The "right" threshold is a <b>business decision</b>, not a property of the model.</details></li>
+    <li><b>A better model.</b> Set quality to "excellent", then to "useless".
+      <details class="answer"><summary>Answer</summary>Excellent: the two humps barely overlap, and the curve hugs the top-right corner (best F1 ≈ 0.99). Useless: the humps sit on top of each other, and precision stays near the share of sick people whatever the threshold.
+      Only a better model (better data, features, architecture) moves the whole curve. The threshold only moves you along it.</details></li>
+    <li><b>The weakest class.</b> In ④, click <b>Shirt</b>. What is its recall and precision? Where do its mistakes go?
+      <details class="answer"><summary>Answer</summary>Recall 70.3% (703 of 1,000 shirts found), precision 76.9%. Shirts are mostly mistaken for T-shirt/top (94), Coat (80) and Pullover (70),
+      and the model calls 99 T-shirts "Shirt". The overall accuracy of 91.2% hides a class that is wrong almost one time in three.</details></li>
+    <li><b>The easiest class.</b> Click <b>Bag</b>, then <b>Sneaker</b>.
+      <details class="answer"><summary>Answer</summary>Bag: recall 98.9%, precision 97.6%. Bags look like nothing else. Sneaker: recall 96.8%, but 24 sneakers are called Ankle boot and 26 ankle boots are called Sneaker:
+      the footwear classes confuse each other, not the clothes.</details></li>
+  </ol>
+</section>
+
+<section class="card adv">
+  <h2>🐍 The same thing in Python</h2>
+  <pre class="code"><span class="k">from</span> sklearn.metrics <span class="k">import</span> confusion_matrix, classification_report, precision_recall_curve
+
+y_pred = logits.argmax(dim=<span class="n">1</span>)                            <span class="c"># multi-class: the class with the highest score</span>
+print(confusion_matrix(y_true, y_pred))                  <span class="c"># rows = true, columns = predicted (as in ④)</span>
+print(classification_report(y_true, y_pred, target_names=CLASSES))   <span class="c"># precision / recall / F1 per class</span>
+
+<span class="c"># yes/no problem: choose the threshold yourself</span>
+probs = torch.sigmoid(logits).squeeze()
+precision, recall, thresholds = precision_recall_curve(y_true, probs)
+alarm = probs &gt;= <span class="n">0.3</span>                                     <span class="c"># not always 0.5!</span></pre>
+  <p class="small muted">Always compute metrics on the <b>test</b> set, never on the training set (Lesson 7). For imbalanced training data you can also weight the loss
+  (<code>CrossEntropyLoss(weight=…)</code>, <code>BCEWithLogitsLoss(pos_weight=…)</code>) or oversample the rare class, but evaluate with the metrics above either way.</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>A fraud detector has 99.5% accuracy on data where 0.5% of transactions are fraud. Impressed?
+      <details class="answer"><summary>Answer</summary>Not yet. "Never fraud" also scores 99.5%. Ask for recall (how much fraud is caught) and precision (how many flagged transactions are really fraud).</details></li>
+    <li>For a spam filter, which mistake is worse, and which metric do you watch?
+      <details class="answer"><summary>Answer</summary>A real email in the spam folder (a false positive) is usually worse than one spam in the inbox. Watch precision, and keep the threshold high.</details></li>
+    <li>You lower the threshold. Can recall go down?
+      <details class="answer"><summary>Answer</summary>No. A lower threshold only adds alarms, so it can only catch more (or the same number of) real cases. Precision, however, usually drops.</details></li>
+    <li>Your Day-2 int8 model has the same accuracy as FP32 (−0.6 pp). What else would you check before shipping?
+      <details class="answer"><summary>Answer</summary>Per-class recall/precision (did one class, like Shirt, get much worse?), the confusion matrix, and how often the two models agree (Day 2 reports 96% agreement).</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="08_dropout_batchnorm.html"><small>← Previous</small>8 · Dropout &amp; BatchNorm</a>
+  <a class="next" href="10_cnn_convolution.html"><small>Next →</small>10 · How a CNN sees</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const pc1=v=>Number.isFinite(v)?(v*100).toFixed(1)+'%':'–';
+const sig=z=>1/(1+Math.exp(-z));
+
+// ---------- the population ----------
+const PREV_SET=[0.01,0.02,0.05,0.08,0.1,0.2,0.3,0.5];   // slider positions; the default (index 4) is 10%
+const QUAL=[{d:0,name:'useless (coin flip)'},{d:1.2,name:'weak'},{d:2.4,name:'OK'},{d:3.6,name:'good'},{d:5,name:'excellent'}];
+const N=1000,COSTS=[1,2,5,10,20,50];
+function population(prev,d){
+  const nS=Math.round(N*prev),r=mulberry32(7),people=[];
+  for(let i=0;i<N;i++){const sick=i<nS,z=gauss(r);people.push({sick,score:sig((sick?d/2:-d/2)+z)});}
+  const order=mulberry32(3),pos=[...Array(N).keys()];for(let i=N-1;i>0;i--){const j=Math.floor(order()*(i+1));[pos[i],pos[j]]=[pos[j],pos[i]];}
+  people.forEach((p,i)=>p.pos=pos[i]);return people;
+}
+function counts(people,th){let TP=0,FN=0,FP=0,TN=0;for(const p of people){const a=p.score>=th;if(p.sick){a?TP++:FN++;}else{a?FP++:TN++;}}
+  const prec=TP+FP?TP/(TP+FP):NaN,rec=TP+FN?TP/(TP+FN):NaN;return {TP,FN,FP,TN,acc:(TP+TN)/N,prec,rec,f1:prec+rec?2*prec*rec/(prec+rec):0};}
+const ST={people:null};
+function prev(){return PREV_SET[+$('#prev').value];}
+function rebuild(){ST.people=population(prev(),QUAL[+$('#qual').value].d);}
+
+function drawGrid(cv,colorOf){const {ctx,w:W,h:H}=setupCanvas(cv),cols=50,rows=20,cw=W/cols,ch=H/rows,s=Math.min(cw,ch)*0.8;
+  for(const p of ST.people){const c=p.pos%cols,r=Math.floor(p.pos/cols),x=c*cw+(cw-s)/2,y=r*ch+(ch-s)/2,st=colorOf(p);
+    if(st.outline){ctx.strokeStyle=st.outline;ctx.lineWidth=1.6;ctx.setLineDash([2,1.5]);ctx.strokeRect(x+1,y+1,s-2,s-2);ctx.setLineDash([]);}else{ctx.fillStyle=st.fill;ctx.fillRect(x,y,s,s);}}}
+
+// ---------- ① lazy model ----------
+function render1(){const pv=prev(),nS=Math.round(N*pv);$('#prevOut').textContent=Math.round(pv*100)+'%';
+  $('#lzAcc').textContent=pc1((N-nS)/N);$('#lzRec').textContent=`0 of ${nS}`;$('#lzSick').textContent=nS;
+  drawGrid($('#popc'),p=>({fill:p.sick?'#e03131':'#dee2e6'}));}
+
+// ---------- ② threshold ----------
+function render2(){
+  const th=+$('#th').value,q=QUAL[+$('#qual').value],c=counts(ST.people,th);$('#thOut').textContent=th.toFixed(2);$('#qOut').textContent=q.name;
+  for(const k of ['TP','FN','FP','TN'])$('#c'+k).textContent=c[k];
+  $('#mAcc').textContent=pc1(c.acc);$('#mRec').textContent=pc1(c.rec);$('#mPrec').textContent=pc1(c.prec);$('#mF1').textContent=c.f1.toFixed(3);
+  // histograms
+  const {ctx,w:W,h:H}=setupCanvas($('#histc')),L=34,T=8,pw=W-L-10,ph=H-T-24,mid=T+ph/2,NB=40,bh=[new Array(NB).fill(0),new Array(NB).fill(0)];
+  for(const p of ST.people)bh[p.sick?1:0][Math.min(NB-1,Math.floor(p.score*NB))]++;
+  const mH=Math.max(...bh[0],1),mS=Math.max(...bh[1],1),sx=v=>L+v*pw,bw=pw/NB;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='center';for(let v=0;v<=1.001;v+=0.25)ctx.fillText(v.toFixed(2),sx(v),T+ph+14);
+  ctx.fillText('score given by the model (0 = looks healthy, 1 = looks sick)',L+pw/2,H-1);
+  for(let b=0;b<NB;b++){const x=L+b*bw,right=(b+0.5)/NB>=th;
+    const hh=bh[0][b]/mH*(ph/2-6);ctx.fillStyle=right?'#f59f00':'#a5b4c8';ctx.fillRect(x+0.5,mid-2-hh,bw-1,hh);
+    const hs=bh[1][b]/mS*(ph/2-6);if(right){ctx.fillStyle='#e03131';ctx.fillRect(x+0.5,mid+2,bw-1,hs);}else{ctx.strokeStyle='#e03131';ctx.lineWidth=1.3;ctx.setLineDash([3,2]);ctx.strokeRect(x+1,mid+2,bw-2,hs);ctx.setLineDash([]);}}
+  ctx.fillStyle='#495057';ctx.textAlign='left';ctx.fillText(`healthy (${N-c.TP-c.FN})`,L+4,T+11);ctx.fillText(`sick (${c.TP+c.FN})`,L+4,T+ph-4);
+  ctx.strokeStyle='#1c2230';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(sx(th),T);ctx.lineTo(sx(th),T+ph);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#1c2230';ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=th>0.8?'right':'left';ctx.fillText(th>0.8?'← threshold':'threshold → alarm',sx(th)+(th>0.8?-6:6),mid+4);
+  drawGrid($('#outc'),p=>{const a=p.score>=th;return p.sick?(a?{fill:'#e03131'}:{outline:'#e03131'}):(a?{fill:'#f59f00'}:{fill:'#e9ecef'});});
+  render3();
+}
+function bestF1(){let best=0.5,bf=-1;for(let t=0.01;t<=0.99;t+=0.01){const c=counts(ST.people,t);if(c.f1>bf){bf=c.f1;best=t;}}return {th:+best.toFixed(2),f1:bf};}
+
+// ---------- ③ PR curve + cost ----------
+function costAt(t,cost){const c=counts(ST.people,t);return c.FN*cost+c.FP;}
+function cheapest(cost){let best=0.5,bc=Infinity;for(let t=0.01;t<=0.995;t+=0.01){const v=costAt(t,cost);if(v<bc){bc=v;best=t;}}return {th:+best.toFixed(2),cost:bc};}
+function render3(){
+  const cost=COSTS[+$('#cost').value],th=+$('#th').value;$('#costOut').textContent=cost;
+  const b=cheapest(cost);$('#bestTh').textContent=b.th.toFixed(2);$('#curCost').textContent=costAt(th,cost).toLocaleString('en-US');$('#minCost').textContent=b.cost.toLocaleString('en-US');
+  const {ctx,w:W,h:H}=setupCanvas($('#prc')),L=40,T=10,pw=W-L-14,ph=H-T-30,sx=v=>L+v*pw,sy=v=>T+(1-v)*ph;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let v=0;v<=1.001;v+=0.25){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.beginPath();ctx.moveTo(sx(v),T);ctx.lineTo(sx(v),T+ph);ctx.stroke();
+    ctx.textAlign='right';ctx.fillText(Math.round(v*100)+'%',L-4,sy(v)+4);ctx.textAlign='center';ctx.fillText(Math.round(v*100)+'%',sx(v),T+ph+14);}
+  ctx.fillText('recall: sick people caught →',L+pw/2,H-2);ctx.save();ctx.translate(11,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('precision: alarms that were real →',0,0);ctx.restore();
+  const pv=prev();ctx.strokeStyle='#ced4da';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,sy(pv));ctx.lineTo(L+pw,sy(pv));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#868e96';ctx.textAlign='right';ctx.fillText('a coin flip: precision = share of sick people',L+pw-4,sy(pv)-5);
+  ctx.strokeStyle='#7048e8';ctx.lineWidth=3;ctx.beginPath();let first=true;
+  for(let t=0.995;t>=0.005;t-=0.005){const c=counts(ST.people,t);if(!Number.isFinite(c.prec))continue;const x=sx(c.rec),y=sy(c.prec);first?ctx.moveTo(x,y):ctx.lineTo(x,y);first=false;}ctx.stroke();
+  const cur=counts(ST.people,th);if(Number.isFinite(cur.prec)){ctx.beginPath();ctx.arc(sx(cur.rec),sy(cur.prec),7,0,7);ctx.fillStyle='#1c2230';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();}
+  const bc=counts(ST.people,b.th);if(Number.isFinite(bc.prec)){ctx.fillStyle='#2f9e44';ctx.font='bold 20px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('★',sx(bc.rec),sy(bc.prec)+7);}
+}
+
+// ---------- ④ the real Day-1 confusion matrix (FashionMNIST test set, notebook 02) ----------
+const CL=['T-shirt/top','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle boot'],SHORT=['T-shirt','Trouser','Pullov.','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Boot'];
+const CM=[[843,0,21,24,3,1,99,0,9,0],[0,976,0,18,1,0,4,0,1,0],[9,0,879,10,57,0,44,0,1,0],[10,1,7,948,11,0,22,0,1,0],[1,0,57,38,862,0,41,0,1,0],
+  [0,0,0,0,0,985,0,11,0,4],[94,1,70,41,80,0,703,0,11,0],[0,0,0,0,0,8,0,968,0,24],[0,1,1,4,1,1,0,3,989,0],[0,0,0,0,0,4,1,26,0,969]];
+let sel10=6;
+function stats10(k){const row=CM[k].reduce((a,b)=>a+b,0),col=CM.reduce((a,r)=>a+r[k],0);
+  const outs=CM[k].map((v,j)=>({j,v})).filter(o=>o.j!==k&&o.v>0).sort((a,b)=>b.v-a.v),ins=CM.map((r,i)=>({i,v:r[k]})).filter(o=>o.i!==k&&o.v>0).sort((a,b)=>b.v-a.v);
+  return {rec:CM[k][k]/row,prec:CM[k][k]/col,outs,ins,col};}
+function render4(){
+  const tot=CM.flat().reduce((a,b)=>a+b,0),diag=CM.reduce((a,r,i)=>a+r[i],0),mx=Math.max(...CM.flat().filter((v,i)=>i%11!==0));
+  let h='<tr><th></th>'+CL.map((c,j)=>`<th data-k="${j}" class="${j===sel10?'sel':''}" title="predicted ${c}">${SHORT[j]}</th>`).join('')+'</tr>';
+  CM.forEach((r,i)=>{h+=`<tr><th class="row ${i===sel10?'sel':''}" data-k="${i}">${CL[i]}</th>`+r.map((v,j)=>{const diagC=i===j,a=diagC?0.25+0.6*v/1000:Math.min(1,v/mx);
+    const bg=diagC?`rgba(47,111,237,${a})`:v?`rgba(224,49,49,${0.08+0.8*a})`:'#fff',col=diagC&&a>0.6||!diagC&&a>0.55?'#fff':'#1c2230';
+    return `<td class="${(i===sel10||j===sel10)?'hl':''}" style="background:${bg};color:${col}">${v||''}</td>`;}).join('')+'</tr>';});
+  $('#cm10').innerHTML=h;$('#cm10').querySelectorAll('th[data-k]').forEach(t=>t.onclick=()=>{sel10=+t.dataset.k;render4();});
+  const s=stats10(sel10);$('#c10acc').textContent=pc1(diag/tot);$('#c10rec').textContent=pc1(s.rec);$('#c10prec').textContent=pc1(s.prec);
+  $('#c10recL').textContent=`${CL[sel10]}: recall`;$('#c10precL').textContent=`${CL[sel10]}: precision`;
+  $('#c10txt').innerHTML=`<b>${CL[sel10]}</b>: ${CM[sel10][sel10]} of 1,000 found.`+(s.outs.length?` Its pictures were mistaken for ${s.outs.slice(0,3).map(o=>`${CL[o.j]} (${o.v})`).join(', ')}.`:'')+
+    ` The model said "${CL[sel10]}" ${s.col} times; ${s.col-CM[sel10][sel10]} of those were wrong`+(s.ins.length?`, mostly ${s.ins.slice(0,2).map(o=>`${CL[o.i]} (${o.v})`).join(' and ')}.`:'.');
+}
+
+// ---------- events ----------
+$('#prev').addEventListener('input',()=>{rebuild();render1();render2();});
+$('#qual').addEventListener('input',()=>{rebuild();render2();});
+$('#th').addEventListener('input',render2);
+$('#th05').onclick=()=>{$('#th').value=0.5;render2();};
+$('#thBest').onclick=()=>{$('#th').value=bestF1().th;render2();};
+$('#cost').addEventListener('input',render3);
+$('#useCost').onclick=()=>{$('#th').value=cheapest(COSTS[+$('#cost').value]).th;render2();};
+window.addEventListener('resize',()=>{render1();render2();});
+rebuild();render1();render2();render4();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
+</script>
+</body>
+</html>

@@ -54,7 +54,7 @@
 <section class="hero">
   <div class="kicker">Interactive lessons · work offline · no installation</div>
   <h1>See a neural network learn</h1>
-  <p class="one-liner">Eight small, hands-on pages that show <b>how training really works</b>, one step at a time.
+  <p class="one-liner">Twelve small, hands-on pages that show <b>how training really works</b>, one step at a time.
   Move the sliders, press the buttons, break things on purpose, and watch what happens.</p>
 </section>
 
@@ -66,7 +66,7 @@
     </div>
     <div class="cycle-text" id="cycleText">
       <div class="step"><h3>1 · 📦 Take some examples</h3><p>Pick a few examples from the data, for example 8 photos with their correct labels. This small group is called a <b>batch</b>.</p><p class="muted small">Lesson 4</p></div>
-      <div class="step"><h3>2 · 🤔 The model guesses</h3><p>The model uses its current <b>weights</b> (knobs) to make a guess for each example. At the start the knobs are random, so the guesses are bad.</p><p class="muted small">Lessons 1 and 5</p></div>
+      <div class="step"><h3>2 · 🤔 The model guesses</h3><p>The model uses its current <b>weights</b> (knobs) to make a guess for each example. At the start the knobs are random, so the guesses are bad.</p><p class="muted small">Lessons 1, 5 and 6</p></div>
       <div class="step"><h3>3 · 📏 Measure the mistake</h3><p>Compare the guesses with the correct answers and squeeze all mistakes into <b>one number: the loss</b>. Smaller loss = better model.</p><p class="muted small">Lesson 1</p></div>
       <div class="step"><h3>4 · 🔍 Find who is to blame</h3><p><b>Backpropagation</b> works out, for every single knob, which way it should turn to make the loss smaller, and by how much.</p><p class="muted small">Lesson 3</p></div>
       <div class="step"><h3>5 · 🔧 Turn the knobs a little</h3><p><b>Gradient descent</b> turns every knob a small step in the right direction. Then we go back to step 1 with new examples, thousands of times.</p><p class="muted small">Lesson 2</p></div>
@@ -87,14 +87,22 @@
       <p>Step through one neuron: numbers flow forward, blame flows backward.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 1</span></a>
     <a class="lesson" href="04_training_loop.html"><span class="num">4</span><div class="em">🔁</div><h3>The training loop</h3>
       <p>Run the six lines of every PyTorch training script, one line at a time. Includes classic bugs.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 1</span></a>
-    <a class="lesson" href="05_neural_network_playground.html"><span class="num">5</span><div class="em">🧠</div><h3>Neural network playground</h3>
+    <a class="lesson" href="05_activation_functions.html"><span class="num">5</span><div class="em">〰️</div><h3>The bend: activations &amp; softmax</h3>
+      <p>Why every neuron needs a bend, why deep sigmoid nets stop learning, and how softmax turns scores into probabilities.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 1</span></a>
+    <a class="lesson" href="06_neural_network_playground.html"><span class="num">6</span><div class="em">🧠</div><h3>Neural network playground</h3>
       <p>Build a network, press play, and watch every neuron learn its piece of the picture.</p><span class="pill blue">≈ 45 min</span><span class="pill">Day 1–2</span></a>
-    <a class="lesson" href="06_overfitting.html"><span class="num">6</span><div class="em">🎯</div><h3>Overfitting</h3>
+    <a class="lesson" href="07_overfitting.html"><span class="num">7</span><div class="em">🎯</div><h3>Overfitting</h3>
       <p>Too simple, too complex, or just right? Find the sweet spot and learn when to stop.</p><span class="pill blue">≈ 30 min</span><span class="pill">Day 1–2</span></a>
-    <a class="lesson" href="07_cnn_convolution.html"><span class="num">7</span><div class="em">👁️</div><h3>How a CNN sees</h3>
+    <a class="lesson" href="08_dropout_batchnorm.html"><span class="num">8</span><div class="em">🎲</div><h3>Dropout &amp; BatchNorm</h3>
+      <p>When they help, when they don't, and the train() / eval() trap. Every claim tested on several datasets.</p><span class="pill blue">≈ 40 min</span><span class="pill">Day 1–2</span></a>
+    <a class="lesson" href="09_metrics.html"><span class="num">9</span><div class="em">📊</div><h3>Is it any good? Metrics</h3>
+      <p>The 99% accuracy trap, the confusion matrix, precision vs recall, and our real Day-1 results.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 1 · Day 5</span></a>
+    <a class="lesson" href="10_cnn_convolution.html"><span class="num">10</span><div class="em">👁️</div><h3>How a CNN sees</h3>
       <p>Draw a digit and slide 3×3 kernels over it to find edges and shapes.</p><span class="pill blue">≈ 30 min</span><span class="pill">Day 1</span></a>
-    <a class="lesson" href="08_quantization_pruning.html"><span class="num">8</span><div class="em">🗜️</div><h3>Making models small</h3>
-      <p>Round and delete a model's numbers. How far can you go before it breaks?</p><span class="pill blue">≈ 30 min</span><span class="pill">Day 2</span></a>
+    <a class="lesson" href="11_transfer_learning.html"><span class="num">11</span><div class="em">🎁</div><h3>Transfer learning</h3>
+      <p>Reuse a pretrained backbone: frozen, fine-tuned or from scratch? Three strategies race on tiny pictures.</p><span class="pill blue">≈ 35 min</span><span class="pill">Day 2</span></a>
+    <a class="lesson" href="12_quantization_pruning.html"><span class="num">12</span><div class="em">🗜️</div><h3>Making models small</h3>
+      <p>Round, prune, calibrate and distil. How far can you go, and does it really get faster?</p><span class="pill blue">≈ 50 min</span><span class="pill">Day 2</span></a>
   </div>
 </section>
 
@@ -135,11 +143,11 @@
     <tr><td>Day 1 end or Day 2 start</td><td>5 → 6</td><td>Depth, activations and overfitting explain the train/test curves and why transfer learning helps.</td></tr>
     <tr><td>Day 2, before notebook 03</td><td>8</td><td>Quantization and pruning with intuition first, then the real PyTorch/ONNX methods.</td></tr>
   </table>
-  <p class="small muted">Total ≈ 4½ hours if every challenge is done in class. Each page also works as homework: students can follow the "New here?" box alone.
+  <p class="small muted">Total ≈ 7½ hours if every challenge is done in class; pick the pages that fit your schedule. Each page also works as homework: students can follow the "New here?" box alone.
   All numbers quoted in the answers were measured on these exact pages.</p>
 </section>
 </main>
-<footer>Training, Visualized · 8 interactive lessons · works offline · no data leaves your computer</footer>
+<footer>Training, Visualized · 12 interactive lessons · works offline · no data leaves your computer</footer>
 
 <script>
 // ---------- the animated 5-step training cycle ----------

@@ -8,11 +8,23 @@
 <style>
   .twin{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
   .twin canvas{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line);display:block}
-  .twin .stats{margin:.35rem 0}
-  .twin .stat{min-width:5.5rem;padding:.3rem .55rem}
-  .twin .stat b{font-size:1.05rem}
   .prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
   .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
+  .scen{display:flex;flex-direction:column;gap:.35rem;margin:.3rem 0 .6rem}
+  .scen .btn{text-align:left;font-size:.86rem;padding:.4rem .6rem}
+  .scen .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.6rem;margin:.5rem 0}
+  .vs .side{border:1px solid var(--line);border-radius:12px;padding:.45rem .6rem;background:#fff}
+  .vs .side h3{font-size:.95rem;margin:0 0 .2rem}
+  .vs .stats{margin:.2rem 0}
+  .vs .stat{min-width:6.5rem;padding:.3rem .55rem}
+  .vs .stat b{font-size:1.05rem}
+  table.map{border-collapse:collapse;font-size:.85rem;margin:.3rem 0}
+  table.map th,table.map td{border:1px solid var(--line);padding:.3rem .5rem;text-align:center;min-width:3.6rem}
+  table.map th{background:var(--soft)}
+  table.map td.ok{background:#ebfbee;color:var(--green);font-weight:700}
+  table.map td.fail{background:#fff5f5;color:var(--red);font-weight:700}
+  table.map td.run{background:#fff9db}
 </style>
 </head>
 <body>
@@ -37,26 +49,26 @@
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 8 of 12 · ≈ 35 min</div>
-  <h1>Dropout &amp; BatchNorm: two tricks inside almost every network</h1>
-  <p class="one-liner"><b>Dropout</b>: while training, switch off a random part of the neurons at every step, so the network can't lean on a few of them and can't simply memorise.
-  <b>BatchNorm</b>: after a layer, re-centre and re-scale its numbers so they always stay in a healthy range, which makes training faster and steadier.
-  Both behave <b>differently while training and while predicting</b>. That's why <code>model.train()</code> and <code>model.eval()</code> exist.</p>
+  <div class="kicker">Lesson 8 of 12 · ≈ 40 min</div>
+  <h1>Dropout &amp; BatchNorm: when they help, and when they don't</h1>
+  <p class="one-liner"><b>Dropout</b> fights <b>overfitting</b>: while training, it switches off random neurons, so the network can't memorise single noisy points.
+  <b>BatchNorm</b> fights <b>unstable training</b>: it re-centres and re-scales every layer's numbers, so a deep network learns even from a bad start or with a big learning rate.
+  Neither is magic. On this page you will see situations where each one <b>helps</b>, and situations where it does <b>nothing</b> or even <b>hurts</b>.</p>
 </section>
 <section class="start">
   <h2>👋 New here? The 30-second version</h2>
   <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p><b>Dropout</b> is a football team that trains with random players sitting out each day. Everyone learns to cover for everyone, so the team doesn't fall apart without its star.
-      <b>BatchNorm</b> is a teacher who grades every test "on a curve", so the scores stay comparable no matter how easy or hard the test was.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, press <b>▶ Animate</b> and watch neurons switch off at random.</li>
-      <li>In ②, press <b>▶ Train both</b>. Compare the two pictures: without and with Dropout.</li>
-      <li>In ③, drag <b>Starting weight size</b> and switch BatchNorm on and off.</li>
-      <li>In ④, press <b>Predict 10 times</b> in both modes.</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>Dropout makes the <b>training</b> score a bit worse but the <b>test</b> score better. BatchNorm keeps every layer's numbers the same size, however badly the weights started.</p></div>
+    <div class="box story"><h3>🧸 Think of it like this</h3><p><b>Dropout</b> is a football team that trains with random players sitting out each day. Nobody can rely on one star, so everybody learns the game. Great for a big squad; silly for a team of four.
+      <b>BatchNorm</b> is a teacher who grades every test "on a curve", so scores stay comparable however easy or hard the test was. Useless if the class has only two pupils.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ②, press <b>✅ Few noisy points</b>, then <b>▶ Train both</b>. Compare the orange and blue curves.</li>
+      <li>Try the ➖ and ❌ situations too. Does Dropout still help?</li>
+      <li>In ③, try the four race situations for BatchNorm.</li>
+      <li>In ④, predict 10 times in train() and in eval() mode.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>With Dropout the <b>training error goes up</b> but the <b>validation error goes down</b>: the curve stops chasing noise. BatchNorm doesn't make the model "smarter"; it makes training <b>work</b> in many more settings.</p></div>
   </div>
-  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Dropout</b> = randomly switch off neurons while training</span><span><b>p</b> = the share that is switched off (0.3 = 30%)</span>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Dropout</b> = randomly switch off neurons while training</span><span><b>p</b> = the share that is switched off (0.4 = 40%)</span>
     <span><b>BatchNorm</b> = re-centre and re-scale a layer's numbers</span><span><b>Batch statistics</b> = the average and spread of the current batch</span>
-    <span><b>Running statistics</b> = averages remembered from training, used when predicting</span><span><b>train() / eval()</b> = the switch between the two behaviours</span></div>
+    <span><b>Validation error</b> = mistakes on new points (Lesson 7)</span><span><b>train() / eval()</b> = the switch between training and predicting behaviour</span></div>
 </section>
 
 <section class="card">
@@ -65,7 +77,9 @@
     <div>
       <p>At every training step, each hidden neuron is switched off with probability <b>p</b>. A new random set every step. The neurons that stay on are
       <b>turned up</b> by 1/(1 − p), so that the total signal stays the same size on average.</p>
-      <div class="ctl" style="max-width:22rem"><label>Dropout p <output id="p1Out"></output></label><input type="range" id="p1" min="0" max="8" value="3"></div>
+      <p><b>Why would that help?</b> A neuron can never be sure its neighbours are there, so the network can't build a fragile chain of neurons that exists only to fit one noisy point.
+      Every step trains a <b>different, thinner network</b>, and the final network behaves like the <b>average</b> of all of them. Averages are smooth.</p>
+      <div class="ctl" style="max-width:22rem"><label>Dropout p <output id="p1Out"></output></label><input type="range" id="p1" min="0" max="8" value="4"></div>
       <div class="ctl"><label>Mode</label><div class="seg" id="mode1"><button data-m="train" class="on">model.train()</button><button data-m="eval">model.eval()</button></div></div>
       <div class="btn-row"><button class="btn primary" id="anim">▶ Animate</button><button class="btn" id="step1">+1 step</button></div>
       <div class="stats"><div class="stat blue"><b id="on1">–</b><span>Neurons on this step</span></div><div class="stat"><b id="boost1">–</b><span>Survivors turned up by</span></div></div>
@@ -77,81 +91,94 @@
 </section>
 
 <section class="card">
-  <h2>② Does it help? Two identical networks, one with Dropout</h2>
-  <p>Very few, noisy training points: the perfect trap for overfitting (Lesson 7). Both networks have the same layers (2 → 64 → 64 → 1, ReLU), the same starting weights and the same data.
-  The only difference: network B uses Dropout between the layers.</p>
+  <h2>② Does Dropout fix overfitting? A curve-fitting test</h2>
+  <p>The same game as Lesson 7. The hidden truth is the <b style="color:#2f9e44">green curve</b>; we only get a few <b>noisy dots</b>. Two identical networks
+  (1 input → <span id="hTxt">64</span> → <span id="hTxt2">64</span> → 1, ReLU) learn from the same dots, from the same starting weights, for 2,000 steps.
+  <b style="color:#f08c00">A</b> trains normally. <b style="color:#2f6fed">B</b> uses Dropout. Which one finds the truth instead of the noise?</p>
   <div class="lab">
     <aside class="controls">
-      <h3>Data</h3>
-      <div class="ctl"><label>Dataset</label><select id="ds2"><option value="circle">Circle</option><option value="moons" selected>Moons</option></select></div>
-      <div class="ctl"><label>Training points <output id="n2Out"></output></label><input type="range" id="n2" min="0" max="3" value="1"></div>
-      <div class="ctl"><label>Noise <output id="noise2Out"></output></label><input type="range" id="noise2" min="0" max="50" step="10" value="40"></div>
-      <h3>Network B</h3>
-      <div class="ctl"><label>Dropout p <output id="p2Out"></output></label><input type="range" id="p2" min="1" max="7" value="4"></div>
-      <div class="btn-row"><button class="btn primary" id="train2">▶ Train both (400 epochs)</button></div>
-      <div class="btn-row"><button class="btn" id="new2">🎲 New data</button></div>
+      <h3>Pick a situation</h3>
+      <div class="scen" id="scen2">
+        <button class="btn" data-s="helps">✅ Few noisy points, big network</button>
+        <button class="btn" data-s="lots">➖ Lots of data (200 points)</button>
+        <button class="btn" data-s="clean">➖ Almost no noise</button>
+        <button class="btn" data-s="tiny">❌ Tiny network (4 neurons)</button>
+      </div>
+      <h3>…or set it yourself</h3>
+      <div class="ctl"><label>Training points</label><select id="n2"><option>10</option><option selected>20</option><option>50</option><option>200</option></select></div>
+      <div class="ctl"><label>Noise σ</label><select id="sig2"><option>0.05</option><option>0.2</option><option selected>0.4</option></select></div>
+      <div class="ctl"><label>Neurons per layer</label><select id="h2"><option>4</option><option>16</option><option selected>64</option></select></div>
+      <div class="ctl"><label>Dropout p for B</label><select id="p2"><option>0.1</option><option>0.2</option><option>0.3</option><option selected>0.4</option><option>0.5</option><option>0.6</option></select></div>
+      <div class="btn-row"><button class="btn primary" id="train2">▶ Train both</button><button class="btn" id="new2">🎲 New data</button></div>
+      <label class="check"><input type="checkbox" id="thin2"> Show 20 random thinned versions of B</label>
+      <div class="btn-row"><button class="btn" id="rep2">🔁 Repeat on 6 different datasets</button></div>
+      <div class="small" id="rep2txt"></div>
     </aside>
     <div class="stage">
       <div class="prog"><i id="prog2"></i></div>
-      <div class="twin" style="margin-top:.5rem">
-        <div><div class="canvas-title">A · no Dropout</div><canvas id="bA" width="240" height="240"></canvas>
-          <div class="stats"><div class="stat"><b id="trA">–</b><span>Train acc</span></div><div class="stat"><b id="teA">–</b><span>Test acc</span></div></div></div>
-        <div><div class="canvas-title" id="bTitle">B · with Dropout</div><canvas id="bB" width="240" height="240"></canvas>
-          <div class="stats"><div class="stat"><b id="trB">–</b><span>Train acc</span></div><div class="stat"><b id="teB">–</b><span>Test acc</span></div></div></div>
+      <div class="vs">
+        <div class="side"><h3 style="color:#f08c00">A · no Dropout</h3><div class="stats"><div class="stat"><b id="trA">–</b><span>Training error</span></div><div class="stat"><b id="vaA">–</b><span>Validation error</span></div></div></div>
+        <div class="side"><h3 style="color:#2f6fed" id="bTitle">B · with Dropout</h3><div class="stats"><div class="stat"><b id="trB">–</b><span>Training error</span></div><div class="stat"><b id="vaB">–</b><span>Validation error</span></div></div></div>
       </div>
-      <div class="look">👀 Filled dots = the few training points. Ringed dots = test points the networks never see. A <b>wiggly island</b> around single dots means the network memorised noise.
-        A smoother border that follows the overall shape means it learned the pattern.</div>
-      <div class="canvas-box" style="margin-top:.6rem"><div class="canvas-title">Test loss per epoch (solid) and training loss (dashed)</div><canvas id="loss2" style="height:190px"></canvas>
-        <div class="legend"><span><i style="background:#f08c00"></i>A · no Dropout</span><span><i style="background:#2f6fed"></i>B · with Dropout</span></div>
-        <div class="look">👀 Watch the <b>solid</b> lines (new data). A's test loss turns around and climbs: overfitting. B's training loss (dashed) stays higher, because training with neurons missing is harder, but its test loss stays lower.</div></div>
+      <div id="v2" class="banner info">Pick a situation and press ▶ Train both.</div>
+      <div class="grid2">
+        <div class="canvas-box"><div class="canvas-title">The noisy dots, the truth, and what A and B learned</div><canvas id="fit2" style="height:320px"></canvas>
+          <div class="legend"><span><i style="background:#2f9e44"></i>truth</span><span><i style="background:#1c2230"></i>training dots</span><span><i style="background:#f08c00"></i>A · no Dropout</span><span><i style="background:#2f6fed"></i>B · Dropout</span></div>
+          <div class="look">👀 Overfitting looks like a curve that <b>bends to touch every dot</b>, noise included. A curve that ignores single dots and follows the <b>green truth</b> has learned the pattern.</div></div>
+        <div class="canvas-box"><div class="canvas-title">Error during training (log scale)</div><canvas id="err2" style="height:320px"></canvas>
+          <div class="legend"><span><i style="background:#f08c00"></i>A</span><span><i style="background:#2f6fed"></i>B</span><span>dashed = training · solid = validation</span><span><i style="background:#ced4da"></i>noise floor σ²: no model can beat it on new points</span></div>
+          <div class="look">👀 Like Lesson 7: <b>dashed</b> = mistakes on the training dots, <b>solid</b> = mistakes on new points. When A overfits, its dashed line dives far below the grey noise floor
+            while its solid line stays high. Dropout keeps B's dashed line <b>up</b> (it can't memorise) and pulls its solid line <b>down</b>.</div></div>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="card">
   <h2>③ BatchNorm: keep every layer's numbers healthy</h2>
-  <p>A deep network: <b>8 hidden layers</b> of 16 tanh neurons. We send 200 points through it and draw, for every layer, <b>which output values its neurons produce</b>.
-  If the starting weights are a bit too small, the numbers shrink layer after layer until they're all ≈ 0. If they're a bit too big, they pile up at −1 and +1 (flat ends, slope ≈ 0, Lesson 5).
+  <p><b>How it works.</b> A deep network: <b>8 hidden layers</b> of 16 tanh neurons. We send 200 points through it and draw, for every layer, <b>which output values its neurons produce</b>.
+  If the starting weights are a bit too small, the numbers shrink layer after layer until they're all ≈ 0 (the signal vanishes). If they're too big, they pile up at −1 and +1 (flat ends, slope ≈ 0, Lesson 5).
   <b>BatchNorm</b> re-centres (average 0) and re-scales (spread 1) the sums of every layer, using the numbers of the current batch.</p>
   <div class="lab">
     <aside class="controls">
-      <h3>Network</h3>
+      <h3>Look inside</h3>
       <div class="ctl"><label>Starting weight size <output id="scOut"></output></label><input type="range" id="sc" min="0" max="6" value="1"></div>
       <label class="check"><input type="checkbox" id="bn3"> Use BatchNorm (before each tanh)</label>
       <div class="stats" style="display:grid;grid-template-columns:1fr"><div class="stat" id="sd3box"><b id="sd3">–</b><span>Spread (std) in the last layer</span></div>
         <div class="stat" id="sat3box"><b id="sat3">–</b><span>Stuck on a flat end (|a| &gt; 0.95)</span></div></div>
-      <h3>Race: train it</h3>
+      <h3>Race: pick a situation</h3>
+      <div class="scen" id="scen3">
+        <button class="btn" data-s="bad">✅ Bad starting weights (0.5×)</button>
+        <button class="btn" data-s="biglr">✅ Big learning rate (1.0)</button>
+        <button class="btn" data-s="fine">➖ Already well set up (2×, lr 0.1)</button>
+        <button class="btn" data-s="tiny">❌ Tiny batches (2 points per batch)</button>
+      </div>
       <div class="ctl"><label>Learning rate (plain SGD)</label><select id="lr3"><option>0.03</option><option selected>0.1</option><option>0.3</option><option>1</option></select></div>
+      <div class="ctl"><label>Batch size</label><select id="bs3"><option>2</option><option>4</option><option selected>20</option></select></div>
       <div class="btn-row"><button class="btn primary" id="race3">▶ Race: without vs with BatchNorm</button></div>
     </aside>
     <div class="stage">
-      <div class="canvas-box"><div class="canvas-title">What each layer outputs (200 points). Wide = varied, useful numbers. Thin line at 0 = nothing left. Red blobs at the edges = stuck.</div><canvas id="histc" style="height:280px"></canvas>
-        <div class="look">👀 One column per layer, from the input (left) to the last hidden layer (right). The height of a shape shows how often each value appears.
+      <div class="canvas-box"><div class="canvas-title">What each layer outputs (200 points). Wide = varied, useful numbers. Thin line at 0 = nothing left. Red blobs at the edges = stuck.</div><canvas id="histc" style="height:260px"></canvas>
+        <div class="look">👀 One column per layer, from the first hidden layer (left) to the last (right). The width of a shape shows how often each value appears.
           A healthy network has <b>similar, wide shapes in every column</b>. Switch BatchNorm on and every column looks alike, whatever the starting weight size.</div></div>
-      <div class="canvas-box" style="margin-top:.6rem"><div class="canvas-title">Race on the Circle data: training loss per epoch (same starting weights)</div><canvas id="race3c" style="height:200px"></canvas>
-        <div class="legend"><span><i style="background:#f08c00"></i>without BatchNorm</span><span><i style="background:#2f6fed"></i>with BatchNorm</span></div>
-        <div class="stats"><div class="stat orange"><b id="r3a">–</b><span>Without: epochs to 95% train acc</span></div><div class="stat blue"><b id="r3b">–</b><span>With: epochs to 95% train acc</span></div></div></div>
+      <div id="v3" class="banner info" style="margin-top:.6rem">Pick a race situation and press ▶ Race.</div>
+      <div class="canvas-box"><div class="canvas-title">Race on the Circle data: training accuracy per epoch (same starting weights, same data)</div><canvas id="race3c" style="height:200px"></canvas>
+        <div class="legend"><span><i style="background:#f08c00"></i>without BatchNorm</span><span><i style="background:#2f6fed"></i>with BatchNorm</span><span>dashed line = 95% goal</span></div>
+        <div class="stats"><div class="stat orange"><b id="r3a">–</b><span>Without: epochs to 95%</span></div><div class="stat blue"><b id="r3b">–</b><span>With: epochs to 95%</span></div></div></div>
     </div>
   </div>
 </section>
 
 <section class="card adv">
-  <h2>📏 Detailed: the math</h2>
+  <h2>🗺️ Detailed: where does each network learn at all?</h2>
+  <p>One race is one setting. This map runs the race for <b>12 settings</b>: 3 starting weight sizes × 4 learning rates (batch 20, max 100 epochs).
+  Each cell shows the epochs needed to reach 95% training accuracy, or ✕ if it never got there. It takes about half a minute.</p>
+  <div class="btn-row"><button class="btn primary" id="map3">▶ Build the map</button></div>
   <div class="grid2">
-    <div>
-      <h3>Dropout (inverted dropout, as in PyTorch)</h3>
-      <p class="center" style="font-family:var(--mono)">train: a = h · m / (1 − p),  m ~ Bernoulli(1 − p)<br>eval: a = h</p>
-      <p class="small muted">Dividing by (1 − p) during training keeps the expected value equal to h, so nothing has to change at prediction time. Dropout ≈ training a huge family of
-      smaller networks that share weights, and averaging them at the end. In CNNs, <code>Dropout2d</code> drops whole feature maps instead of single numbers (Day 1 Lab Ex. 2).</p>
-    </div>
-    <div>
-      <h3>BatchNorm (per neuron / per channel)</h3>
-      <p class="center" style="font-family:var(--mono)">x̂ = (z − μ<sub>batch</sub>) / √(σ²<sub>batch</sub> + ε)<br>y = γ · x̂ + β</p>
-      <p class="small muted">γ and β are learned, so the layer can still choose any average and spread it wants. During training it also keeps running averages of μ and σ²
-      (momentum 0.1 in PyTorch). In <code>eval()</code> those running averages replace the batch statistics, so one image gives the same answer whatever else is in the batch.
-      At export time Conv → BN is folded into a single conv (Day 2: w′ = w·γ/σ).</p>
-    </div>
+    <div><h3 style="color:#f08c00">Without BatchNorm</h3><div class="tbl-wrap"><table class="map" id="mapA"></table></div></div>
+    <div><h3 style="color:#2f6fed">With BatchNorm</h3><div class="tbl-wrap"><table class="map" id="mapB"></table></div></div>
   </div>
+  <p class="small muted" id="map3txt"></p>
 </section>
 
 <section class="card">
@@ -176,33 +203,74 @@
   </div>
 </section>
 
+<section class="card">
+  <h2>🧭 Summary: when to use them, and when not</h2>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th style="width:9rem"></th><th>✅ Helps when…</th><th>➖ / ❌ Doesn't help, or hurts, when…</th><th>Effect on the output</th></tr>
+    <tr><td><b>Dropout</b></td><td>the network is <b>big</b> and the data is <b>small and noisy</b>: exactly when it would overfit.</td>
+      <td>there is <b>lots of data</b> or <b>little noise</b> (nothing to fix, it only adds randomness); the network is <b>small</b> (it loses capacity and underfits); p is very high.</td>
+      <td>Smoother predictions. Training error <b>up</b>, validation error <b>down</b> (when it helps). Needs more training steps. No cost at prediction time.</td></tr>
+    <tr><td><b>BatchNorm</b></td><td>the network is <b>deep</b>, the starting weights are poorly scaled, or you want a <b>bigger learning rate</b>. Standard in CNNs (Day 1 Lab, MobileNetV2).</td>
+      <td>the network already trains well (little or no gain); <b>batches are tiny</b> (1–4: the batch statistics are too noisy); you forget <code>model.eval()</code>.</td>
+      <td>Every layer's numbers stay in a healthy range, so training works in many more settings and usually needs fewer epochs. Small extra compute (folded away at export).</td></tr>
+  </table></div>
+</section>
+
+<section class="card adv">
+  <h2>📏 Detailed: the math</h2>
+  <div class="grid2">
+    <div>
+      <h3>Dropout (inverted dropout, as in PyTorch)</h3>
+      <p class="center" style="font-family:var(--mono)">train: a = h · m / (1 − p),  m ~ Bernoulli(1 − p)<br>eval: a = h</p>
+      <p class="small muted">Dividing by (1 − p) during training keeps the expected value equal to h, so nothing has to change at prediction time. Dropout ≈ training a huge family of
+      thinner networks that share weights, and averaging them at the end (the "thinned versions" checkbox in ② draws 20 of them). In CNNs, <code>Dropout2d</code> drops whole feature maps (Day 1 Lab Ex. 2).</p>
+    </div>
+    <div>
+      <h3>BatchNorm (per neuron / per channel)</h3>
+      <p class="center" style="font-family:var(--mono)">x̂ = (z − μ<sub>batch</sub>) / √(σ²<sub>batch</sub> + ε)<br>y = γ · x̂ + β</p>
+      <p class="small muted">γ and β are learned, so the layer can still choose any average and spread it wants. During training it also keeps running averages of μ and σ²
+      (momentum 0.1 in PyTorch). In <code>eval()</code> those running averages replace the batch statistics, so one image gives the same answer whatever else is in the batch.
+      At export time Conv → BN is folded into a single conv (Day 2: w′ = w·γ/σ).</p>
+    </div>
+  </div>
+</section>
+
 <section class="callout try">
   <h3>🧪 Try this (guess first, then check!)</h3>
   <ol class="challenges">
-    <li><b>How many survive?</b> In ①, set p = 0.5 and press +1 step a few times. How many of the 16 hidden neurons are on? How much are they turned up?
-      <details class="answer"><summary>Answer</summary>About 8 of 16, a different 8 every step (the exact number varies, because each neuron flips its own coin). Survivors are turned up by 1/(1 − 0.5) = 2×.
+    <li><b>How many survive?</b> In ①, keep p = 0.4 and press +1 step a few times. How many of the 16 hidden neurons are on? How much are they turned up?
+      <details class="answer"><summary>Answer</summary>On average about 9–10 of 16 (60%), a different set every step; the exact number varies, because each neuron flips its own coin. Survivors are turned up by 1/(1 − 0.4) ≈ 1.67×.
       Switch to eval(): all 16 are on and nobody is turned up.</details></li>
-    <li><b>The overfitting trap.</b> In ②, keep the defaults (Moons, 40 training points, noise 40, p = 0.4) and press ▶ Train both. Compare train and test accuracy.
-      <details class="answer"><summary>Answer</summary>A (no Dropout) hits 100% on its training points but only ≈ 79% on the test points, and its test loss climbs to ≈ 1.1: it has drawn islands around single noisy points.
-      B (Dropout 0.4) scores lower on training (≈ 90%) but ≈ 83% on test, with a test loss of ≈ 0.44. Worse at the practice, better at the exam: that's regularization.</details></li>
-    <li><b>Too much of a good thing.</b> Set p = 0.7, then p = 0.1. Train again each time.
-      <details class="answer"><summary>Answer</summary>p = 0.1: barely any effect: B still overfits almost like A (test ≈ 78%). p = 0.7: most neurons are off every step, B becomes too weak and its border too simple (train ≈ 86%, test ≈ 82%).
-      Common values are 0.1–0.5. Our Day-1 CNN uses 0.3 in its classifier.</details></li>
-    <li><b>More data beats tricks.</b> Set training points to 320 and train again.
-      <details class="answer"><summary>Answer</summary>Now A and B end up close (both ≈ 86–87% test). With enough data there is little to memorise, so Dropout has less to fix.
-      Dropout matters most when the network is big and the data is small.</details></li>
+    <li><b>Where Dropout shines.</b> In ②, press <b>✅ Few noisy points, big network</b>, then ▶ Train both. Look at both curves and at both error lines.
+      <details class="answer"><summary>Answer</summary>A bends to reach almost every noisy dot: its training error falls to ≈ 0.042, far below the noise floor (0.16), while its validation error stays at ≈ 0.36.
+      B's curve is calmer and closer to the green truth: training error ≈ 0.070 (it <i>can't</i> memorise), validation error ≈ 0.26. Worse at the practice, better at the exam: that's what "fixing overfitting" looks like.</details></li>
+    <li><b>Why is B smoother?</b> Tick "Show 20 random thinned versions of B".
+      <details class="answer"><summary>Answer</summary>Each thin blue line is B with a different 40% of its neurons switched off. They all disagree about the noisy wiggles but agree about the big wave.
+      The thick blue curve (eval mode, all neurons on) is roughly their <b>average</b>, and averaging cancels out the wiggles that only some thinned networks believe in.</details></li>
+    <li><b>Not luck.</b> Still in the ✅ situation, press 🔁 Repeat on 6 different datasets.
+      <details class="answer"><summary>Answer</summary>Dropout wins clearly on 5 of the 6 datasets and is about the same on the sixth; it never makes things worse in this situation. One lucky run proves nothing; a result that repeats is worth trusting.</details></li>
+    <li><b>When it's not needed.</b> Press <b>➖ Lots of data</b>, train, then <b>➖ Almost no noise</b>, train.
+      <details class="answer"><summary>Answer</summary>Lots of data: A no longer overfits (200 dots leave no room to wiggle), so there's nothing to fix: validation A ≈ 0.192, B ≈ 0.197, and "about the same" on all 6 datasets if you press 🔁. Dropout costs extra training for no gain.
+      Almost no noise: the dots <i>are</i> the truth, so fitting them closely is correct. A ≈ 0.006, B ≈ 0.012: Dropout's randomness now costs accuracy.</details></li>
+    <li><b>When it hurts.</b> Press <b>❌ Tiny network (4 neurons)</b> and train.
+      <details class="answer"><summary>Answer</summary>A tiny network is too small to overfit in the first place. Switching off 40% of 4 neurons leaves only about 2 per layer each step, so B <b>underfits</b>:
+      validation A ≈ 0.24, B ≈ 0.36. Dropout is for networks with capacity to spare.</details></li>
     <li><b>Shrinking and exploding.</b> In ③, BatchNorm off. Try weight size 0.5×, then 1×, then 2×.
-      <details class="answer"><summary>Answer</summary>0.5×: each column is thinner than the one before; the last layer's spread is only ≈ 0.0005, so the signal has practically vanished.
-      1×: the shapes slowly shrink (spread ≈ 0.15 at the end). 2×: they swell into red blobs at −1 and +1: ≈ 60% of all outputs are stuck on a flat end, where the slope is almost 0.</details></li>
-    <li><b>BatchNorm to the rescue.</b> Now tick BatchNorm and try the same three weight sizes.
-      <details class="answer"><summary>Answer</summary>All three look practically the same: every layer has a wide, healthy shape (spread ≈ 0.6–0.65) and only a few percent are stuck.
-      Because every layer is re-centred and re-scaled, the starting weight size hardly matters any more.</details></li>
-    <li><b>The race.</b> Weight size 1×, learning rate 0.1: press ▶ Race. Then try weight size 0.5×.
-      <details class="answer"><summary>Answer</summary>Weight size 1×: without BatchNorm the loss barely moves for a long time and it needs ≈ 190 epochs to reach 95% training accuracy. With BatchNorm: ≈ 17 epochs.
-      At 0.5× the plain network doesn't get there at all within 300 epochs (the signal has vanished, see challenge 5), while BatchNorm still needs only ≈ 30.
-      This speed-up is the main reason BatchNorm is in almost every CNN, including MobileNetV2 (Day 2).</details></li>
+      <details class="answer"><summary>Answer</summary>0.5×: each column is thinner than the one before; the last layer's spread is only ≈ 0.002, so the signal has practically vanished.
+      1×: the shapes slowly shrink (spread ≈ 0.20 at the end). 2×: they swell into red blobs at −1 and +1: ≈ 22% of all outputs are stuck on a flat end, where the slope is almost 0.</details></li>
+    <li><b>BatchNorm to the rescue.</b> Tick BatchNorm and try the same three weight sizes.
+      <details class="answer"><summary>Answer</summary>All three look the same: every layer has a wide, healthy shape (spread ≈ 0.64) and only ≈ 4% are stuck.
+      Because every layer is re-centred and re-scaled, the starting weight size no longer matters.</details></li>
+    <li><b>Where BatchNorm shines.</b> Race ✅ Bad starting weights, then ✅ Big learning rate.
+      <details class="answer"><summary>Answer</summary>Bad starting weights: without BatchNorm the network is stuck at 50% (guessing) for all 100 epochs, because the signal vanished (challenge 7). With BatchNorm: 95% after ≈ 17 epochs.
+      Big learning rate: without BatchNorm the steps overshoot and it never learns; with BatchNorm it reaches 95% after ≈ 7 epochs.
+      We tried both on 4 different random starts: the plain network failed all 4 times, BatchNorm succeeded all 4 times.</details></li>
+    <li><b>When it isn't needed, and when it hurts.</b> Race ➖ Already well set up, then ❌ Tiny batches.
+      <details class="answer"><summary>Answer</summary>Well set up: both learn fast (plain ≈ 2 epochs, BatchNorm ≈ 5). No rescue needed, no gain.
+      Tiny batches: with only 2 points per batch, the "average and spread of the batch" are just two numbers, so they jump around wildly. The plain network reaches 95% in ≈ 7 epochs;
+      with BatchNorm it never gets there (stuck around 40–60% on all 4 random starts we tried). Rule of thumb: BatchNorm wants batches of at least 16–32.</details></li>
     <li><b>The eval() trap.</b> In ④, click a point near the border between the two moons. Predict 10 times in train() mode, then in eval() mode.
-      <details class="answer"><summary>Answer</summary>train(): the 10 answers are spread out; near the border they can even land on both sides of 50%, so the predicted class changes from run to run.
+      <details class="answer"><summary>Answer</summary>train(): the 10 answers are spread out; near the border they can land on both sides of 50%, so the predicted class changes from run to run.
       eval(): the same answer 10 times. Forgetting <code>model.eval()</code> before evaluating, exporting to ONNX or serving is one of the most common real bugs (Day 2 pitfalls list).</details></li>
   </ol>
 </section>
@@ -221,26 +289,28 @@ block = nn.Sequential(                        <span class="c"># one conv block, 
 head = nn.Sequential(nn.Flatten(), nn.Linear(<span class="n">64</span> * <span class="n">7</span> * <span class="n">7</span>, <span class="n">128</span>), nn.ReLU(), nn.Dropout(<span class="n">0.3</span>), nn.Linear(<span class="n">128</span>, <span class="n">10</span>))
 
 model.train()                                 <span class="c"># Dropout on, BN uses batch stats and updates running stats</span>
-<span class="k">for</span> x, y <span class="k">in</span> train_loader: ...
+<span class="k">for</span> x, y <span class="k">in</span> train_loader: ...               <span class="c"># batch_size 64: plenty for BatchNorm</span>
 
 model.eval()                                  <span class="c"># Dropout off, BN uses running stats</span>
 <span class="k">with</span> torch.no_grad():
     preds = model(x_test).argmax(dim=<span class="n">1</span>)</pre>
   <p class="small muted">Two more real-world traps: <b>frozen BatchNorm</b> in transfer learning still updates its running statistics in train() mode (keep frozen parts in eval(), Lesson 11),
-  and very small batches (1–4) make batch statistics noisy. Transformers use LayerNorm instead, which normalises within one sample and doesn't care about the batch.</p>
+  and when you can only afford tiny batches (big images, detection models) people switch to GroupNorm or freeze BN. Transformers use LayerNorm, which normalises within one sample and doesn't care about the batch.</p>
 </section>
 
 <section class="callout think">
   <h3>🤔 Check yourself</h3>
   <ol class="challenges">
-    <li>Why is Dropout switched off when predicting?
-      <details class="answer"><summary>Answer</summary>We want the full network's best, repeatable answer. Randomly missing neurons were only a training exercise, like training with weights on your ankles.</details></li>
+    <li>Your model: 99% training accuracy, 80% validation accuracy, 5,000 training images, a big network. Would you add Dropout? And for 95% / 94% with a tiny network?
+      <details class="answer"><summary>Answer</summary>First case: yes. The big gap is overfitting and the network has capacity to spare. Second case: no. There's no gap to close, and the tiny network would underfit even more.
+      Try a bigger model or train longer instead (Lesson 7, "Check yourself" 3).</details></li>
     <li>With Dropout, your training accuracy is lower than without. Is that bad?
       <details class="answer"><summary>Answer</summary>No. Training accuracy is measured with neurons missing and is supposed to look worse. Judge the model by validation/test accuracy (challenge 2).</details></li>
     <li>Your model gives different answers for the same image each time you call it. What is the most likely bug?
       <details class="answer"><summary>Answer</summary>It's still in train() mode: Dropout is active (and BatchNorm uses batch statistics). Call <code>model.eval()</code> before predicting.</details></li>
-    <li>What does BatchNorm "normalise", and with which numbers?
-      <details class="answer"><summary>Answer</summary>The sums (pre-activations) of each neuron or channel: it subtracts their average and divides by their spread. While training it uses the current batch's numbers; when predicting, the running averages saved during training.</details></li>
+    <li>You train with batch size 2 because the images are huge, and your BatchNorm network won't learn. Why, and what could you do?
+      <details class="answer"><summary>Answer</summary>The batch statistics of 2 samples are extremely noisy (challenge 10). Use a bigger batch if memory allows, gradient accumulation doesn't fix BN, so switch to GroupNorm/LayerNorm,
+      or start from a pretrained model and keep its BN layers frozen in eval() mode.</details></li>
   </ol>
 </section>
 
@@ -263,7 +333,7 @@ function makeDataset(kind,n,noise,seed){
   for(let i=pts.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pts[i],pts[j]]=[pts[j],pts[i]];}
   return pts;
 }
-// ===== NN ENGINE with BatchNorm + Dropout (batch-wise forward/backward) =====
+// ===== NN ENGINE with BatchNorm + Dropout (batch-wise forward/backward, checked against finite differences) =====
 const ACTS={tanh:{f:z=>Math.tanh(z),d:(z,a)=>1-a*a},relu:{f:z=>z>0?z:0,d:z=>z>0?1:0}};
 class NetX{
   constructor(sizes,act,seed,opt={}){
@@ -280,7 +350,8 @@ class NetX{
   }
   useBN(l){return this.bn&&l<this.L-1;}
   // X: array of input rows. train: Dropout on + BatchNorm uses batch statistics. upd: update BN running statistics.
-  forward(X,train,rng,upd=train){
+  // masks (optional): one fixed Dropout mask per hidden layer, shared by all rows = one "thinned network"
+  forward(X,train,rng,upd=train,masks=null){
     const B=X.length,F=ACTS[this.act].f,c={A:[X],Y:[],XH:[],IS:[],M:[],H:[]};
     for(let l=0;l<this.L;l++){const ni=this.sizes[l],no=this.sizes[l+1],W=this.W[l],b=this.b[l];
       const Z=c.A[l].map(a=>{const z=new Float64Array(no);for(let j=0;j<no;j++){let s=b[j];const off=j*ni;for(let i=0;i<ni;i++)s+=W[off+i]*a[i];z[j]=s;}return z;});
@@ -293,7 +364,7 @@ class NetX{
         is=vr.map(v=>1/Math.sqrt(v+1e-5));XH=Z.map(z=>z.map((v,j)=>(v-mu[j])*is[j]));Y=XH.map(x=>x.map((v,j)=>this.g[l][j]*v+this.be[l][j]));}
       c.XH.push(XH);c.IS.push(is);c.Y.push(Y);
       const H=Y.map(y=>y.map(F));c.H.push(H);let A=H,M=null;
-      if(train&&this.drop>0){const k=1/(1-this.drop);M=H.map(h=>h.map(()=>rng()<this.drop?0:k));A=H.map((h,s)=>h.map((v,j)=>v*M[s][j]));}
+      if(train&&this.drop>0){const k=1/(1-this.drop);M=masks?H.map(()=>masks[l]):H.map(h=>h.map(()=>rng()<this.drop?0:k));A=H.map((h,s)=>h.map((v,j)=>v*M[s][j]));}
       c.M.push(M);c.A.push(A);}
     return c;
   }
@@ -334,12 +405,13 @@ function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingCl
   cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
 const pct=v=>Math.round(v*100)+'%';
+const nextFrame=()=>new Promise(r=>requestAnimationFrame(r));
 const toV=p=>({v:new Float64Array([p.x/6,p.y/6]),l:p.l});
-function drawBoundary(cv,pred,pts,trainMask){const g=cv.getContext('2d'),W=cv.width,G=48,c=W/G;
+function drawBoundary(cv,pred,pts){const g=cv.getContext('2d'),W=cv.width,G=48,c=W/G;
   for(let j=0;j<G;j++)for(let i=0;i<G;i++){const p=pred(new Float64Array([(-6+(i+.5)/G*12)/6,(6-(j+.5)/G*12)/6])),col=p>=0.5?[47,111,237]:[240,140,0],a=Math.min(0.85,Math.abs(p-0.5)*1.7);
     g.clearRect(i*c,j*c,c+1,c+1);g.fillStyle=`rgba(${col},${a})`;g.fillRect(i*c,j*c,c+1,c+1);}
-  pts.forEach((p,k)=>{const tr=trainMask?trainMask[k]:false;g.beginPath();g.arc((p.x+6)/12*W,(6-p.y)/12*W,tr?3.6:2.8,0,7);g.fillStyle=p.l?'#2f6fed':'#f08c00';g.fill();
-    g.lineWidth=tr?1.2:1;g.strokeStyle=tr?'#fff':'#1c2230';g.stroke();});}
+  for(const p of pts){g.beginPath();g.arc((p.x+6)/12*W,(6-p.y)/12*W,3,0,7);g.fillStyle=p.l?'#2f6fed':'#f08c00';g.fill();g.lineWidth=1;g.strokeStyle='#fff';g.stroke();}}
+function scenButtons(sel,key){document.querySelectorAll(sel+' .btn').forEach(b=>b.classList.toggle('on',b.dataset.s===key));}
 
 // ---------- ① dropout diagram ----------
 const P1=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8];let mode1='train',mask1=null,r1=mulberry32(11),anim1=null;
@@ -361,42 +433,75 @@ function drawDrop(){
 }
 function stopAnim1(){if(anim1){clearInterval(anim1);anim1=null;}$('#anim').textContent='▶ Animate';}
 
-// ---------- ② dropout vs none ----------
-const NS2=[20,40,80,160],P2=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7];
-const S2={seed:1,pts:[],tr:[],te:[],trMask:[],A:null,B:null,hist:[],run:null};
-function data2(){const n=NS2[+$('#n2').value],pts=makeDataset($('#ds2').value,n+300,+$('#noise2').value,S2.seed);
-  S2.pts=pts;S2.trMask=pts.map((p,i)=>i<n);S2.tr=pts.slice(0,n).map(toV);S2.te=pts.slice(n).map(toV);S2.hist=[];S2.A=null;S2.B=null;}
-function labels2(){$('#n2Out').textContent=NS2[+$('#n2').value];$('#noise2Out').textContent=$('#noise2').value;$('#p2Out').textContent=P2[+$('#p2').value];$('#bTitle').textContent=`B · with Dropout p = ${P2[+$('#p2').value]}`;}
-function nets2(){const p=P2[+$('#p2').value];S2.A=new NetX([2,64,64,1],'relu',7);S2.B=new NetX([2,64,64,1],'relu',7,{drop:p});S2.rA=mulberry32(21);S2.rB=mulberry32(21);S2.hist=[];S2.ep=0;}
-function epoch2(){trainEpoch(S2.A,S2.tr,10,0.01,S2.rA);trainEpoch(S2.B,S2.tr,10,0.01,S2.rB);S2.ep++;if(S2.ep%4&&S2.ep<400)return;   // evaluate every 4th epoch: keeps the page fast
-  const a=evalSet(S2.A,S2.tr),b=evalSet(S2.B,S2.tr),ta=evalSet(S2.A,S2.te),tb=evalSet(S2.B,S2.te);S2.hist.push({e:S2.ep,a,b,ta,tb});}
+// ---------- ② curve fitting: Dropout vs none ----------
+const truth2=x=>Math.sin(3*x),STEPS2=2000,GRID2=Array.from({length:201},(_,i)=>-1+i/100);
+const SCEN2={helps:{n:20,sig:0.4,h:64,p:0.4},lots:{n:200,sig:0.4,h:64,p:0.4},clean:{n:20,sig:0.05,h:64,p:0.4},tiny:{n:20,sig:0.4,h:4,p:0.4,seed:2}};
+const S2={seed:1,run:null,hist:[],A:null,B:null,tr:[],va:[],cfg:null,busy:false};
+function cfg2(){return {n:+$('#n2').value,sig:+$('#sig2').value,h:+$('#h2').value,p:+$('#p2').value};}
+function regData(n,sig,seed){const r=mulberry32(seed),a=[];for(let i=0;i<n;i++){const x=-1+2*(i+0.5)/n+0.6/n*(r()-0.5);a.push({v:new Float64Array([x]),l:truth2(x)+sig*gauss(r)});}return a;}
+function valData(sig,seed){const r=mulberry32(seed+5000),a=[];for(let i=0;i<400;i++){const x=r()*2-1;a.push({v:new Float64Array([x]),l:truth2(x)+sig*gauss(r)});}return a;}
+function mseSet(net,set){const P=net.forward(set.map(s=>s.v),false).A[net.L];return set.reduce((s,q,k)=>s+(P[k][0]-q.l)**2,0)/set.length;}
+// one "pair" = A and B trained side by side on the same data from the same start
+function makePair(c,seed){return {c,tr:regData(c.n,c.sig,seed),va:valData(c.sig,seed),A:new NetX([1,c.h,c.h,1],'relu',7,{reg:true}),B:new NetX([1,c.h,c.h,1],'relu',7,{reg:true,drop:c.p}),
+  rA:mulberry32(3),rB:mulberry32(3),step:0,hist:[]};}
+function pairSteps(P,k){const bs=Math.min(P.c.n,20),per=Math.ceil(P.c.n/bs);let done=0;
+  while(done<k&&P.step<STEPS2){trainEpoch(P.A,P.tr,bs,0.01,P.rA);trainEpoch(P.B,P.tr,bs,0.01,P.rB);P.step+=per;done+=per;
+    if(P.step%40<per||P.step>=STEPS2)P.hist.push({s:P.step,trA:mseSet(P.A,P.tr),vaA:mseSet(P.A,P.va),trB:mseSet(P.B,P.tr),vaB:mseSet(P.B,P.va)});}}
+// verdict: relative change of the validation error; within ±8% counts as "no real difference"
+function verdict2(h){const r=h.vaB/h.vaA;return {r,kind:r<0.92?'good':r>1.08?'bad':'same'};}
+const fe=v=>v<0.01?v.toFixed(4):v.toFixed(3);
+function labels2(){const c=cfg2();$('#hTxt').textContent=c.h;$('#hTxt2').textContent=c.h;$('#bTitle').textContent=`B · with Dropout p = ${c.p}`;}
+function reset2(){if(S2.run){cancelAnimationFrame(S2.run);S2.run=null;}$('#train2').disabled=false;labels2();S2.P=makePair(cfg2(),S2.seed);$('#prog2').style.width='0';render2();}
 function render2(){
-  const h=S2.hist[S2.hist.length-1];
-  if(S2.A){drawBoundary($('#bA'),x=>S2.A.predict(x),S2.pts,S2.trMask);drawBoundary($('#bB'),x=>S2.B.predict(x),S2.pts,S2.trMask);}
-  else{drawBoundary($('#bA'),()=>0.5,S2.pts,S2.trMask);drawBoundary($('#bB'),()=>0.5,S2.pts,S2.trMask);}
-  for(const [id,v] of [['#trA',h&&h.a.acc],['#teA',h&&h.ta.acc],['#trB',h&&h.b.acc],['#teB',h&&h.tb.acc]])$(id).textContent=h?pct(v):'–';
-  if(h){const better=h.tb.acc>h.ta.acc+0.005,worse=h.tb.acc<h.ta.acc-0.005;$('#teB').parentElement.className='stat '+(better?'good':worse?'bad':'');$('#teA').parentElement.className='stat '+(worse?'good':better?'bad':'');}
-  const {ctx,w:W,h:H}=setupCanvas($('#loss2')),L=36,T=8,pw=W-L-10,ph=H-T-24,n=400,mx=Math.max(1.2,...S2.hist.map(q=>Math.min(3,Math.max(q.ta.loss,q.tb.loss))));
-  const sx=e=>L+e/n*pw,sy=v=>T+(1-Math.min(v,mx)/mx)*ph;ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
-  for(let v=0;v<=mx+1e-9;v+=0.5){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(v.toFixed(1),L-4,sy(v)+4);}
-  for(let e=0;e<=n;e+=100){ctx.textAlign='center';ctx.fillText(e,sx(e),T+ph+13);}ctx.fillText('epoch',L+pw/2,H-1);
-  if(!S2.hist.length){ctx.textAlign='center';ctx.fillText('Press ▶ Train both',L+pw/2,T+ph/2);return;}
-  for(const [k,col,dash] of [['a','#f08c00',[5,4]],['b','#2f6fed',[5,4]],['ta','#f08c00',[]],['tb','#2f6fed',[]]]){ctx.strokeStyle=col;ctx.lineWidth=dash.length?1.5:2.5;ctx.setLineDash(dash);ctx.beginPath();
-    S2.hist.forEach((q,i)=>{const x=sx(q.e),y=sy(q[k].loss);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}ctx.setLineDash([]);
+  const P=S2.P,c=P.c,h=P.hist[P.hist.length-1];
+  for(const [id,k] of [['#trA','trA'],['#vaA','vaA'],['#trB','trB'],['#vaB','vaB']])$(id).textContent=h?fe(h[k]):'–';
+  const v=$('#v2');
+  if(!h||P.step<STEPS2){$('#vaA').parentElement.className='stat';$('#vaB').parentElement.className='stat';if(!h){v.className='banner info';v.textContent='Press ▶ Train both.';}}
+  else{const q=verdict2(h,c.sig);$('#vaA').parentElement.className='stat '+(q.kind==='bad'?'good':q.kind==='good'?'bad':'');$('#vaB').parentElement.className='stat '+(q.kind==='good'?'good':q.kind==='bad'?'bad':'');
+    if(q.kind==='good'){v.className='banner good';v.innerHTML=`✅ <b>Dropout helped.</b> Validation error ${fe(h.vaA)} → ${fe(h.vaB)}. B's training error is higher (${fe(h.trB)} vs ${fe(h.trA)}): it was stopped from memorising the noise.`;}
+    else if(q.kind==='bad'){v.className='banner bad';v.innerHTML=`❌ <b>Dropout made it worse here.</b> Validation error ${fe(h.vaA)} → ${fe(h.vaB)}. ${c.h<=4?'The network is too small: with neurons switched off, too few are left to follow the curve (underfitting).':'There was little overfitting to fix, so Dropout only added randomness and took capacity away.'}`;}
+    else{v.className='banner info';v.innerHTML=`➖ <b>No real difference.</b> Validation error ${fe(h.vaA)} vs ${fe(h.vaB)}.`;}}
+  // fit chart
+  {const {ctx,w:W,h:H}=setupCanvas($('#fit2')),L=32,T=8,pw=W-L-10,ph=H-T-22,y0=-2.2,y1=2.2,sx=x=>L+(x+1)/2*pw,sy=y=>T+(y1-y)/(y1-y0)*ph;
+    ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+    for(const y of [-2,-1,0,1,2]){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-4,sy(y)+4);}
+    for(const x of [-1,-0.5,0,0.5,1]){ctx.textAlign='center';ctx.fillText(x,sx(x),T+ph+14);}
+    ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+    const line=(ys,col,lw,dash=[])=>{ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();GRID2.forEach((x,i)=>i?ctx.lineTo(sx(x),sy(ys[i])):ctx.moveTo(sx(x),sy(ys[i])));ctx.stroke();ctx.setLineDash([]);};
+    const X=GRID2.map(x=>new Float64Array([x]));
+    if(h&&$('#thin2').checked&&P.step>=STEPS2){const r=mulberry32(99),B=P.B,k1=1/(1-B.drop);ctx.globalAlpha=0.45;
+      for(let k=0;k<20;k++){const masks=B.sizes.slice(1,-1).map(n=>Float64Array.from({length:n},()=>r()<B.drop?0:k1));
+        line(B.forward(X,true,null,false,masks).A[B.L].map(a=>a[0]),'#74a0f5',1.3);}ctx.globalAlpha=1;}
+    line(GRID2.map(truth2),'#2f9e44',2.5,[7,5]);
+    if(h){line(P.A.forward(X,false).A[P.A.L].map(a=>a[0]),'#f08c00',3);line(P.B.forward(X,false).A[P.B.L].map(a=>a[0]),'#2f6fed',3);}
+    for(const s of P.tr){ctx.beginPath();ctx.arc(sx(s.v[0]),sy(s.l),c.n>60?2.5:4.5,0,7);ctx.fillStyle='#1c2230';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#fff';ctx.stroke();}
+    ctx.restore();}
+  // error chart
+  {const {ctx,w:W,h:H}=setupCanvas($('#err2')),L=44,T=8,pw=W-L-10,ph=H-T-26,lo=-3,hi=1,sx=s=>L+s/STEPS2*pw,ly=v=>T+(hi-Math.max(lo,Math.min(hi,Math.log10(Math.max(v,1e-4)))))/(hi-lo)*ph;
+    ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+    for(let e=lo;e<=hi;e++){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,ly(10**e));ctx.lineTo(L+pw,ly(10**e));ctx.stroke();ctx.textAlign='right';ctx.fillText((10**e).toString(),L-4,ly(10**e)+4);}
+    for(let s=0;s<=STEPS2;s+=500){ctx.textAlign='center';ctx.fillText(s,sx(s),T+ph+14);}ctx.fillText('training step',L+pw/2,H-2);
+    const f=c.sig*c.sig;ctx.strokeStyle='#adb5bd';ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(L,ly(f));ctx.lineTo(L+pw,ly(f));ctx.stroke();ctx.setLineDash([]);
+    if(!P.hist.length){ctx.textAlign='center';ctx.fillText('Press ▶ Train both',L+pw/2,T+ph/2);}
+    for(const [k,col,dash] of [['trA','#f08c00',[5,4]],['trB','#2f6fed',[5,4]],['vaA','#f08c00',[]],['vaB','#2f6fed',[]]]){ctx.strokeStyle=col;ctx.lineWidth=dash.length?1.8:2.8;ctx.setLineDash(dash);ctx.beginPath();
+      P.hist.forEach((q,i)=>{const x=sx(q.s),y=ly(q[k]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}ctx.setLineDash([]);}
 }
-function run2(){if(S2.run)cancelAnimationFrame(S2.run);nets2();$('#train2').disabled=true;
-  const chunk=()=>{for(let k=0;k<8&&S2.ep<400;k++)epoch2();$('#prog2').style.width=(S2.ep/4)+'%';render2();
-    if(S2.ep<400)S2.run=requestAnimationFrame(chunk);else{S2.run=null;$('#train2').disabled=false;}};S2.run=requestAnimationFrame(chunk);}
-function reset2(){if(S2.run){cancelAnimationFrame(S2.run);S2.run=null;$('#train2').disabled=false;}$('#prog2').style.width='0';labels2();data2();render2();}
+function run2(){reset2();$('#train2').disabled=true;const P=S2.P;
+  const chunk=()=>{pairSteps(P,100);$('#prog2').style.width=(P.step/STEPS2*100)+'%';render2();
+    if(P.step<STEPS2)S2.run=requestAnimationFrame(chunk);else{S2.run=null;$('#train2').disabled=false;}};S2.run=requestAnimationFrame(chunk);}
+async function repeat2(){if(S2.busy)return;S2.busy=true;$('#rep2').disabled=true;const c=cfg2();let wins=0,losses=0;const rows=[];
+  for(let k=0;k<6;k++){const P=makePair(c,100+k);while(P.step<STEPS2){pairSteps(P,200);$('#rep2txt').innerHTML=rows.join('<br>')+`<br><span class="muted">dataset ${k+1}: training… ${Math.round(P.step/STEPS2*100)}%</span>`;await nextFrame();}
+    const h=P.hist[P.hist.length-1],q=verdict2(h,c.sig);if(q.kind==='good')wins++;if(q.kind==='bad')losses++;
+    rows.push(`dataset ${k+1}: A ${fe(h.vaA)} · B ${fe(h.vaB)} ${q.kind==='good'?'✅':q.kind==='bad'?'❌':'➖'}`);}
+  $('#rep2txt').innerHTML=rows.join('<br>')+`<br><b>Dropout helped on ${wins} of 6, hurt on ${losses} of 6.</b>`;S2.busy=false;$('#rep2').disabled=false;S2.lastRep={wins,losses};}
 
 // ---------- ③ BatchNorm: layer statistics + race ----------
 const SC3=[0.5,1,1.5,2,2.5,3,4];
 const X3=(()=>{const r=mulberry32(5);return Array.from({length:200},()=>new Float64Array([gauss(r),gauss(r)]));})();
-function deepNet(bn,sc){return new NetX([2,16,16,16,16,16,16,16,16,1],'tanh',3,{bn,scale:sc});}
-function layerStats(){const sc=SC3[+$('#sc').value],net=deepNet($('#bn3').checked,sc),c=net.forward(X3,true,null,false);return c.H;}
+function deepNet(bn,sc,seed=3){return new NetX([2,16,16,16,16,16,16,16,16,1],'tanh',seed,{bn,scale:sc});}
 function drawHist(){
   const sc=SC3[+$('#sc').value];$('#scOut').textContent=sc+'×';
-  const H=layerStats(),{ctx,w:W,h:Hh}=setupCanvas($('#histc')),L=34,T=10,pw=W-L-10,ph=Hh-T-24,nC=H.length,cw=pw/nC,NB=40,sy=v=>T+(1-v)/2*ph;
+  const H=deepNet($('#bn3').checked,sc).forward(X3,true,null,false).H,{ctx,w:W,h:Hh}=setupCanvas($('#histc')),L=34,T=10,pw=W-L-10,ph=Hh-T-24,nC=H.length,cw=pw/nC,NB=40,sy=v=>T+(1-v)/2*ph;
   ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
   for(const v of [-1,-0.5,0,0.5,1]){ctx.strokeStyle=v===0?'#ced4da':'#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(v,L-4,sy(v)+4);}
   let lastSd=0,sat=0,tot=0;
@@ -409,25 +514,47 @@ function drawHist(){
   $('#sd3box').className='stat '+(lastSd<0.05?'bad':lastSd>0.3?'good':'orange');$('#sat3box').className='stat '+(sat/tot>0.2?'bad':'good');
   return {lastSd,sat:sat/tot};
 }
-const S3={run:null,ha:[],hb:[]};
-const D3=(()=>{const pts=makeDataset('circle',300,0,2);return pts.map(toV);})();
+const SCEN3={bad:{sc:0.5,lr:0.1,bs:20},biglr:{sc:1,lr:1,bs:20},fine:{sc:2,lr:0.1,bs:20},tiny:{sc:1,lr:0.03,bs:2}};
+const E3=100,S3={run:null,ha:[],hb:[]};
+const D3=makeDataset('circle',300,0,2).map(toV);
 function epochsTo95(h){const i=h.findIndex(q=>q.acc>=0.95);return i<0?null:i+1;}
-function race3(){if(S3.run)cancelAnimationFrame(S3.run);const sc=SC3[+$('#sc').value],lr=+$('#lr3').value;
-  const A=deepNet(false,sc),B=deepNet(true,sc),rA=mulberry32(8),rB=mulberry32(8);S3.ha=[];S3.hb=[];let e=0;$('#race3').disabled=true;
-  const chunk=()=>{for(let k=0;k<6&&e<300;k++,e++){trainEpoch(A,D3,20,lr,rA,'sgd');trainEpoch(B,D3,20,lr,rB,'sgd');S3.ha.push(evalSet(A,D3));S3.hb.push(evalSet(B,D3));}
-    drawRace();if(e<300)S3.run=requestAnimationFrame(chunk);else{S3.run=null;$('#race3').disabled=false;}};S3.run=requestAnimationFrame(chunk);}
+function race3(){if(S3.run)cancelAnimationFrame(S3.run);const sc=SC3[+$('#sc').value],lr=+$('#lr3').value,bs=+$('#bs3').value;
+  const A=deepNet(false,sc),B=deepNet(true,sc),rA=mulberry32(8),rB=mulberry32(8);S3.ha=[];S3.hb=[];S3.cfg={sc,lr,bs};let e=0;$('#race3').disabled=true;
+  const per=bs<=4?1:4;
+  const chunk=()=>{for(let k=0;k<per&&e<E3;k++,e++){trainEpoch(A,D3,bs,lr,rA,'sgd');trainEpoch(B,D3,bs,lr,rB,'sgd');S3.ha.push(evalSet(A,D3));S3.hb.push(evalSet(B,D3));}
+    drawRace();if(e<E3)S3.run=requestAnimationFrame(chunk);else{S3.run=null;$('#race3').disabled=false;drawRace();}};S3.run=requestAnimationFrame(chunk);}
 function drawRace(){
-  const {ctx,w:W,h:H}=setupCanvas($('#race3c')),L=36,T=8,pw=W-L-10,ph=H-T-24,n=300,mx=1,sx=e=>L+e/n*pw,sy=v=>T+(1-Math.min(v,mx)/mx)*ph;
+  const {ctx,w:W,h:H}=setupCanvas($('#race3c')),L=40,T=8,pw=W-L-10,ph=H-T-24,sx=e=>L+e/E3*pw,sy=v=>T+(1-(v-0.4)/0.6)*ph;
   ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
-  for(let v=0;v<=1.001;v+=0.25){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(v.toFixed(2),L-4,sy(v)+4);}
-  for(let e=0;e<=n;e+=50){ctx.textAlign='center';ctx.fillText(e,sx(e),T+ph+13);}ctx.fillText('epoch',L+pw/2,H-1);
+  for(const v of [0.4,0.6,0.8,1]){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(pct(v),L-4,sy(v)+4);}
+  ctx.strokeStyle='#2f9e44';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,sy(0.95));ctx.lineTo(L+pw,sy(0.95));ctx.stroke();ctx.setLineDash([]);
+  for(let e=0;e<=E3;e+=20){ctx.textAlign='center';ctx.fillText(e,sx(e),T+ph+13);}ctx.fillText('epoch',L+pw/2,H-1);
+  const v=$('#v3');
   if(!S3.ha.length){ctx.textAlign='center';ctx.fillText('Press ▶ Race',L+pw/2,T+ph/2);$('#r3a').textContent='–';$('#r3b').textContent='–';return;}
-  for(const [h,col] of [[S3.ha,'#f08c00'],[S3.hb,'#2f6fed']]){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();h.forEach((q,i)=>{const x=sx(i+1),y=sy(Number.isFinite(q.loss)?q.loss:mx);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}
-  const a=epochsTo95(S3.ha),b=epochsTo95(S3.hb),done=S3.ha.length>=300;
-  $('#r3a').textContent=a?a:(done?'not in 300':'…');$('#r3b').textContent=b?b:(done?'not in 300':'…');
+  for(const [h,col] of [[S3.ha,'#f08c00'],[S3.hb,'#2f6fed']]){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();h.forEach((q,i)=>{const x=sx(i+1),y=sy(Math.max(0.4,q.acc));i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}
+  const a=epochsTo95(S3.ha),b=epochsTo95(S3.hb),done=S3.ha.length>=E3;
+  $('#r3a').textContent=a?a:(done?'never':'…');$('#r3b').textContent=b?b:(done?'never':'…');
+  if(!done){v.className='banner info';v.textContent='Racing…';return;}
+  if(!a&&b){v.className='banner good';v.innerHTML=`✅ <b>BatchNorm rescued it.</b> Without it the network never reached 95% in ${E3} epochs (it ended at ${pct(S3.ha[E3-1].acc)}); with it: ${b} epochs.`;}
+  else if(a&&!b){v.className='banner bad';v.innerHTML=`❌ <b>BatchNorm hurt here.</b> The plain network reached 95% after ${a} epochs; the BatchNorm one never did (ended at ${pct(S3.hb[E3-1].acc)}).${S3.cfg.bs<=4?' With so few points per batch, the batch average and spread are too noisy.':''}`;}
+  else if(!a&&!b){v.className='banner bad';v.innerHTML='Neither network reached 95% in this setting.';}
+  else if(b<=a*0.6){v.className='banner good';v.innerHTML=`✅ <b>BatchNorm was faster:</b> ${b} vs ${a} epochs.`;}
+  else if(b>=a*1.6){v.className='banner info';v.innerHTML=`➖ <b>No gain here:</b> the plain network was already fine (${a} vs ${b} epochs). BatchNorm is a rescue for unstable training, not a free speed-up.`;}
+  else{v.className='banner info';v.innerHTML=`➖ <b>About the same</b> (${a} vs ${b} epochs). The plain network was already training well.`;}
 }
+// the map: 3 weight sizes × 4 learning rates
+const MAP_SC=[0.5,1,2],MAP_LR=[0.03,0.1,0.3,1];
+function mapTable(id){$(id).innerHTML=`<tr><th>weight size ↓ · lr →</th>${MAP_LR.map(l=>`<th>${l}</th>`).join('')}</tr>`+MAP_SC.map((s,i)=>`<tr><th>${s}×</th>${MAP_LR.map((l,j)=>`<td id="${id.slice(1)}_${i}_${j}">·</td>`).join('')}</tr>`).join('');}
+async function buildMap(){$('#map3').disabled=true;mapTable('#mapA');mapTable('#mapB');let okA=0,okB=0;
+  for(let i=0;i<MAP_SC.length;i++)for(let j=0;j<MAP_LR.length;j++)for(const [bn,id] of [[false,'mapA'],[true,'mapB']]){
+    const cell=$(`#${id}_${i}_${j}`);cell.className='run';cell.textContent='…';await nextFrame();
+    const net=deepNet(bn,MAP_SC[i]),r=mulberry32(8);let got=null;
+    for(let e=1;e<=E3;e++){trainEpoch(net,D3,20,MAP_LR[j],r,'sgd');if(e%10===0)await nextFrame();const q=evalSet(net,D3);if(q.acc>=0.95){got=e;break;}if(!Number.isFinite(q.loss))break;}
+    cell.className=got?'ok':'fail';cell.textContent=got?got:'✕';if(got){bn?okB++:okA++;}}
+  $('#map3txt').innerHTML=`Without BatchNorm the network learned in <b>${okA} of 12</b> settings; with BatchNorm in <b>${okB} of 12</b>. Where both learn, the speeds are similar: BatchNorm's real gift is that training <b>works almost everywhere</b>.`;
+  $('#map3').disabled=false;return {okA,okB};}
 
-// ---------- ⑤ train() vs eval() ----------
+// ---------- ④ train() vs eval() ----------
 const S5={net:null,pts:[],pt:{x:0.5,y:0.4},answers:null,mode:null};
 function train5(){
   const pts=makeDataset('moons',300,20,4);S5.pts=pts.slice(0,200);const tr=S5.pts.map(toV),net=new NetX([2,16,16,1],'relu',9,{bn:true,drop:0.3}),r=mulberry32(3);let e=0;const E=150;
@@ -442,7 +569,7 @@ function render5(){
   drawBoundary($('#m5e'),x=>net.predict(x),S5.pts);drawBoundary($('#m5t'),x=>net.predict(x,true,r,false),S5.pts);
   for(const id of ['#m5e','#m5t']){const g=$(id).getContext('2d'),W=$(id).width,px=(S5.pt.x+6)/12*W,py=(6-S5.pt.y)/12*W;
     g.strokeStyle='#1c2230';g.lineWidth=2.5;g.beginPath();g.arc(px,py,8,0,7);g.stroke();g.beginPath();g.moveTo(px-12,py);g.lineTo(px+12,py);g.moveTo(px,py-12);g.lineTo(px,py+12);g.stroke();}
-  const {ctx,w:W,h:H}=setupCanvas($('#stripc')),L=20,pw=W-40,y0=H/2;
+  const {ctx,w:W,h:H}=setupCanvas($('#stripc')),L=20,pw=W-40,y0=H/2+6;
   ctx.strokeStyle='#ced4da';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(L,y0);ctx.lineTo(L+pw,y0);ctx.stroke();
   ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='center';
   for(const v of [0,0.25,0.5,0.75,1]){ctx.fillText(pct(v),L+v*pw,y0+24);ctx.beginPath();ctx.moveTo(L+v*pw,y0-5);ctx.lineTo(L+v*pw,y0+5);ctx.stroke();}
@@ -458,15 +585,18 @@ $('#p1').addEventListener('input',()=>{newMask();drawDrop();});
 document.querySelectorAll('#mode1 button').forEach(b=>b.onclick=()=>{mode1=b.dataset.m;document.querySelectorAll('#mode1 button').forEach(x=>x.classList.toggle('on',x===b));if(mode1==='eval')stopAnim1();newMask();drawDrop();});
 $('#step1').onclick=()=>{newMask();drawDrop();};
 $('#anim').onclick=()=>{if(anim1){stopAnim1();return;}$('#anim').textContent='⏸ Pause';anim1=setInterval(()=>{newMask();drawDrop();},700);};
-['#ds2','#n2','#noise2'].forEach(id=>$(id).addEventListener('input',reset2));
-$('#p2').addEventListener('input',()=>{labels2();});
-$('#train2').onclick=run2;$('#new2').onclick=()=>{S2.seed++;reset2();};
+document.querySelectorAll('#scen2 .btn').forEach(b=>b.onclick=()=>{const c=SCEN2[b.dataset.s];$('#n2').value=c.n;$('#sig2').value=c.sig;$('#h2').value=c.h;$('#p2').value=c.p;S2.seed=c.seed||1;scenButtons('#scen2',b.dataset.s);$('#rep2txt').textContent='';reset2();});
+['#n2','#sig2','#h2','#p2'].forEach(id=>$(id).addEventListener('input',()=>{scenButtons('#scen2',null);$('#rep2txt').textContent='';reset2();}));
+$('#train2').onclick=run2;$('#new2').onclick=()=>{S2.seed++;reset2();};$('#rep2').onclick=repeat2;
+$('#thin2').addEventListener('change',render2);
 ['#sc','#bn3'].forEach(id=>$(id).addEventListener('input',drawHist));
-$('#race3').onclick=race3;
+document.querySelectorAll('#scen3 .btn').forEach(b=>b.onclick=()=>{const c=SCEN3[b.dataset.s];$('#sc').value=SC3.indexOf(c.sc);$('#lr3').value=c.lr;$('#bs3').value=c.bs;scenButtons('#scen3',b.dataset.s);drawHist();race3();});
+['#lr3','#bs3'].forEach(id=>$(id).addEventListener('input',()=>scenButtons('#scen3',null)));
+$('#race3').onclick=race3;$('#map3').onclick=buildMap;
 $('#pTrain').onclick=()=>ask5('train');$('#pEval').onclick=()=>ask5('eval');
 ['#m5e','#m5t'].forEach(id=>$(id).addEventListener('click',pick5));
 window.addEventListener('resize',()=>{drawDrop();render2();drawHist();drawRace();render5();});
-drawDrop();reset2();drawHist();drawRace();train5();
+mapTable('#mapA');mapTable('#mapB');scenButtons('#scen2','helps');drawDrop();reset2();drawHist();drawRace();train5();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
