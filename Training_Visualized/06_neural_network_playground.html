@@ -31,17 +31,21 @@
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
     <a href="04_training_loop.html" title="The training loop">4</a>
-    <a href="05_neural_network_playground.html" class="on" title="Neural network playground">5</a>
-    <a href="06_overfitting.html" title="Overfitting">6</a>
-    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
-    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" class="on" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
   </nav>
   <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 5 of 8 · ≈ 45 min</div>
+  <div class="kicker">Lesson 6 of 12 · ≈ 45 min</div>
   <h1>Neural network playground</h1>
   <p class="one-liner">One neuron can only draw a <b>straight line</b>. Stack neurons in layers and the network can draw <b>curves, circles and spirals</b>.
   Build a network, press play, and watch every neuron learn its own little piece of the picture.</p>
@@ -148,7 +152,7 @@
       Where you start matters, which is why results vary between random seeds.</details></li>
     <li><b>Why activations?</b> Circle, 3 hidden layers of 8 neurons, activation <b>linear</b>. Train.
       <details class="answer"><summary>Answer</summary>It fails, just like 0 hidden layers. A stack of linear layers is still one linear function (a line), no matter how deep.
-      The nonlinear activation (tanh, ReLU) is what gives depth its power.</details></li>
+      The nonlinear activation (tanh, ReLU) is what gives depth its power. Lesson 5 shows this bend up close.</details></li>
     <li><b>The spiral boss.</b> Spiral, 3 hidden layers of 8, tanh. Train about 300 epochs. Then switch the activation to ReLU and train again (try 2–3 New weights). Finally switch back to tanh and add sin(X₁) and sin(X₂).
       <details class="answer"><summary>Answer</summary>tanh struggles: roughly 75–88% on training data and only 60–70% on test data after 300–500 epochs.
       ReLU <i>can</i> do much better (95%+ test on good tries by epoch ~300), but it is fickle: some starts get stuck around 75%, and a good run can suddenly get worse again (watch the loss curve jump).
@@ -158,7 +162,7 @@
       <details class="answer"><summary>Answer</summary>Without L2: training loss drops to ≈ 0 (100% train accuracy) but test loss climbs above 2 (≈ 73% test accuracy). The network memorised 30 noisy points,
       including their noise: <b>overfitting</b>. With L2 0.01: test loss stays around 0.7 and test accuracy improves (≈ 76%).
       With L2 0.03 the penalty is so strong that the weights collapse to zero and the network predicts nothing useful (50%). That is <b>underfitting</b>.
-      Regularisation is a dial: too little overfits, too much underfits. More on this in Lesson 6.</details></li>
+      Regularisation is a dial: too little overfits, too much underfits. More on this in Lesson 7, and Dropout (another brake) in Lesson 8.</details></li>
     <li><b>Too fast.</b> Default circle, Adam with learning rate 1.
       <details class="answer"><summary>Answer</summary>The picture flickers and accuracy hovers around 50%. Every step overshoots (Lesson 2). With 0.03 it learns in about 25 epochs.</details></li>
     <li><b>Vanishing gradients.</b> Circle, 6 hidden layers of 8, activation sigmoid, optimizer SGD, lr 0.3. Train 300 epochs. Then switch the activation to tanh.
@@ -197,14 +201,14 @@ optimizer = torch.optim.Adam(model.parameters(), lr=<span class="n">0.03</span>,
 </section>
 
 <nav class="pager">
-  <a href="04_training_loop.html"><small>← Previous</small>4 · The training loop</a>
-  <a class="next" href="06_overfitting.html"><small>Next →</small>6 · Underfitting, overfitting, just right</a>
+  <a href="05_activation_functions.html"><small>← Previous</small>5 · Activation functions &amp; softmax</a>
+  <a class="next" href="07_overfitting.html"><small>Next →</small>7 · Underfitting, overfitting, just right</a>
 </nav>
 </main>
 <footer>Training, Visualized · works offline</footer>
 
 <script>
-// ===== NN CORE (same engine as Lesson 8) =====
+// ===== NN CORE (same engine as Lesson 12) =====
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 const ACTS={

@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 · Activation functions &amp; softmax — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .srow{display:grid;grid-template-columns:6.6rem minmax(4rem,1fr) 2.6rem minmax(4rem,1.3fr) 3.3rem;gap:.45rem;align-items:center;font-size:.88rem;padding:.12rem .3rem;border-radius:8px}
+  .srow input[type=range]{width:100%;accent-color:var(--blue)}
+  .srow .z{font-family:var(--mono);color:var(--muted);text-align:right}
+  .srow .pb{height:14px;background:var(--soft);border-radius:4px;overflow:hidden}
+  .srow .pb i{display:block;height:100%;background:#9fb8f5;transition:width .12s}
+  .srow .pc{font-family:var(--mono);font-weight:700;text-align:right}
+  .srow.top .pb i{background:var(--blue)}
+  .srow.truth{background:#ebfbee}
+  .srow.truth .nm{color:var(--green);font-weight:700}
+  .srow.truth.top .pb i{background:var(--green)}
+  .srow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shead{display:grid;grid-template-columns:6.6rem minmax(4rem,1fr) 2.6rem minmax(4rem,1.3fr) 3.3rem;gap:.45rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 .3rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_activation_functions.html" class="on" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 5 of 12 · ≈ 35 min</div>
+  <h1>The bend: activation functions &amp; softmax</h1>
+  <p class="one-liner">Every neuron does two things. ① It adds up <b>inputs × weights</b>, which always gives a straight line.
+  ② It pushes that number through a small <b>bend</b>, the <b>activation function</b>. Without the bend, 100 layers can draw nothing but a straight line.
+  At the very end of a classifier, one more special function, <b>softmax</b>, turns the raw scores into <b>probabilities</b>.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A drinking straw is straight. Bend it once and you get a corner. Bend it many times and you can make almost any shape.
+      Each neuron adds <b>one bend</b>. Many neurons together can follow any curve.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, click each activation and drag <b>z</b>. Watch the output and the slope.</li>
+      <li>In ②, press <b>▶ Fit</b> with <b>linear</b>, then with <b>ReLU</b>. Straight line vs. a curve.</li>
+      <li>In ④, drag the class scores and watch the probabilities. They always add up to 100%.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>More neurons = more bends = a better fit of the curve. And softmax always gives the <b>biggest probability</b> to the <b>biggest score</b>.
+      It never changes the ranking; it only says <b>how sure</b> the model is.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Activation</b> = the bend after each neuron's sum</span><span><b>ReLU</b> = "keep positive, turn negative into 0"</span>
+    <span><b>Sigmoid / tanh</b> = S-shaped squashers</span><span><b>Slope</b> = how much blame can flow back through the bend (Lesson 3)</span>
+    <span><b>Logit</b> = a raw score before softmax</span><span><b>Softmax</b> = turns scores into probabilities that add up to 100%</span><span><b>Cross-entropy</b> = the loss: −ln(probability of the right answer)</span></div>
+</section>
+
+<section class="card">
+  <h2>① Meet the bends</h2>
+  <p>The neuron first computes <b>z = w₁x₁ + w₂x₂ + … + b</b>. The activation f then decides what comes out: <b>a = f(z)</b>.
+  The <b style="color:#f08c00">slope</b> of f matters just as much as its shape: during backprop the blame is <b>multiplied by this slope</b> (Lesson 3).</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Activation</h3>
+      <div class="seg" id="afSeg"></div>
+      <div class="ctl" style="margin-top:.8rem"><label>Input z <output id="zOut"></output></label><input type="range" id="z" min="-6" max="6" step="0.1" value="1.5"></div>
+      <div class="explain" id="afInfo" style="margin-top:.6rem;font-size:.92rem"></div>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat blue"><b id="afOut">–</b><span>Output f(z)</span></div>
+        <div class="stat orange"><b id="afSlope">–</b><span>Slope f′(z)</span></div>
+        <div class="stat"><b id="afRange">–</b><span>Output range</span></div>
+      </div>
+      <div class="canvas-box"><div class="canvas-title">The activation (blue) and its slope (orange dashed)</div><canvas id="afc" style="height:320px"></canvas>
+        <div class="look">👀 <b>Blue</b> = what comes out of the neuron for each input z. <b style="color:#f08c00">Orange dashed</b> = the slope. Where the orange line touches 0, the curve is flat:
+          blame can't flow back and the neuron <b>stops learning</b>. The black dot and short line show your z and the slope there.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② What the bend does to the output: build a curve from bends</h2>
+  <p>A tiny network: <b>1 input → N hidden neurons → 1 output</b>. The output is the <b>sum of the neurons' bent pieces</b>. Pick a target curve and let gradient descent fit it.
+  Watch the thin coloured lines: each one is <b>one neuron's piece</b>. The blue curve is their sum.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Target</h3>
+      <div class="ctl"><select id="tgt"><option value="vee">V-shape |x|</option><option value="wave" selected>Wave sin(x)</option><option value="bump">Bump</option><option value="step">Step</option></select></div>
+      <h3>Network</h3>
+      <div class="ctl"><label>Activation</label><select id="fAct"><option value="linear">linear (no bend)</option><option value="relu" selected>ReLU</option><option value="tanh">tanh</option><option value="sigmoid">sigmoid</option></select></div>
+      <div class="ctl"><label>Hidden neurons <output id="nOut"></output></label><input type="range" id="nN" min="1" max="12" value="3"></div>
+      <div class="btn-row"><button class="btn primary" id="fitBtn">▶ Fit</button><button class="btn" id="fitNew">🎲 New start</button></div>
+      <label class="check"><input type="checkbox" id="showPieces" checked> Show each neuron's piece</label>
+      <p class="small muted">5,000 steps of Adam on 61 points. Every Fit starts from the same random weights, unless you press 🎲.</p>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat orange"><b id="fErr">–</b><span>Error (MSE)</span></div>
+        <div class="stat"><b id="fStep">0</b><span>Training step</span></div>
+        <div class="stat blue"><b id="fPar">–</b><span>Parameters</span></div>
+      </div>
+      <div id="fVerdict" class="banner info">Press ▶ Fit.</div>
+      <div class="canvas-box"><div class="canvas-title">Grey dots = the target · blue = the network's output · thin lines = each neuron's piece</div><canvas id="fitc" style="height:340px"></canvas>
+        <div class="look">👀 With <b>ReLU</b> every piece is a "hockey stick" with <b>one corner</b> (black dots on the curve). Adding sticks gives a curve made of straight bits.
+          With <b>tanh/sigmoid</b> each piece is a soft S-step. With <b>linear</b> every piece is a straight line, and a sum of straight lines is still one straight line.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ Deep networks: does the blame survive the trip back?</h2>
+  <div class="grid2">
+    <div>
+      <p>In backprop the blame is multiplied by the activation's <b>slope once per layer</b>. Sigmoid's slope is never more than <b>0.25</b>, so after 10 layers
+      the blame can shrink by 0.25¹⁰ ≈ one millionth. The first layers then learn almost nothing: the <b>vanishing gradient</b>.</p>
+      <p>This chart builds a real deep network (16 neurons per layer, standard random start), sends 64 random inputs through it, runs backprop and measures
+      how big the weight gradients are in <b>every</b> layer.</p>
+      <div class="ctl"><label>Activation</label><div class="seg" id="vgSeg"></div></div>
+      <div class="ctl"><label>Number of layers <output id="dOut"></output></label><input type="range" id="depth" min="2" max="20" value="10"></div>
+      <div class="btn-row"><button class="btn" id="vgNew">🎲 New random weights</button></div>
+      <div class="stats"><div class="stat bad"><b id="vgRatio">–</b><span>Layer 1 gets this much of the last layer's blame</span></div></div>
+    </div>
+    <div class="canvas-box"><div class="canvas-title">Average size of the weight gradient in each layer (log scale)</div><canvas id="vgc" style="height:300px"></canvas>
+      <div class="look">👀 Each bar is one layer: <b>left = next to the input</b>, right = next to the output. Tall bar = that layer gets a strong "turn your knobs" signal.
+        Every grid line down means <b>10× smaller</b>. A staircase going down to the left = the early layers are starving.</div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>④ The last layer: softmax turns scores into probabilities</h2>
+  <p>Our Day-1 FashionMNIST model ends with <code>Linear(128, 10)</code>: <b>10 raw scores</b> (logits), one per class, like 2.8 or −1.3. They are not probabilities: they can be negative
+  and don't add up to anything. <b>Softmax</b> fixes that: take e<sup>score</sup> for every class, then divide by the total. Big scores win big, and everything adds up to 100%.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Examples</h3>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch">
+        <button class="btn" data-pre="untrained">🎲 Untrained model (all scores 0)</button>
+        <button class="btn" data-pre="unsure">🤔 Unsure: Shirt or T-shirt?</button>
+        <button class="btn" data-pre="right">✅ Sure and right (Ankle boot)</button>
+        <button class="btn" data-pre="wrong">❌ Sure and wrong (says T-shirt, is Shirt)</button>
+        <button class="btn" id="plus1">➕ Add 1 to every score</button>
+      </div>
+      <div class="ctl"><label>The picture really is a…</label><select id="truth"></select></div>
+      <div class="ctl"><label>Temperature T <output id="tOut"></output></label><input type="range" id="temp" min="0" max="6" step="1" value="2"></div>
+      <p class="small muted">Temperature divides every score before softmax. T &gt; 1 = softer, less sure. T &lt; 1 = sharper, more sure. Normal softmax is T = 1.</p>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat blue"><b id="smPred">–</b><span>Model says</span></div>
+        <div class="stat"><b id="smConf">–</b><span>Confidence</span></div>
+        <div class="stat good"><b id="smTrue">–</b><span>Probability of the right answer</span></div>
+        <div class="stat orange"><b id="smLoss">–</b><span>Loss = −ln(p)</span></div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="shead"><span>Class</span><span>Score (drag)</span><span></span><span>Probability</span><span></span></div>
+          <div id="rows"></div>
+          <div class="small muted" id="smSum" style="margin:.3rem"></div>
+        </div>
+        <div class="canvas-box"><div class="canvas-title">Cross-entropy loss vs the probability of the right answer</div><canvas id="cec" style="height:300px"></canvas>
+          <div class="look">👀 The loss only looks at <b>one number</b>: the probability given to the correct class (green row). At 100% the loss is 0.
+            As that probability drops toward 0, the loss <b>shoots up</b>. Being sure and wrong is punished hardest.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card adv">
+  <h2>📏 Detailed: the formulas</h2>
+  <div class="grid2">
+    <div>
+      <table class="plain">
+        <tr><th>Name</th><th>f(z)</th><th>f′(z)</th><th>Where you meet it</th></tr>
+        <tr><td>Sigmoid σ</td><td>1 / (1 + e<sup>−z</sup>)</td><td>σ(z)(1 − σ(z)) ≤ 0.25</td><td>binary output, LSTM gates</td></tr>
+        <tr><td>tanh</td><td>(e<sup>z</sup> − e<sup>−z</sup>) / (e<sup>z</sup> + e<sup>−z</sup>)</td><td>1 − tanh²(z) ≤ 1</td><td>RNN/LSTM, our playground</td></tr>
+        <tr><td>ReLU</td><td>max(0, z)</td><td>0 or 1</td><td>default in CNNs (Day 1)</td></tr>
+        <tr><td>ReLU6</td><td>min(max(0, z), 6)</td><td>0 or 1</td><td>MobileNetV2 (Day 2): the cap helps int8</td></tr>
+        <tr><td>Leaky ReLU</td><td>z if z &gt; 0, else αz</td><td>1 or α</td><td>GANs (Live Demo); PyTorch α = 0.01</td></tr>
+        <tr><td>GELU</td><td>z · Φ(z)</td><td>smooth</td><td>Transformers (BERT, GPT)</td></tr>
+      </table>
+    </div>
+    <div>
+      <p class="center" style="font-family:var(--mono);font-size:1.02rem">softmax(z)ᵢ = e<sup>zᵢ/T</sup> / Σⱼ e<sup>zⱼ/T</sup><br>CE loss = −ln softmax(z)<sub>true</sub></p>
+      <p class="small muted">Why "stacked linear layers = one linear layer": W₂(W₁x + b₁) + b₂ = (W₂W₁)x + (W₂b₁ + b₂), which is again just "matrix × x + vector".
+      Softmax with 2 classes is exactly the sigmoid of the score difference: e<sup>a</sup>/(e<sup>a</sup> + e<sup>b</sup>) = σ(a − b). That's why a yes/no model needs only one output (Lesson 6).
+      Adding the same number to every score changes nothing, because it multiplies top and bottom by the same e<sup>c</sup>. Real code subtracts the largest score first so that e<sup>z</sup> never overflows.</p>
+    </div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first, then check!)</h3>
+  <ol class="challenges">
+    <li><b>The flat ends.</b> In ①, set z = 5 and click through sigmoid, tanh and ReLU. Which slope is almost 0? What does that mean for learning?
+      <details class="answer"><summary>Answer</summary>Sigmoid: slope 0.0066. tanh: 0.0002. ReLU: exactly 1.
+      A neuron whose sum z is far out on a flat end is <b>saturated</b>: its slope is almost 0, so backprop passes almost no blame through it and its weights barely move.
+      ReLU never saturates on the positive side.</details></li>
+    <li><b>The dead zone.</b> Still in ①, set z = −2 and compare ReLU with Leaky ReLU.
+      <details class="answer"><summary>Answer</summary>ReLU: output 0 and slope 0. If a neuron's z is negative for <b>every</b> input, it can never recover. That's a "dead ReLU".
+      Leaky ReLU keeps a small slope (0.1 here), so some blame still gets through and the neuron can come back to life.</details></li>
+    <li><b>No bend, no curve.</b> In ②, choose <b>linear</b> and <b>12</b> neurons on the Wave. Press Fit. Then switch to ReLU (keep 12) and fit again.
+      <details class="answer"><summary>Answer</summary>Linear: the result is a <b>straight line</b> (error ≈ 0.48) even with 12 neurons and 37 parameters. The sum of 12 straight lines is one straight line.
+      ReLU with 12 neurons follows the wave closely (error ≈ 0.002, about 250× smaller). Same number of weights; the only difference is the bend.</details></li>
+    <li><b>How many bends does a V need?</b> V-shape, ReLU. Try 1 neuron, then 2.
+      <details class="answer"><summary>Answer</summary>1 neuron: one hockey stick, only one side of the V (error ≈ 0.53). 2 neurons: perfect (error 0.0000),
+      because |x| = ReLU(x) + ReLU(−x). One corner needs one ReLU neuron.</details></li>
+    <li><b>Smooth vs sharp bends.</b> Wave with <b>2</b> neurons: ReLU, then tanh. Then the Step target with 1 neuron: ReLU vs sigmoid.
+      <details class="answer"><summary>Answer</summary>Wave, 2 neurons: ReLU makes a stiff zig-zag (error ≈ 0.21) while tanh is already very close (≈ 0.002), because S-shaped pieces match the wave's rounded humps.
+      Step, 1 neuron: ReLU can only make a ramp that goes on rising (≈ 0.22), while one sigmoid <i>is</i> a soft step (≈ 0.006).
+      Different bends suit different shapes, but with enough neurons all of them can fit anything.</details></li>
+    <li><b>The vanishing gradient.</b> In ③, keep 10 layers and click sigmoid, tanh, ReLU. How much of the last layer's blame reaches layer 1?
+      <details class="answer"><summary>Answer</summary>Sigmoid: about <b>one millionth</b> of the blame (1 / 1,000,000): the bars fall like a staircase, roughly 4× per layer. tanh and ReLU: about half. The blame survives.
+      Now try 20 layers: sigmoid drops to about 1 / 700,000,000,000, so the first layers of a deep sigmoid network are practically frozen, while tanh and ReLU stay within about 3×. That's why hidden layers use ReLU-like activations
+      (and later BatchNorm, Lesson 8), and sigmoid is kept for the output.</details></li>
+    <li><b>The untrained model.</b> In ④, press 🎲 Untrained. What are the probabilities and the loss?
+      <details class="answer"><summary>Answer</summary>All scores 0 → each class 10%, and the loss is −ln(0.1) = <b>2.303</b>, which is ln 10.
+      That's exactly the loss a 10-class model prints before it has learned anything. If your Day-1 loss is stuck at ≈ 2.30, the model is still guessing.</details></li>
+    <li><b>Only differences count.</b> Press ❌ Sure and wrong. Note the probabilities. Now press ➕ three times.
+      <details class="answer"><summary>Answer</summary>All scores go up by 3, but the probabilities and the loss don't change at all. Softmax only cares about <b>how far apart</b> the scores are, not how high they are.</details></li>
+    <li><b>Confident mistakes hurt.</b> Compare the loss for ✅ Sure and right, 🤔 Unsure, and ❌ Sure and wrong (the true class is shown in green).
+      <details class="answer"><summary>Answer</summary>Sure and right: ≈ 0.01. Unsure (true class Shirt at ≈ 39%): ≈ 0.94. Sure and wrong (Shirt at 0.25%): ≈ 6.0.
+      Cross-entropy is gentle when the model is unsure, and brutal when it is sure and wrong. That pushes the model to be <b>honest</b> about its confidence.</details></li>
+    <li class="adv"><b>Temperature (Detailed).</b> Press 🤔 Unsure and move T from 1 to 4, then down to 0.25. Does the prediction ever change?
+      <details class="answer"><summary>Answer</summary>At T = 1: Shirt ≈ 39%, T-shirt ≈ 32%. At T = 4 the bars flatten (Shirt ≈ 18%, T-shirt ≈ 17%); at T = 0.25 Shirt gets ≈ 68%. The <b>ranking never changes</b>: temperature only changes how sure the model sounds.
+      Knowledge distillation (Lesson 12) uses T &gt; 1 on purpose: the soft probabilities show the student that a Shirt looks a bit like a T-shirt, and not at all like a Bag.</details></li>
+  </ol>
+</section>
+
+<section class="card adv">
+  <h2>🐍 The same thing in PyTorch</h2>
+  <pre class="code"><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn, torch.nn.functional <span class="k">as</span> F
+
+model = nn.Sequential(
+    nn.Linear(<span class="n">784</span>, <span class="n">128</span>), nn.ReLU(),        <span class="c"># hidden layer: sum, then the bend</span>
+    nn.Linear(<span class="n">128</span>, <span class="n">10</span>),                <span class="c"># output: 10 raw scores (logits), NO softmax here</span>
+)
+loss_fn = nn.CrossEntropyLoss()            <span class="c"># = log_softmax + pick the true class, done in one stable step</span>
+
+logits = model(x)                          <span class="c"># shape [batch, 10]</span>
+loss = loss_fn(logits, y)                  <span class="c"># give it the LOGITS, not probabilities</span>
+
+<span class="c"># at prediction time (Day 3 API does exactly this, in NumPy):</span>
+probs = F.softmax(logits, dim=<span class="n">1</span>)           <span class="c"># probabilities that add up to 1</span>
+pred  = probs.argmax(dim=<span class="n">1</span>)                <span class="c"># same answer as logits.argmax(dim=1)</span></pre>
+  <p class="small muted">Classic bug: adding <code>nn.Softmax()</code> at the end of the model <i>and</i> using <code>CrossEntropyLoss</code>. Softmax is then applied twice,
+  the scores get squashed and training becomes slow. For yes/no problems use one output + <code>BCEWithLogitsLoss</code> (it adds the sigmoid for you).</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why can't the hidden layers use a linear activation?
+      <details class="answer"><summary>Answer</summary>A stack of linear layers is still one linear function. The network could only ever draw a straight line (or a flat plane), no matter how many layers it has (challenge 3).</details></li>
+    <li>The model says Cat 50%, Dog 30%, Car 20%. The picture is a dog. What is the loss? What if it said Dog 90%?
+      <details class="answer"><summary>Answer</summary>−ln(0.3) ≈ 1.20. With Dog at 90%: −ln(0.9) ≈ 0.105. The loss only looks at the probability of the correct class.</details></li>
+    <li>Why do CNNs use ReLU in the hidden layers but sigmoid at the output of a yes/no model?
+      <details class="answer"><summary>Answer</summary>Hidden layers need a slope that doesn't shrink the blame (ReLU: slope 1). The output needs a number between 0 and 1 that we can read as a probability (sigmoid).</details></li>
+    <li>Your API returns "T-shirt, 99.8%" for a photo that is clearly a shirt. Is the model broken?
+      <details class="answer"><summary>Answer</summary>Not necessarily: softmax always sums to 100%, even for pictures the model has never seen anything like. A high number means "sure", not "right".
+      Checking how often high-confidence answers are actually correct (calibration) is part of evaluating a model (Lesson 9).</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="04_training_loop.html"><small>← Previous</small>4 · The training loop</a>
+  <a class="next" href="06_neural_network_playground.html"><small>Next →</small>6 · Neural network playground</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+function erf(x){const s=Math.sign(x),t=1/(1+0.3275911*Math.abs(x));return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x));}
+const PHI=z=>0.5*(1+erf(z/Math.SQRT2)),phi=z=>Math.exp(-z*z/2)/Math.sqrt(2*Math.PI);
+const sig=z=>1/(1+Math.exp(-z));
+
+// ---------- the activation functions ----------
+const AF={
+  linear:{label:'linear',f:z=>z,d:()=>1,range:'−∞ … +∞',info:'<b>No bend at all.</b> The output is just z. Used only at the very end of a model that predicts a plain number (like the ice-cream sales in Lesson 1).'},
+  sigmoid:{label:'sigmoid',f:sig,d:z=>sig(z)*(1-sig(z)),range:'0 … 1',info:'<b>Squeezes any number into 0…1</b>, so it can be read as a probability. Used at the output of yes/no models. Both ends are flat, and its slope is never more than 0.25.'},
+  tanh:{label:'tanh',f:Math.tanh,d:z=>1-Math.tanh(z)**2,range:'−1 … 1',info:'<b>Like sigmoid, but from −1 to 1 and centred at 0.</b> Slope up to 1. Used in LSTMs and in our playground (Lesson 6). Its ends are flat too.'},
+  relu:{label:'ReLU',f:z=>z>0?z:0,d:z=>z>0?1:0,range:'0 … +∞',info:'<b>Keep positive numbers, turn negative ones into 0.</b> Very cheap to compute and slope exactly 1 for z &gt; 0. The default in CNNs (Day 1, Day 2). Downside: for z &lt; 0 the slope is 0.'},
+  leaky:{label:'Leaky ReLU',f:z=>z>0?z:0.1*z,d:z=>z>0?1:0.1,range:'−∞ … +∞',info:'<b>ReLU with a small slope (here 0.1) for negative z</b>, so the neuron never goes completely silent. Popular in GANs (see the Live Demo).'},
+  gelu:{label:'GELU',f:z=>z*PHI(z),d:z=>PHI(z)+z*phi(z),range:'≈ −0.17 … +∞',info:'<b>A smooth ReLU.</b> Slightly negative just below 0, then like ReLU. Used in Transformers such as BERT and GPT.'},
+};
+let curAF='relu';
+function segButtons(el,keys,cur,cb){el.innerHTML=keys.map(k=>`<button data-k="${k}" class="${k===cur?'on':''}">${AF[k].label}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cb(b.dataset.k);});}
+function drawAF(){
+  const A=AF[curAF],z0=+$('#z').value,{ctx,w:W,h:H}=setupCanvas($('#afc')),L=34,T=10,pw=W-L-10,ph=H-T-26,y0=-1.5,y1=4;
+  const sx=z=>L+(z+6)/12*pw,sy=y=>T+(y1-y)/(y1-y0)*ph;
+  $('#zOut').textContent=z0.toFixed(1);$('#afOut').textContent=A.f(z0).toFixed(4);$('#afSlope').textContent=A.d(z0).toFixed(4);$('#afRange').textContent=A.range;$('#afInfo').innerHTML=A.info;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let y=-1;y<=4;y++){ctx.strokeStyle=y===0?'#adb5bd':'#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-4,sy(y)+4);}
+  for(let z=-6;z<=6;z+=2){ctx.strokeStyle=z===0?'#adb5bd':'#eef0f3';ctx.beginPath();ctx.moveTo(sx(z),T);ctx.lineTo(sx(z),T+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText(z,sx(z),T+ph+14);}
+  ctx.fillText('z (the neuron\'s sum)',L+pw/2,H-1);
+  const plot=(fn,col,lw,dash)=>{ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();
+    for(let i=0;i<=600;i++){const z=-6+i/50,y=fn(z);i?ctx.lineTo(sx(z),sy(y)):ctx.moveTo(sx(z),sy(y));}ctx.stroke();ctx.restore();};
+  plot(A.d,'#f08c00',2,[6,4]);plot(A.f,'#2f6fed',3.5,[]);
+  // tangent at z0
+  const f0=A.f(z0),d0=A.d(z0);ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();ctx.strokeStyle='#1c2230';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx(z0-1.3),sy(f0-1.3*d0));ctx.lineTo(sx(z0+1.3),sy(f0+1.3*d0));ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.arc(sx(z0),sy(Math.max(y0,Math.min(y1,f0))),6,0,7);ctx.fillStyle='#1c2230';ctx.fill();
+  ctx.strokeStyle='rgba(28,34,48,.25)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(sx(z0),T);ctx.lineTo(sx(z0),T+ph);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign='left';ctx.fillStyle='#2f6fed';ctx.fillText('f(z)',L+6,T+14);ctx.fillStyle='#f08c00';ctx.fillText('slope f′(z)',L+44,T+14);
+}
+
+// ---------- ② fit a 1-D curve with N neurons ----------
+const TARGETS={vee:x=>Math.abs(x)-1,wave:x=>Math.sin(1.5*x),bump:x=>2*Math.exp(-x*x)-0.5,step:x=>x<0?-1:1};
+const XS=Array.from({length:61},(_,i)=>-3+i*0.1);
+const FIT={seed:3,net:null,step:0,running:null};
+const ACT1={linear:{f:z=>z,d:()=>1},relu:{f:z=>z>0?z:0,d:z=>z>0?1:0},tanh:{f:Math.tanh,d:z=>1-Math.tanh(z)**2},sigmoid:{f:sig,d:z=>sig(z)*(1-sig(z))}};
+function initFit(){
+  const N=+$('#nN').value,r=mulberry32(FIT.seed*101+N),net={N,act:$('#fAct').value,tgt:$('#tgt').value,w:[],b:[],v:[],c:0,t:0};
+  for(let j=0;j<N;j++){const u=-2.7+5.4*(j+0.5)/N+0.4*(r()-0.5),s=r()<0.5?-1:1,w=s*(0.8+0.4*r());net.w.push(w);net.b.push(-w*u);net.v.push(0.1*gauss(r));}
+  net.m=new Float64Array(3*N+1);net.s=new Float64Array(3*N+1);FIT.net=net;FIT.step=0;
+}
+function fitOut(net,x){const A=ACT1[net.act];let y=net.c;for(let j=0;j<net.N;j++)y+=net.v[j]*A.f(net.w[j]*x+net.b[j]);return y;}
+function fitLoss(net){const T=TARGETS[net.tgt];return XS.reduce((s,x)=>s+(fitOut(net,x)-T(x))**2,0)/XS.length;}
+function fitSteps(net,k){
+  const A=ACT1[net.act],T=TARGETS[net.tgt],N=net.N,g=new Float64Array(3*N+1),lr=0.02;
+  for(let it=0;it<k;it++){g.fill(0);
+    for(const x of XS){const e=2*(fitOut(net,x)-T(x))/XS.length;g[3*N]+=e;
+      for(let j=0;j<N;j++){const z=net.w[j]*x+net.b[j],a=A.f(z),dz=e*net.v[j]*A.d(z,a);g[j]+=e*a;g[N+j]+=dz*x;g[2*N+j]+=dz;}}
+    net.t++;const P=[net.v,net.w,net.b];
+    for(let q=0;q<3*N+1;q++){net.m[q]=0.9*net.m[q]+0.1*g[q];net.s[q]=0.999*net.s[q]+0.001*g[q]*g[q];
+      const d=lr*(net.m[q]/(1-0.9**net.t))/(Math.sqrt(net.s[q]/(1-0.999**net.t))+1e-8);
+      if(q===3*N)net.c-=d;else P[Math.floor(q/N)][q%N]-=d;}}
+}
+const PIECE_COLS=['#e8590c','#7048e8','#0c8599','#d6336c','#2f9e44','#1971c2','#f08c00','#9c36b5','#5c940d','#c2255c','#1098ad','#862e9c'];
+function drawFit(){
+  const net=FIT.net,{ctx,w:W,h:H}=setupCanvas($('#fitc')),L=34,T=8,pw=W-L-10,ph=H-T-24,y0=-2,y1=2.2,A=ACT1[net.act],Tg=TARGETS[net.tgt];
+  const sx=x=>L+(x+3)/6*pw,sy=y=>T+(y1-y)/(y1-y0)*ph;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let y=-2;y<=2;y++){ctx.strokeStyle=y===0?'#ced4da':'#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-4,sy(y)+4);}
+  for(let x=-3;x<=3;x++){ctx.textAlign='center';ctx.fillText(x,sx(x),T+ph+14);}
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+  if($('#showPieces').checked)for(let j=0;j<net.N;j++){ctx.strokeStyle=PIECE_COLS[j%12];ctx.globalAlpha=0.55;ctx.lineWidth=1.5;ctx.beginPath();
+    for(let i=0;i<=300;i++){const x=-3+i/50,y=net.v[j]*A.f(net.w[j]*x+net.b[j]);i?ctx.lineTo(sx(x),sy(y)):ctx.moveTo(sx(x),sy(y));}ctx.stroke();}
+  ctx.globalAlpha=1;
+  for(const x of XS){ctx.beginPath();ctx.arc(sx(x),sy(Tg(x)),3,0,7);ctx.fillStyle='#adb5bd';ctx.fill();}
+  ctx.strokeStyle='#2f6fed';ctx.lineWidth=3.5;ctx.beginPath();for(let i=0;i<=600;i++){const x=-3+i/100,y=fitOut(net,x);i?ctx.lineTo(sx(x),sy(y)):ctx.moveTo(sx(x),sy(y));}ctx.stroke();
+  if(net.act==='relu')for(let j=0;j<net.N;j++){const k=-net.b[j]/net.w[j];if(k>-3&&k<3){ctx.beginPath();ctx.arc(sx(k),sy(fitOut(net,k)),4.5,0,7);ctx.fillStyle='#1c2230';ctx.fill();}}
+  ctx.restore();
+  const e=fitLoss(net);$('#fErr').textContent=e<0.00005?'0.0000':e.toFixed(4);$('#fStep').textContent=FIT.step.toLocaleString('en-US');$('#fPar').textContent=3*net.N+1;
+  const v=$('#fVerdict');
+  if(FIT.step===0){v.className='banner info';v.textContent='Press ▶ Fit. The blue curve is the untrained network.';}
+  else if(net.act==='linear'){v.className='banner bad';v.innerHTML=`🟧 A <b>straight line</b>, no matter how many neurons: ${net.N} straight pieces add up to one straight line.`;}
+  else if(e<0.005){v.className='banner good';v.innerHTML=`✅ <b>Great fit</b> with ${net.N} ${AF[net.act].label} neuron${net.N>1?'s':''}.`;}
+  else if(e<0.05){v.className='banner info';v.innerHTML=`🟦 <b>Close.</b> A few more bends would help.`;}
+  else{v.className='banner bad';v.innerHTML=`🟧 <b>Not enough bends</b> (or the wrong kind) for this shape. Add neurons or try another activation.`;}
+}
+function runFit(){
+  if(FIT.running)cancelAnimationFrame(FIT.running);initFit();$('#fitBtn').disabled=true;
+  const chunk=()=>{fitSteps(FIT.net,100);FIT.step+=100;drawFit();if(FIT.step<5000)FIT.running=requestAnimationFrame(chunk);else{FIT.running=null;$('#fitBtn').disabled=false;}};
+  FIT.running=requestAnimationFrame(chunk);
+}
+function resetFit(){if(FIT.running){cancelAnimationFrame(FIT.running);FIT.running=null;$('#fitBtn').disabled=false;}$('#nOut').textContent=$('#nN').value;initFit();drawFit();}
+
+// ---------- ③ vanishing gradient in a deep net ----------
+let vgAct='sigmoid',vgSeed=1;
+function deepGrads(act,D,seed){
+  const H=16,B=64,r=mulberry32(seed),A=AF[act],gain=act==='relu'||act==='leaky'?2:1,W=[];
+  for(let l=0;l<D;l++){const w=new Float64Array(H*H);for(let k=0;k<w.length;k++)w[k]=gauss(r)*Math.sqrt(gain/H);W.push(w);}
+  const rv=Array.from({length:H},()=>gauss(r)),g=new Float64Array(D);
+  for(let s=0;s<B;s++){const a=[Float64Array.from({length:H},()=>gauss(r))],z=[];
+    for(let l=0;l<D;l++){const zl=new Float64Array(H),al=new Float64Array(H);for(let j=0;j<H;j++){let t=0;for(let i=0;i<H;i++)t+=W[l][j*H+i]*a[l][i];zl[j]=t;al[j]=A.f(t);}z.push(zl);a.push(al);}
+    let da=Float64Array.from(rv,v=>v/B);
+    for(let l=D-1;l>=0;l--){const dz=new Float64Array(H);for(let j=0;j<H;j++)dz[j]=da[j]*A.d(z[l][j]);
+      let sAbs=0;for(let j=0;j<H;j++)for(let i=0;i<H;i++)sAbs+=Math.abs(dz[j]*a[l][i]);g[l]+=sAbs/(H*H);
+      const nd=new Float64Array(H);for(let i=0;i<H;i++){let t=0;for(let j=0;j<H;j++)t+=W[l][j*H+i]*dz[j];nd[i]=t;}da=nd;}}
+  return Array.from(g);
+}
+function drawVG(){
+  const D=+$('#depth').value;$('#dOut').textContent=D;
+  const g=deepGrads(vgAct,D,vgSeed),{ctx,w:W,h:H}=setupCanvas($('#vgc')),L=48,T=10,pw=W-L-10,ph=H-T-30;
+  const lg=g.map(v=>Math.log10(Math.max(v,1e-14))),top=Math.ceil(Math.max(...lg)),bot=Math.min(top-3,Math.floor(Math.min(...lg)));
+  const sy=v=>T+(top-v)/(top-bot)*ph;ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let e=bot;e<=top;e++){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(e));ctx.lineTo(L+pw,sy(e));ctx.stroke();ctx.textAlign='right';ctx.fillText('1e'+e,L-4,sy(e)+4);}
+  const bw=pw/D;g.forEach((v,l)=>{const y=sy(lg[l]);ctx.fillStyle=l===0?'#e03131':'#2f6fed';ctx.fillRect(L+l*bw+bw*0.15,y,bw*0.7,T+ph-y);
+    if(D<=12||l%2===0||l===D-1){ctx.fillStyle='#495057';ctx.textAlign='center';ctx.fillText(l+1,L+l*bw+bw/2,T+ph+14);}});
+  ctx.fillStyle='#868e96';ctx.textAlign='center';ctx.fillText('layer (1 = next to the input)',L+pw/2,H-2);
+  const ratio=g[0]/g[D-1];$('#vgRatio').textContent=ratio>=0.5?ratio.toFixed(2)+'×':'1 / '+Math.round(1/ratio).toLocaleString('en-US');
+  $('#vgRatio').parentElement.className='stat '+(ratio<0.01?'bad':ratio<0.3?'orange':'good');
+}
+
+// ---------- ④ softmax ----------
+const CLASSES=['T-shirt/top','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle boot'];
+const TEMPS=[0.25,0.5,1,1.5,2,3,4];
+const PRESETS={
+  untrained:{z:[0,0,0,0,0,0,0,0,0,0],t:6},
+  unsure:{z:[2.0,-3,1.0,0.2,0.8,-3,2.2,-3,-1,-3],t:6},
+  right:{z:[-3,-3,-3,-3,-3,0,-3,1,-2,6],t:9},
+  wrong:{z:[6,-3,0,-1,-1,-3,0,-3,-2,-3],t:6},
+};
+const SM={z:[...PRESETS.unsure.z],t:6};
+function softmax(z,T){const m=Math.max(...z),e=z.map(v=>Math.exp((v-m)/T)),s=e.reduce((a,b)=>a+b,0);return e.map(v=>v/s);}
+function buildRows(){
+  $('#truth').innerHTML=CLASSES.map((c,i)=>`<option value="${i}">${c}</option>`).join('');
+  $('#rows').innerHTML=CLASSES.map((c,i)=>`<div class="srow" id="r${i}"><span class="nm" title="${c}">${c}</span><input type="range" min="-10" max="10" step="0.1" data-i="${i}"><span class="z"></span><span class="pb"><i></i></span><span class="pc"></span></div>`).join('');
+  document.querySelectorAll('#rows input').forEach(el=>el.addEventListener('input',()=>{SM.z[+el.dataset.i]=+el.value;updSM();}));
+}
+function updSM(syncSliders){
+  const T=TEMPS[+$('#temp').value],p=softmax(SM.z,T),t=SM.t,top=p.indexOf(Math.max(...p));
+  $('#tOut').textContent=T;$('#truth').value=t;
+  CLASSES.forEach((c,i)=>{const r=$('#r'+i);if(syncSliders)r.querySelector('input').value=SM.z[i];
+    r.querySelector('.z').textContent=SM.z[i].toFixed(1);r.querySelector('.pb i').style.width=(p[i]*100).toFixed(2)+'%';
+    r.querySelector('.pc').textContent=p[i]>=0.0995?(p[i]*100).toFixed(0)+'%':(p[i]*100).toFixed(1)+'%';
+    r.className='srow'+(i===top?' top':'')+(i===t?' truth':'');});
+  const loss=-Math.log(Math.max(p[t],1e-300));
+  $('#smPred').textContent=CLASSES[top];$('#smConf').textContent=(p[top]*100).toFixed(1)+'%';$('#smTrue').textContent=(p[t]*100).toFixed(p[t]<0.01?2:1)+'%';$('#smLoss').textContent=loss.toFixed(3);
+  $('#smPred').parentElement.className='stat '+(top===t?'good':'bad');
+  $('#smSum').textContent=`Sum of all probabilities = ${(p.reduce((a,b)=>a+b,0)*100).toFixed(1)}% (always). Green row = the true class.`;
+  drawCE(p[t]);
+}
+function drawCE(pt){
+  const {ctx,w:W,h:H}=setupCanvas($('#cec')),L=34,T=10,pw=W-L-10,ph=H-T-28,ymax=7,sx=p=>L+p*pw,sy=y=>T+(ymax-Math.min(ymax,y))/ymax*ph;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(let y=0;y<=ymax;y++){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-4,sy(y)+4);}
+  for(let p=0;p<=1.001;p+=0.25){ctx.textAlign='center';ctx.fillText(Math.round(p*100)+'%',sx(p),T+ph+14);}
+  ctx.fillText('probability given to the right answer',L+pw/2,H-2);
+  ctx.strokeStyle='#f08c00';ctx.lineWidth=3;ctx.beginPath();for(let i=1;i<=400;i++){const p=i/400,y=-Math.log(p);i>1?ctx.lineTo(sx(p),sy(y)):ctx.moveTo(sx(p),sy(y));}ctx.stroke();
+  const y=-Math.log(Math.max(pt,1e-300));ctx.beginPath();ctx.arc(sx(pt),sy(y),7,0,7);ctx.fillStyle=pt>=0.5?'#2f9e44':'#e03131';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
+  ctx.fillStyle='#1c2230';ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=pt>0.6?'right':'left';ctx.fillText(`loss ${y.toFixed(2)}${y>ymax?' (off the chart)':''}`,sx(pt)+(pt>0.6?-10:10),Math.max(T+12,sy(y)-8));
+  ctx.fillStyle='#868e96';ctx.font='11px Segoe UI, sans-serif';ctx.textAlign='left';ctx.fillText('10% = guessing among 10 classes → loss 2.30',sx(0.1)+6,sy(Math.log(10))+4);
+  ctx.beginPath();ctx.arc(sx(0.1),sy(Math.log(10)),3,0,7);ctx.fill();
+}
+
+// ---------- events ----------
+segButtons($('#afSeg'),['linear','sigmoid','tanh','relu','leaky','gelu'],curAF,k=>{curAF=k;drawAF();});
+$('#z').addEventListener('input',drawAF);
+segButtons($('#vgSeg'),['sigmoid','tanh','relu'],vgAct,k=>{vgAct=k;drawVG();});
+$('#depth').addEventListener('input',drawVG);$('#vgNew').onclick=()=>{vgSeed++;drawVG();};
+['#tgt','#fAct','#nN'].forEach(id=>$(id).addEventListener('input',resetFit));
+$('#showPieces').addEventListener('change',drawFit);
+$('#fitBtn').onclick=runFit;$('#fitNew').onclick=()=>{FIT.seed++;resetFit();runFit();};
+buildRows();
+document.querySelectorAll('[data-pre]').forEach(b=>b.onclick=()=>{const P=PRESETS[b.dataset.pre];SM.z=[...P.z];SM.t=P.t;$('#temp').value=2;updSM(true);});
+$('#plus1').onclick=()=>{if(Math.max(...SM.z)>9)SM.z=SM.z.map(v=>v-Math.max(...SM.z)+5);else SM.z=SM.z.map(v=>v+1);updSM(true);};   // wraps back down before hitting the slider limit
+$('#truth').addEventListener('input',()=>{SM.t=+$('#truth').value;updSM();});
+$('#temp').addEventListener('input',()=>updSM());
+window.addEventListener('resize',()=>{drawAF();drawFit();drawVG();updSM();});
+drawAF();resetFit();drawVG();updSM(true);
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
+</script>
+</body>
+</html>

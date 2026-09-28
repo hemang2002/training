@@ -23,17 +23,21 @@
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
     <a href="04_training_loop.html" title="The training loop">4</a>
-    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
-    <a href="06_overfitting.html" title="Overfitting">6</a>
-    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
-    <a href="08_quantization_pruning.html" class="on" title="Quantization &amp; pruning">8</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" class="on" title="Quantization &amp; pruning">12</a>
   </nav>
   <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 8 of 8 · ≈ 30 min</div>
+  <div class="kicker">Lesson 12 of 12 · ≈ 30 min</div>
   <h1>Making models small</h1>
   <p class="one-liner">A trained model is just a <b>giant list of numbers</b> (its weights), like 0.0371528… To make it smaller we can
   <b>① round</b> every number (keep fewer digits) or <b>② delete</b> the tiny numbers. The model gets smaller. <b>But does it still work?</b> Let's find out.</p>
@@ -97,7 +101,7 @@
 
 <section class="card">
   <h2>② Now squeeze a real (tiny) model</h2>
-  <p>This page first trains a small network to separate <b style="color:#2f6fed">blue</b> and <b style="color:#f08c00">orange</b> dots (like Lesson 5). Then you can
+  <p>This page first trains a small network to separate <b style="color:#2f6fed">blue</b> and <b style="color:#f08c00">orange</b> dots (like Lesson 6). Then you can
   <b>round</b> its weights and <b>delete</b> some of them, and see if it still works.</p>
   <div class="prog" id="progBox"><i id="prog"></i></div><div class="small muted" id="progTxt">Training…</div>
   <div class="lab" style="margin-top:.6rem">
@@ -267,14 +271,14 @@ prune.remove(model.fc1, <span class="s">"weight"</span>)</pre>
 </section>
 
 <nav class="pager">
-  <a href="07_cnn_convolution.html"><small>← Previous</small>7 · How a CNN sees</a>
+  <a href="11_transfer_learning.html"><small>← Previous</small>11 · Transfer learning</a>
   <a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>
 </nav>
 </main>
 <footer>Training, Visualized · works offline</footer>
 
 <script>
-// ===== NN CORE (same engine as Lesson 5) =====
+// ===== NN CORE (same engine as Lesson 6) =====
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function gauss(r){let u=0;while(u===0)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 const ACTS={

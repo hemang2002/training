@@ -14,17 +14,21 @@
     <a href="02_gradient_descent.html" title="Gradient descent">2</a>
     <a href="03_backpropagation.html" title="Backpropagation">3</a>
     <a href="04_training_loop.html" title="The training loop">4</a>
-    <a href="05_neural_network_playground.html" title="Neural network playground">5</a>
-    <a href="06_overfitting.html" class="on" title="Overfitting">6</a>
-    <a href="07_cnn_convolution.html" title="How a CNN sees">7</a>
-    <a href="08_quantization_pruning.html" title="Quantization &amp; pruning">8</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" class="on" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
   </nav>
   <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 6 of 8 · ≈ 30 min</div>
+  <div class="kicker">Lesson 7 of 12 · ≈ 30 min</div>
   <h1>Underfitting, overfitting, and just right</h1>
   <p class="one-liner">Two students prepare for an exam. One only learns "the answer is usually C" (<b>underfitting</b>).
   The other memorises every practice question word for word, typos included (<b>overfitting</b>). Both fail the real exam.
@@ -153,7 +157,7 @@ best_val = float(<span class="s">"inf"</span>)
     <span class="k">if</span> val_loss &lt; best_val:                         <span class="c"># early stopping: keep the best checkpoint</span>
         best_val = val_loss
         torch.save(model.state_dict(), <span class="s">"best.pth"</span>)</pre>
-  <p class="small muted">Other anti-overfitting tools you will meet: data augmentation (Day 2: random crops and flips), Dropout, and smaller or pretrained models (transfer learning).</p>
+  <p class="small muted">Other anti-overfitting tools you will meet: Dropout (Lesson 8), data augmentation (Day 2: random crops and flips), and smaller or pretrained models (transfer learning, Lesson 11).</p>
 </section>
 
 <section class="callout think">
@@ -171,8 +175,8 @@ best_val = float(<span class="s">"inf"</span>)
 </section>
 
 <nav class="pager">
-  <a href="05_neural_network_playground.html"><small>← Previous</small>5 · Neural network playground</a>
-  <a class="next" href="07_cnn_convolution.html"><small>Next →</small>7 · How a CNN sees</a>
+  <a href="06_neural_network_playground.html"><small>← Previous</small>6 · Neural network playground</a>
+  <a class="next" href="08_dropout_batchnorm.html"><small>Next →</small>8 · Dropout &amp; BatchNorm</a>
 </nav>
 </main>
 <footer>Training, Visualized · works offline</footer>
