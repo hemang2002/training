@@ -70,13 +70,13 @@
     <div><h3>⚡ Often faster</h3><p>Small numbers are quicker to move around and to multiply (on hardware that supports them).</p></div>
     <div><h3>🔋 Less energy</h3><p>Matters a lot on phones, cameras and cheap cloud servers.</p></div>
   </div>
-  <table class="plain" style="margin-top:.6rem">
+  <div class="tbl-wrap"><table class="plain" style="margin-top:.6rem">
     <tr><th>Each weight stored as</th><th>Bits</th><th>Our Day-2 MobileNetV2 (2.2 million weights)</th></tr>
     <tr><td>float32 (normal)</td><td>32</td><td>≈ 8.9 MB</td></tr>
     <tr><td>float16</td><td>16</td><td>≈ 4.5 MB</td></tr>
     <tr><td>int8</td><td>8</td><td>≈ 2.2 MB, <b>4× smaller</b></td></tr>
     <tr><td>int4</td><td>4</td><td>≈ 1.1 MB, 8× smaller</td></tr>
-  </table>
+  </table></div>
   <p class="small muted">On Day 2 we did this for real: 8.9 MB → 2.6 MB, and accuracy went from 90.0% to 89.4%. Almost no loss!</p>
 </section>
 
@@ -355,7 +355,7 @@
 
 <section class="card adv">
   <h2>🗺️ How this maps to Day 2</h2>
-  <table class="plain">
+  <div class="tbl-wrap"><table class="plain">
     <tr><th>Method (Day 2)</th><th>What it does</th><th>Seen on this page as</th></tr>
     <tr><td><b>Dynamic quantization</b> <code>quantize_dynamic</code></td><td>Weights → int8 ahead of time; activations quantized on the fly. Mainly Linear/LSTM layers.</td><td>① and ② (weight rounding)</td></tr>
     <tr><td><b>Static PTQ</b> (+ calibration)</td><td>Also quantizes activations, using ranges measured on calibration images.</td><td>Choosing the Range (min–max vs percentile)</td></tr>
@@ -364,7 +364,7 @@
     <tr><td><b>Calibration</b> (static PTQ, <code>quantize_static</code>)</td><td>Runs representative inputs through the model to set every activation's range.</td><td>③ Rounding the numbers between the layers</td></tr>
     <tr><td><b>Knowledge distillation</b> (homework 1)</td><td>A small student learns from a big teacher's soft outputs (softmax with temperature, Lesson 5).</td><td>⑤ Teach a small student</td></tr>
     <tr><td><b>FP16 / BF16</b></td><td>Halves the size. Fast on GPUs; on most CPUs it's <i>slower</i> (no native half-precision math).</td><td>The size table at the top</td></tr>
-  </table>
+  </table></div>
   <pre class="code"><span class="k">import</span> torch, torch.nn.utils.prune <span class="k">as</span> prune
 <span class="c"># dynamic int8 quantization of all Linear layers</span>
 qmodel = torch.ao.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)

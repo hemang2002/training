@@ -148,12 +148,12 @@
   <h2>🌍 The real thing: Day 2, MobileNetV2 on CIFAR-10</h2>
   <div class="grid2">
     <div>
-      <table class="plain">
+      <div class="tbl-wrap"><table class="plain">
         <tr><th></th><th>Feature extraction</th><th>Fine-tuning</th></tr>
         <tr><td>Trained weights</td><td>12,810 (only the new head)</td><td>2.2 million</td></tr>
         <tr><td>Result (Notebook 01)</td><td>≈ 78% after 1 epoch</td><td>≈ 90% after 3 epochs</td></tr>
         <tr><td>Training data used</td><td colspan="2">10,000 CIFAR images, ≈ 6 CPU minutes, instead of 1.28 million ImageNet images and days of GPU time</td></tr>
-      </table>
+      </table></div>
       <p class="small muted">Fine-tuning wins on Day 2 because CIFAR's 32 × 32 pictures look quite different from ImageNet's big photos, the same lesson as the inverted pictures in ③.</p>
     </div>
     <div>

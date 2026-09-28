@@ -17,6 +17,7 @@
   .srow.truth .nm{color:var(--green);font-weight:700}
   .srow.truth.top .pb i{background:var(--green)}
   .srow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  @media (max-width:560px){.srow,.shead{grid-template-columns:4.6rem minmax(3rem,1fr) 2.2rem minmax(3rem,1fr) 2.9rem !important;gap:.3rem;font-size:.8rem}}
   .shead{display:grid;grid-template-columns:6.6rem minmax(4rem,1fr) 2.6rem minmax(4rem,1.3fr) 3.3rem;gap:.45rem;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 .3rem}
 </style>
 </head>
@@ -179,7 +180,7 @@
   <h2>📏 Detailed: the formulas</h2>
   <div class="grid2">
     <div>
-      <table class="plain">
+      <div class="tbl-wrap"><table class="plain">
         <tr><th>Name</th><th>f(z)</th><th>f′(z)</th><th>Where you meet it</th></tr>
         <tr><td>Sigmoid σ</td><td>1 / (1 + e<sup>−z</sup>)</td><td>σ(z)(1 − σ(z)) ≤ 0.25</td><td>binary output, LSTM gates</td></tr>
         <tr><td>tanh</td><td>(e<sup>z</sup> − e<sup>−z</sup>) / (e<sup>z</sup> + e<sup>−z</sup>)</td><td>1 − tanh²(z) ≤ 1</td><td>RNN/LSTM, our playground</td></tr>
@@ -187,7 +188,7 @@
         <tr><td>ReLU6</td><td>min(max(0, z), 6)</td><td>0 or 1</td><td>MobileNetV2 (Day 2): the cap helps int8</td></tr>
         <tr><td>Leaky ReLU</td><td>z if z &gt; 0, else αz</td><td>1 or α</td><td>GANs (Live Demo); PyTorch α = 0.01</td></tr>
         <tr><td>GELU</td><td>z · Φ(z)</td><td>smooth</td><td>Transformers (BERT, GPT)</td></tr>
-      </table>
+      </table></div>
     </div>
     <div>
       <p class="center" style="font-family:var(--mono);font-size:1.02rem">softmax(z)ᵢ = e<sup>zᵢ/T</sup> / Σⱼ e<sup>zⱼ/T</sup><br>CE loss = −ln softmax(z)<sub>true</sub></p>

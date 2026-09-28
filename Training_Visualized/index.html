@@ -67,7 +67,7 @@
     <div class="cycle-text" id="cycleText">
       <div class="step"><h3>1 · 📦 Take some examples</h3><p>Pick a few examples from the data, for example 8 photos with their correct labels. This small group is called a <b>batch</b>.</p><p class="muted small">Lesson 4</p></div>
       <div class="step"><h3>2 · 🤔 The model guesses</h3><p>The model uses its current <b>weights</b> (knobs) to make a guess for each example. At the start the knobs are random, so the guesses are bad.</p><p class="muted small">Lessons 1, 5 and 6</p></div>
-      <div class="step"><h3>3 · 📏 Measure the mistake</h3><p>Compare the guesses with the correct answers and squeeze all mistakes into <b>one number: the loss</b>. Smaller loss = better model.</p><p class="muted small">Lesson 1</p></div>
+      <div class="step"><h3>3 · 📏 Measure the mistake</h3><p>Compare the guesses with the correct answers and squeeze all mistakes into <b>one number: the loss</b>. Smaller loss = better model.</p><p class="muted small">Lessons 1 and 5</p></div>
       <div class="step"><h3>4 · 🔍 Find who is to blame</h3><p><b>Backpropagation</b> works out, for every single knob, which way it should turn to make the loss smaller, and by how much.</p><p class="muted small">Lesson 3</p></div>
       <div class="step"><h3>5 · 🔧 Turn the knobs a little</h3><p><b>Gradient descent</b> turns every knob a small step in the right direction. Then we go back to step 1 with new examples, thousands of times.</p><p class="muted small">Lesson 2</p></div>
       <div class="dots" id="cycleDots"></div>
@@ -127,10 +127,15 @@
     <tr><td><b>Learning rate</b></td><td>How big each knob-turning step is.</td><td>2</td></tr>
     <tr><td><b>Backpropagation</b></td><td>The trick that finds the gradient of every knob in one backward sweep.</td><td>3</td></tr>
     <tr><td><b>Batch / epoch</b></td><td>A few examples used for one step / one full trip through all the data.</td><td>4</td></tr>
-    <tr><td><b>Neuron / layer / activation</b></td><td>A tiny calculator / a column of them / the bend that lets them draw curves.</td><td>5</td></tr>
-    <tr><td><b>Overfitting</b></td><td>Memorising the practice data instead of learning the pattern.</td><td>6</td></tr>
-    <tr><td><b>Kernel / convolution</b></td><td>A small pattern slid over an image to find where that pattern appears.</td><td>7</td></tr>
-    <tr><td><b>Quantization / pruning</b></td><td>Rounding the weights to fewer values / deleting the smallest weights.</td><td>8</td></tr>
+    <tr><td><b>Activation (ReLU, sigmoid, tanh)</b></td><td>The bend after each neuron's sum that lets a network draw curves.</td><td>5</td></tr>
+    <tr><td><b>Logits / softmax / cross-entropy</b></td><td>Raw class scores / turning them into probabilities that add up to 100% / the loss −ln(probability of the right answer).</td><td>5</td></tr>
+    <tr><td><b>Neuron / layer</b></td><td>A tiny calculator / a column of them.</td><td>6</td></tr>
+    <tr><td><b>Overfitting</b></td><td>Memorising the practice data instead of learning the pattern.</td><td>7</td></tr>
+    <tr><td><b>Dropout / BatchNorm</b></td><td>Switching random neurons off while training / re-centring and re-scaling each layer's numbers.</td><td>8</td></tr>
+    <tr><td><b>Precision / recall</b></td><td>Of all alarms, how many were real / of all real cases, how many did we catch.</td><td>9</td></tr>
+    <tr><td><b>Kernel / convolution</b></td><td>A small pattern slid over an image to find where that pattern appears.</td><td>10</td></tr>
+    <tr><td><b>Pretrained / fine-tuning</b></td><td>Already trained on a big dataset / gently training it further on your task.</td><td>11</td></tr>
+    <tr><td><b>Quantization / pruning / distillation</b></td><td>Rounding the weights / deleting weights or neurons / training a small student to copy a big teacher.</td><td>12</td></tr>
   </table>
 </section>
 
@@ -139,9 +144,12 @@
   <table class="plain">
     <tr><th>When</th><th>Pages</th><th>Why there</th></tr>
     <tr><td>Day 1 morning, before notebook 01</td><td>1 → 2 → 3</td><td>Model, loss, gradient descent and backprop give meaning to <code>requires_grad</code> and <code>backward()</code>.</td></tr>
-    <tr><td>Day 1, before notebook 02</td><td>4 → 7</td><td>The training loop and convolutions are exactly what notebook 02 codes up.</td></tr>
-    <tr><td>Day 1 end or Day 2 start</td><td>5 → 6</td><td>Depth, activations and overfitting explain the train/test curves and why transfer learning helps.</td></tr>
-    <tr><td>Day 2, before notebook 03</td><td>8</td><td>Quantization and pruning with intuition first, then the real PyTorch/ONNX methods.</td></tr>
+    <tr><td>Day 1, before notebook 02</td><td>4 → 5 → 10</td><td>The training loop, ReLU + softmax/cross-entropy and convolutions are exactly what notebook 02 codes up.</td></tr>
+    <tr><td>Day 1, after notebook 02 (before lab Ex. 2)</td><td>9 → 8</td><td>Read the real confusion matrix, then BatchNorm + Dropout before the lab adds them.</td></tr>
+    <tr><td>Day 1 end or Day 2 start</td><td>6 → 7</td><td>Depth, activations and overfitting explain the train/test curves.</td></tr>
+    <tr><td>Day 2, before notebook 01</td><td>11</td><td>Feature extraction vs fine-tuning, freezing and preprocessing, before MobileNetV2.</td></tr>
+    <tr><td>Day 2, before notebooks 02–03</td><td>12</td><td>Quantization, calibration, pruning and distillation with intuition first, then the real PyTorch/ONNX methods.</td></tr>
+    <tr><td>Day 5</td><td>9</td><td>Choosing metrics and thresholds is an engineering decision.</td></tr>
   </table>
   <p class="small muted">Total ≈ 7½ hours if every challenge is done in class; pick the pages that fit your schedule. Each page also works as homework: students can follow the "New here?" box alone.
   All numbers quoted in the answers were measured on these exact pages.</p>
