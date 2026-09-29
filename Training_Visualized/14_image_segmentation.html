@@ -12,7 +12,7 @@
   .clslegend{display:flex;flex-wrap:wrap;gap:.35rem .8rem;font-size:.85rem;margin:.35rem .3rem}
   .clslegend i{display:inline-block;width:.8rem;height:.8rem;border-radius:3px;margin-right:.3rem;vertical-align:-1px}
   .pixinfo{font-size:.95rem;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.45rem .7rem;margin:.4rem 0;min-height:2.4rem}
-  .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin-top:.6rem}
+  .trio{max-width:640px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin-top:.6rem}
   .trio figure{margin:0;text-align:center;font-size:.8rem;color:var(--muted);line-height:1.3}
   .trio canvas{width:100%;aspect-ratio:1;display:block;border-radius:8px;border:1px solid var(--line);margin-bottom:.2rem}
   .uses{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:.6rem;margin:.5rem 0}
@@ -61,7 +61,7 @@
       <li>In ③, press <b>Next ▶</b> to walk through the model, then tick <b>✂️ Remove skip connections</b>.</li>
       <li>In ④, press <b>🚫 All background</b> and compare accuracy with IoU.</li></ol></div>
     <div class="box"><h3>👀 Notice this</h3><p>The model first <b>shrinks</b> the picture (to understand it) and then <b>grows</b> it back (to draw the mask). Without the "skip" bridges, the mask becomes a <b>blob</b>.
-      And a mask can be 97% "accurate" while missing every person.</p></div>
+      And a mask can be 95% "accurate" while missing every person.</p></div>
   </div>
   <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Segmentation</b> = give every pixel a class</span><span><b>Mask</b> = a picture of class numbers (0 = background, 1 = person…)</span>
     <span><b>Encoder</b> = the part that shrinks the picture and understands it</span><span><b>Decoder</b> = the part that grows it back to full size</span>
@@ -141,9 +141,10 @@
     </div>
     <div class="adv">
       <h3>🎓 Detailed: the Dice loss</h3>
-      <p>If people cover only 3% of the pixels, plain cross-entropy is mostly about background. The <b>Dice loss</b> looks at the overlap of the person mask directly:</p>
-      <span class="explain formula" style="min-height:0;border-left-width:1px">Dice = 2·|P ∩ T| / (|P| + |T|)
-Dice loss = 1 − Dice   (P = soft prediction, T = true mask)</span>
+      <p>If people cover only 5% of the pixels, plain cross-entropy is mostly about background. The <b>Dice loss</b> looks at the overlap of the person mask directly:</p>
+      <div class="explain" style="min-height:0"><span class="formula">Dice      = 2·|P ∩ T| / (|P| + |T|)
+Dice loss = 1 − Dice
+P = predicted mask (soft), T = true mask</span></div>
       <p class="small">It is often used together: <code>loss = CE + Dice loss</code>. Real U-Nets use two 3×3 convs + BatchNorm + ReLU per block, max-pooling (or stride 2) to go down,
       transposed convolutions or bilinear upsampling to go up, and <code>torch.cat</code> for the skips. DeepLabV3 and LR-ASPP are lighter "encoder + small decoder" designs of the same idea.</p>
     </div>
@@ -181,7 +182,7 @@ Dice loss = 1 − Dice   (P = soft prediction, T = true mask)</span>
         <span class="formula">IoU  = green ÷ (green + red + blue)      overlap ÷ union
 Dice = 2·green ÷ (2·green + red + blue)
 Pixel accuracy = correct pixels ÷ all pixels</span>
-        ⚠️ Pixel accuracy counts the faded background too. People are only about 3% of this picture, so a model that says <b>"no person anywhere"</b> still gets ≈ 97%. IoU ignores the easy background and asks: <b>did you find the person?</b></div>
+        ⚠️ Pixel accuracy counts the faded background too. People are only about 5% of this picture, so a model that says <b>"no person anywhere"</b> still gets ≈ 95%. IoU ignores the easy background and asks: <b>did you find the person?</b></div>
     </div>
   </div>
   <div class="tbl-wrap" style="margin-top:.8rem"><table class="plain">
@@ -210,7 +211,7 @@ Pixel accuracy = correct pixels ÷ all pixels</span>
     </div>
     <div>
       <div class="canvas-box"><div class="canvas-title">Augmentation: the mask must follow the photo</div><canvas id="flipc" class="scene" style="cursor:default"></canvas></div>
-      <div class="btn-row"><button class="btn" id="fOrig">↺ Original</button><button class="btn primary" id="fBoth">🔄 Flip both</button><button class="btn warn" id="fImg">⚠️ Flip only the photo</button></div>
+      <div class="btn-row"><button class="btn" id="fOrig">↺ Original</button><button class="btn" id="fBoth">🔄 Flip both</button><button class="btn" id="fImg">⚠️ Flip only the photo</button></div>
       <div class="banner good" id="flipMsg">Photo and mask match.</div>
       <div class="tbl-wrap"><table class="plain">
         <tr><th>Model</th><th>Expected result on 170 photos</th></tr>
@@ -233,7 +234,7 @@ Pixel accuracy = correct pixels ÷ all pixels</span>
   <h3>🧪 Try this (guess first, then check!)</h3>
   <ol class="challenges">
     <li><b>The lazy model.</b> In ④, press 🚫 All background. Guess the pixel accuracy and the IoU before you look.
-      <details class="answer"><summary>Answer</summary>Pixel accuracy ≈ 97%, IoU = 0. The people are only ≈ 3% of the pixels, so "background everywhere" is right almost everywhere, and useless.
+      <details class="answer"><summary>Answer</summary>Pixel accuracy ≈ 95%, IoU = 0. The people are only ≈ 5% of the pixels, so "background everywhere" is right almost everywhere, and useless.
       That's why segmentation is measured with IoU (or Dice) per class, not with pixel accuracy. Same lesson as imbalanced data in Lesson 9.</details></li>
     <li><b>A small mistake.</b> In ④, keep the person shape and shift it only 6 pixels to the right. How much does IoU drop? Now try the same with the size slider.
       <details class="answer"><summary>Answer</summary>IoU drops a lot, to about 0.5, even though the mask "looks almost right". People are thin (arms, legs), so a small shift moves much of the mask off the person.
@@ -503,10 +504,11 @@ $('#uPlay').onclick=()=>{if(U.timer){uStop();return;}if(U.step>=USTEPS.length-1)
 $('#noSkip').addEventListener('input',drawUnet);
 
 // ================= ④ IoU playground =================
-const TRUEP=new Uint8Array(LW*LH);for(let j=0;j<LH;j++)for(let i=0;i<LW;i++)TRUEP[j*LW+i]=CLS[(j*R+1)*RW+i*R+1]===1?1:0;
+const TRUEP=new Uint8Array(LW*LH);
 const PB=[BOX.p1,BOX.p2],UB=[Math.min(BOX.p1[0],BOX.p2[0]),Math.min(BOX.p1[1],BOX.p2[1]),Math.max(BOX.p1[2],BOX.p2[2]),Math.max(BOX.p1[3],BOX.p2[3])];
 const UCX=(UB[0]+UB[2])/2,UCY=(UB[1]+UB[3])/2;
 const isPerson=(x,y)=>PEOPLE.some(p=>personPart(x,y,p)!==null);
+for(let j=0;j<LH;j++)for(let i=0;i<LW;i++)TRUEP[j*LW+i]=isPerson(i+.5,j+.5)?1:0;
 const iouC=document.createElement('canvas');iouC.width=LW;iouC.height=LH;
 function predAt(shape,x,y){if(shape==='none')return 0;if(shape==='all')return 1;
   if(shape==='exact')return isPerson(x,y)?1:0;
@@ -547,7 +549,7 @@ function drawFlip(){const {ctx,w,h}=setupCanvas($('#flipc')),m=FL.mode;ctx.image
   let agree=0,tot=0;for(let j=0;j<RH;j+=2)for(let i=0;i<RW;i+=2){if(CLS[j*RW+i]!==1)continue;tot++;if(CLS[j*RW+(RW-1-i)]===1)agree++;}
   const msg=$('#flipMsg');if(m==='img'){msg.className='banner bad';msg.textContent=`⚠️ Bug! Only ${Math.round(agree/tot*100)}% of the "person" mask is still on a person. The model is now taught that road and sky are people.`;}
   else{msg.className='banner good';msg.textContent=m==='both'?'✅ Both flipped: still a correct training example, and a new one for free.':'Photo and mask match.';}
-  ['#fOrig','#fBoth','#fImg'].forEach((id,k)=>$(id).classList.toggle('ghost',['orig','both','img'][k]!==m));}
+  ['#fOrig','#fBoth','#fImg'].forEach((id,k)=>{const on=['orig','both','img'][k]===m,b=$(id);b.classList.toggle('primary',on&&k<2);b.classList.toggle('warn',on&&k===2);});}
 $('#fOrig').onclick=()=>{FL.mode='orig';drawFlip();};$('#fBoth').onclick=()=>{FL.mode='both';drawFlip();};$('#fImg').onclick=()=>{FL.mode='img';drawFlip();};
 
 function drawAll(){drawTask();drawGrid();drawUnet();drawTrio();drawIoU();drawFlip();}
