@@ -7,12 +7,48 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="extra.css">
 <style>
-  .bar{height:1.3rem;background:var(--soft);border-radius:6px;position:relative;overflow:hidden}
-  .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);transition:width .3s}
-  .bar .lim{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--red)}
-  .slots{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:.3rem}
-  .slots span{height:1.1rem;border-radius:3px;background:#e9ecef}
-  .slots span.u{background:#74c0fc}
+  /* three question cards */
+  .q3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:.8rem}
+  .qcard{border-radius:14px;padding:.8rem 1rem;border:2px solid;background:#fff}
+  .qcard .ico{font-size:2rem;line-height:1}
+  .qcard h3{margin:.3rem 0 .2rem}
+  .qcard .ask{font-size:1.05rem;font-weight:700;margin:.2rem 0 .5rem}
+  .qcard dl{display:grid;grid-template-columns:auto 1fr;gap:.2rem .6rem;margin:0;font-size:.9rem}
+  .qcard dt{font-weight:700;color:var(--muted)}
+  .qcard dd{margin:0}
+  .qcard.s{border-color:#74c0fc}.qcard.r{border-color:#ffc078}.qcard.l{border-color:#ff8787}
+  /* story player */
+  .scene{display:grid;grid-template-columns:1fr auto 1.2fr auto 1fr;gap:.5rem;align-items:center}
+  @media (max-width:820px){.scene{grid-template-columns:1fr}.scene .arrow{transform:rotate(90deg);justify-self:center}}
+  .actor{border:2px solid var(--line);border-radius:14px;background:#fff;padding:.6rem .7rem;text-align:center;min-height:9.5rem;display:flex;flex-direction:column;justify-content:center;gap:.3rem}
+  .actor .big{font-size:2.3rem;line-height:1}
+  .actor .lbl{font-weight:700}
+  .bubble{background:#f1f3f5;border-radius:10px;padding:.35rem .5rem;font-size:.85rem;min-height:2.6rem}
+  .bubble.ask{background:#e7f5ff}.bubble.ok{background:#ebfbee;color:#2b8a3e}.bubble.no{background:#fff5f5;color:#c92a2a}
+  .lamps{display:flex;justify-content:center;gap:.4rem;flex-wrap:wrap}
+  .lamp{display:flex;flex-direction:column;align-items:center;font-size:.72rem;font-weight:700;color:var(--muted);min-width:4.2rem}
+  .lamp i{width:1.4rem;height:1.4rem;border-radius:50%;background:#dee2e6;border:2px solid #ced4da;margin-bottom:.15rem;transition:all .25s}
+  .lamp.pass i{background:#51cf66;border-color:#2f9e44}.lamp.fail i{background:#ff6b6b;border-color:#e03131}.lamp.wait i{background:#ffd43b;border-color:#f59f00}
+  .lamp.cur{color:var(--ink)}
+  .users{font-size:1.6rem;letter-spacing:.1rem}
+  .flowarrow{font-size:1.8rem;font-weight:800;color:#adb5bd;transition:color .2s}
+  .flowarrow.on{color:var(--green)}.flowarrow.off{color:#ffa8a8}
+  .clock{font-family:var(--mono);font-weight:700;font-size:1.1rem}
+  .story{list-style:none;padding:0;margin:.4rem 0 0;max-height:15rem;overflow:auto}
+  .story li{padding:.35rem .6rem;border-left:4px solid transparent;border-radius:6px;margin:.15rem 0;color:var(--muted);font-size:.92rem}
+  .story li.cur{border-left-color:var(--blue);background:#eef4ff;color:var(--ink);font-weight:500}
+  .story li b.t{font-family:var(--mono);margin-right:.4rem}
+  /* budget cards */
+  .budget{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:.9rem}
+  .tank{height:9rem;width:5rem;border:3px solid #adb5bd;border-top:0;border-radius:0 0 12px 12px;position:relative;margin:.4rem auto;background:#fff;overflow:hidden}
+  .tank i{position:absolute;left:0;right:0;bottom:0;background:#74c0fc;transition:height .3s,background .3s}
+  .tank .limline{position:absolute;left:-4px;right:-4px;height:0;border-top:3px dashed var(--red)}
+  .tank .limtxt{position:absolute;right:.2rem;font-size:.7rem;font-weight:700;color:var(--red);transform:translateY(-1.1rem)}
+  .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-width:14rem;margin:.4rem auto}
+  .slots span{aspect-ratio:1;border-radius:6px;background:#e9ecef;border:2px solid #dee2e6;display:grid;place-items:center;font-size:.8rem}
+  .slots span.u{background:#d0ebff;border-color:#74c0fc}
+  .pendingrow{display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;min-height:1.8rem}
+  .pendingrow span{background:#fff4e6;border:2px dashed #ffa94d;border-radius:6px;padding:.1rem .4rem;font-size:.75rem;font-weight:700;color:#d9480f}
 </style>
 </head>
 <body>
@@ -25,130 +61,172 @@
 <main class="wrap">
 <section class="hero">
   <div class="kicker">Step 10 of 12 · ≈ 25 min</div>
-  <h1>Health checks &amp; resources: is it OK, and how much may it use?</h1>
-  <p class="one-liner">"Running" doesn't mean "working". Kubernetes asks every pod three questions, the <b>probes</b>: <i>Have you finished starting?</i> <i>Can you take traffic now?</i> <i>Are you still alive?</i>
-  And every pod says how much CPU and memory it <b>needs</b> (requests) and may <b>never exceed</b> (limits). Our API answers the probes on <code>/ready</code> and <code>/health</code>.</p>
+  <h1>Health checks &amp; resources</h1>
+  <p class="one-liner">Two simple ideas. <b>① Health checks:</b> Kubernetes regularly <b>asks your app questions</b> ("are you OK?") by visiting a web address, and acts on the answer.
+  <b>② Resources:</b> every pod gets a <b>budget</b> of CPU and memory, like a hotel booking: a room it reserves, and a maximum it may use.</p>
 </section>
 <section class="start">
   <h2>👋 New here? The 30-second version</h2>
   <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p>A new employee: first a training period (<b>startup</b>). Each morning: "are you ready to take customers?" (<b>readiness</b>): if not, no customers, but no firing.
-      A security guard checks "is anyone at the desk at all?" (<b>liveness</b>): if the desk stays empty, the person is replaced.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>▶ Start pod</b> and watch the startup probe.</li><li>Press <b>🔌 /ready breaks</b>, then <b>🧊 app freezes</b>. Compare what happens.</li><li>In ②, push memory above the limit.</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>Readiness failing = <b>no traffic</b>, no restart. Liveness failing = <b>restart</b>. Memory above the limit = <b>killed</b>; CPU above the limit = only <b>slowed down</b>.</p></div>
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A nurse visits a patient every few minutes and asks one question. If the patient doesn't answer, the nurse does something: lets them rest, or calls the doctor.
+      In Kubernetes the nurse is the <b>kubelet</b>, the question is a web request like <code>GET /health</code>, and the answer is "200 OK" or nothing.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Read the three question cards in ②.</li><li>In ③, pick a story and press <b>Next ▶</b> step by step.</li><li>In ④, drag the sliders: what happens above the limit?</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Only two things can happen to a sick pod: it <b>stops getting users</b> (not ready), or it is <b>restarted</b> (not alive / out of memory). That's all.</p></div>
   </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Probe</b> = a regular health question</span><span><b>kubelet</b> = Kubernetes' helper on each machine; it asks the questions</span>
+    <span><b>/ready</b>, <b>/health</b> = the two web addresses our API answers</span><span><b>Request</b> = resources reserved for the pod</span><span><b>Limit</b> = the maximum it may use</span><span><b>OOMKilled</b> = killed for using too much memory</span></div>
 </section>
 
 <section class="card">
-  <h2>① The three probes on one API pod</h2>
-  <div class="lab">
-    <aside class="controls">
-      <div class="ctl"><label>Model loading takes <output id="ltOut"></output></label><input type="range" id="lt" min="2" max="80" value="6"></div>
-      <div class="btn-row" style="flex-direction:column;align-items:stretch">
-        <button class="btn primary" id="start">▶ Start pod</button>
-        <button class="btn" id="rbreak">🔌 /ready breaks (e.g. models missing)</button>
-        <button class="btn" id="freeze">🧊 app freezes (stuck, no answers)</button>
-        <button class="btn" id="fix">✅ problem gone</button>
-      </div>
-      <p class="small muted">Our real settings (02-api-deployment.yaml): startup every 2 s, up to 30 failures (60 s); readiness every 5 s, 2 failures; liveness every 10 s, 3 failures. The clock runs 4× faster here.</p>
-    </aside>
-    <div class="stage">
-      <div class="stats"><div class="stat" id="stBox"><b id="st">–</b><span>Pod status</span></div><div class="stat" id="trBox"><b id="tr">–</b><span>Gets traffic from the Service?</span></div><div class="stat"><b id="rs">0</b><span>Restarts</span></div></div>
-      <div class="canvas-box"><div class="canvas-title">Probe results over time (● pass · ● fail)</div><canvas id="pc" style="height:150px"></canvas></div>
-      <div class="logbox" id="plog" style="height:8rem;margin-top:.5rem"></div>
+  <h2>① The problem: "Running" is not "working"</h2>
+  <div class="grid2">
+    <div>
+      <p>Kubernetes can see that the container <b>process is running</b>. It can't see what happens <i>inside</i> it. Maybe the models haven't finished loading. Maybe the app is stuck.
+      From outside, all of these look the same:</p>
+      <div class="term"><div class="cmd">kubectl get pods</div><pre>NAME                         READY   STATUS    RESTARTS
+cifar-api-68c5fb8c48-ch29k   1/1     <span class="ok">Running</span>   0        <span class="c">← but is it answering users?</span></pre></div>
+      <p>So we give Kubernetes a way to <b>ask</b>. Our API has two tiny web addresses made just for this:</p>
+      <ul><li><code>/health</code> → <code>{"status":"ok"}</code>: "my process is alive and responding"</li>
+        <li><code>/ready</code> → <code>{"status":"ready","models":["fp32","int8"]}</code>: "my models are loaded, send me work"</li></ul>
+    </div>
+    <div class="dg">
+      <div class="flow"><span class="chip blue" style="font-size:1rem">🩺 kubelet</span><span class="arrow">— GET /ready →</span><span class="chip green" style="font-size:1rem">📦 API pod</span></div>
+      <div class="flow" style="margin-top:.5rem"><span class="chip green">200 OK</span><span class="arrow">= yes</span><span class="chip red">error / no answer</span><span class="arrow">= no</span></div>
+      <p class="small muted center" style="margin-top:.6rem">Real API logs: these knocks arrive every few seconds, signed "kube-probe":</p>
+      <div class="term"><div class="cmd">kubectl -n ml-demo logs -l app=cifar-api --tail=3</div><pre>"GET /ready HTTP/1.1" 200 44 "-" "<span class="hl">kube-probe/1.36</span>"
+"GET /health HTTP/1.1" 200 16 "-" "<span class="hl">kube-probe/1.36</span>"
+"GET /ready HTTP/1.1" 200 44 "-" "<span class="hl">kube-probe/1.36</span>"</pre></div>
     </div>
   </div>
 </section>
 
 <section class="card">
-  <h2>② Requests and limits</h2>
-  <div class="grid2">
-    <div>
-      <div class="yaml"><span class="k">resources:</span>
-  <span class="k">requests:</span>          <span class="c"># "I need at least this" → used to pick a node</span>
-    <span class="k">cpu:</span> <span class="v">250m</span>         <span class="c"># 250 millicores = ¼ of a CPU core</span>
-    <span class="k">memory:</span> <span class="v">256Mi</span>
-  <span class="k">limits:</span>            <span class="c"># "never more than this"</span>
-    <span class="k">cpu:</span> <span class="v">"1"</span>          <span class="c"># above → slowed down (throttled)</span>
-    <span class="k">memory:</span> <span class="v">512Mi</span>      <span class="c"># above → killed (OOMKilled)</span></div>
-      <h3 style="margin-top:.8rem">Memory</h3>
-      <div class="ctl"><label>Memory limit</label><select id="mlim"><option>40</option><option>256</option><option selected>512</option></select></div>
+  <h2>② Three questions, three reactions</h2>
+  <div class="q3">
+    <div class="qcard s"><div class="ico">🚀</div><h3>Startup probe</h3><p class="ask">"Have you finished starting?"</p>
+      <dl><dt>Asks</dt><dd><code>/ready</code> every 2 s</dd><dt>Patience</dt><dd>up to 30 × = 60 s</dd><dt>If NO in time</dt><dd>🔁 <b>restart</b> the container</dd><dt>Why</dt><dd>Loading models takes time. Don't judge the app before it's ready.</dd></dl></div>
+    <div class="qcard r"><div class="ico">🚦</div><h3>Readiness probe</h3><p class="ask">"Can you take users right now?"</p>
+      <dl><dt>Asks</dt><dd><code>/ready</code> every 5 s</dd><dt>Patience</dt><dd>2 NOs in a row</dd><dt>If NO</dt><dd>🚫 <b>no users</b> are sent to it (no restart)</dd><dt>Why</dt><dd>A temporarily busy or half-working pod shouldn't get customers.</dd></dl></div>
+    <div class="qcard l"><div class="ico">❤️</div><h3>Liveness probe</h3><p class="ask">"Are you still alive?"</p>
+      <dl><dt>Asks</dt><dd><code>/health</code> every 10 s</dd><dt>Patience</dt><dd>3 NOs in a row</dd><dt>If NO</dt><dd>🔁 <b>restart</b> the container</dd><dt>Why</dt><dd>A stuck app never fixes itself. Turning it off and on again does.</dd></dl></div>
+  </div>
+  <p class="small muted center" style="margin-top:.6rem">Order: the startup probe goes first. Only after it says "yes" do readiness and liveness start, and then they keep asking forever. All numbers are from our <code>k8s/02-api-deployment.yaml</code>.</p>
+</section>
+
+<section class="card">
+  <h2>③ Four stories: press Next ▶ and explain each moment</h2>
+  <div class="btn-row" id="stories"></div>
+  <div class="scene" style="margin-top:.4rem">
+    <div class="actor"><div class="big">🩺</div><div class="lbl">kubelet asks</div><div class="bubble" id="bAsk">–</div></div>
+    <span class="flowarrow" id="a1">→</span>
+    <div class="actor"><div class="big" id="appFace">📦</div><div class="lbl">API pod</div><div class="clock" id="clock">t = 0 s</div>
+      <div class="lamps"><div class="lamp" id="lS"><i></i>started?</div><div class="lamp" id="lR"><i></i>ready?</div><div class="lamp" id="lL"><i></i>alive?</div></div>
+      <div class="bubble" id="bAns">–</div></div>
+    <span class="flowarrow" id="a2">→</span>
+    <div class="actor"><div class="big users" id="users">👤👤👤</div><div class="lbl">users (through the Service)</div><div class="bubble" id="bUsers">–</div></div>
+  </div>
+  <div class="stats" style="margin-top:.6rem"><div class="stat"><b id="kst">–</b><span>kubectl get pods: READY / STATUS</span></div><div class="stat" id="rsBox"><b id="krs">0</b><span>RESTARTS</span></div></div>
+  <div class="btn-row"><button class="btn" id="back">◀ Back</button><button class="btn primary" id="next">Next ▶</button><button class="btn" id="play">▶ Play all</button><span class="small muted" id="stepNo" style="align-self:center"></span></div>
+  <ol class="story" id="story"></ol>
+</section>
+
+<section class="card">
+  <h2>④ Resources: every pod gets a budget</h2>
+  <p>In the YAML each pod says <b>how much it needs</b> and <b>how much it may use at most</b>. Think of a hotel: <b>request</b> = the room you <i>book</i> (it's kept free for you),
+  <b>limit</b> = the most you're <i>allowed</i> to use.</p>
+  <div class="yaml" style="max-width:40rem"><span class="c"># k8s/02-api-deployment.yaml</span>
+<span class="k">resources:</span>
+  <span class="k">requests:</span> {cpu: <span class="v">250m</span>, memory: <span class="v">256Mi</span>}   <span class="c"># booked: ¼ CPU core, 256 MiB</span>
+  <span class="k">limits:</span>   {cpu: <span class="v">"1"</span>,  memory: <span class="v">512Mi</span>}   <span class="c"># never more than 1 core, 512 MiB</span></div>
+  <div class="budget" style="margin-top:.8rem">
+    <div class="dg">
+      <h3>🧠 Memory: over the limit = killed</h3>
+      <div class="ctl"><label>Memory limit</label><div class="seg" id="mlim"><button data-v="512" class="on">512 MiB (ours)</button><button data-v="40">40 MiB (too small)</button></div></div>
       <div class="ctl"><label>The app uses <output id="muOut"></output></label><input type="range" id="mu" min="20" max="700" step="10" value="150"></div>
-      <div class="bar"><i id="mbar"></i><span class="lim" id="mline"></span></div>
-      <div id="mv" class="banner info" style="margin-top:.5rem">–</div>
-      <h3>CPU</h3>
-      <div class="ctl"><label>The app wants <output id="cuOut"></output></label><input type="range" id="cu" min="0.1" max="2.5" step="0.1" value="0.5"></div>
-      <div class="bar"><i id="cbar" style="background:#7048e8"></i><span class="lim" style="left:40%"></span></div>
-      <div id="cv" class="banner info" style="margin-top:.5rem">–</div>
+      <div class="tank"><i id="mfill"></i><div class="limline" id="mline"></div><span class="limtxt" id="mltxt"></span></div>
+      <div id="mv" class="banner info">–</div>
     </div>
-    <div>
-      <h3>How the scheduler uses <i>requests</i></h3>
-      <p class="small">The scheduler only puts a pod on a node if its <b>requests</b> still fit. Our node: 4 CPU cores (each square = 250m).</p>
-      <div class="ctl"><label>API pods wanted <output id="npOut"></output></label><input type="range" id="np" min="1" max="24" value="2"></div>
+    <div class="dg">
+      <h3>⚙️ CPU: over the limit = slowed down</h3>
+      <div class="ctl"><label>The app wants <output id="cuOut"></output></label><input type="range" id="cu" min="0.1" max="3" step="0.1" value="0.5"></div>
+      <div class="tank"><i id="cfill" style="background:#b197fc"></i><div class="limline" style="bottom:33.3%"></div><span class="limtxt" style="bottom:33.3%">limit 1 core</span></div>
+      <div id="cv" class="banner info">–</div>
+    </div>
+    <div class="dg">
+      <h3>🏨 Does it fit? The request decides</h3>
+      <p class="small">Our machine has <b>4 CPU cores</b> = 16 rooms of 250m. Every API pod <b>books</b> one room (its request), even when idle.</p>
+      <div class="btn-row" style="justify-content:center"><button class="btn" id="podMinus">➖ pod</button><button class="btn primary" id="podPlus">➕ pod</button></div>
       <div class="slots" id="slots"></div>
-      <div id="sch" class="banner info" style="margin-top:.5rem">–</div>
-      <div class="termlabel">Real output (trainer's PC)</div>
-      <div class="term"><div class="cmd">kubectl -n ml-demo describe pod cifar-api-68c5fb8c48-ch29k</div><pre>    Limits:
-      cpu:     1
-      memory:  512Mi
-    Requests:
-      cpu:      250m
-      memory:   256Mi
-    Liveness:   http-get http://:http/health delay=0s timeout=1s period=10s #success=1 #failure=3
-    Readiness:  http-get http://:http/ready delay=0s timeout=1s period=5s #success=1 #failure=2
-    Startup:    http-get http://:http/ready delay=0s timeout=1s period=2s #success=1 #failure=30
-QoS Class:                   Burstable</pre><div class="cmd">kubectl -n ml-demo logs -l app=cifar-api --tail=4</div><pre>"GET /ready HTTP/1.1" 200 44 "-" "<span class="hl">kube-probe/1.36</span>"
-"GET /ready HTTP/1.1" 200 44 "-" "kube-probe/1.36"
-"GET /health HTTP/1.1" 200 16 "-" "kube-probe/1.36"     <span class="c">← the kubelet knocking</span></pre></div>
+      <div class="pendingrow" id="pending"></div>
+      <div id="sch" class="banner info">–</div>
     </div>
   </div>
 </section>
 
 <section class="card">
-  <h2>③ Real failures from the trainer's PC</h2>
+  <h2>⑤ Cheat sheet: what Kubernetes does when…</h2>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th>Situation</th><th>Who notices</th><th>What Kubernetes does</th><th>What you see in <code>kubectl get pods</code></th></tr>
+    <tr><td>App still loading its models</td><td>🚀 startup</td><td>waits (up to 60 s)</td><td><code>0/1 Running</code></td></tr>
+    <tr><td>Loading takes longer than 60 s</td><td>🚀 startup</td><td>🔁 restarts it, again and again</td><td>RESTARTS goes up → <code>CrashLoopBackOff</code></td></tr>
+    <tr><td>App works but can't serve now (e.g. models missing)</td><td>🚦 readiness</td><td>🚫 stops sending users; <b>no restart</b></td><td><code>0/1 Running</code>, RESTARTS stays 0</td></tr>
+    <tr><td>App is stuck / frozen</td><td>🚦 then ❤️ liveness</td><td>first no users, then 🔁 restart</td><td><code>0/1</code>, then RESTARTS +1</td></tr>
+    <tr><td>App uses more memory than its limit</td><td>the Linux kernel</td><td>💀 kills it (<b>OOMKilled</b>, exit code 137), then restarts</td><td>RESTARTS goes up; <code>describe</code> shows OOMKilled</td></tr>
+    <tr><td>App wants more CPU than its limit</td><td>the Linux kernel</td><td>🐢 slows it down; <b>nothing is killed</b></td><td>all normal, just slower answers</td></tr>
+    <tr><td>Pod's request doesn't fit on any machine</td><td>the scheduler</td><td>⏳ waits for room</td><td><code>Pending</code></td></tr>
+  </table></div>
+</section>
+
+<section class="card">
+  <h2>⑥ Real output from the trainer's PC</h2>
   <div class="grid2">
     <div>
-      <div class="termlabel">Readiness probe pointed at a wrong path (/nope)</div>
-      <div class="term"><div class="cmd">kubectl -n ml-demo patch deployment cifar-api --type=json -p "[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/readinessProbe/httpGet/path\",\"value\":\"/nope\"}]"</div><pre>deployment.apps/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+      <div class="termlabel">Our probe settings, as Kubernetes shows them</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo describe pod cifar-api-68c5fb8c48-ch29k</div><pre>    Limits:    cpu: 1     memory: 512Mi
+    Requests:  cpu: 250m  memory: 256Mi
+    Liveness:   http-get http://:http/<span class="hl">health</span> … period=<span class="hl">10s</span> #failure=<span class="hl">3</span>
+    Readiness:  http-get http://:http/<span class="hl">ready</span>  … period=<span class="hl">5s</span>  #failure=<span class="hl">2</span>
+    Startup:    http-get http://:http/<span class="hl">ready</span>  … period=<span class="hl">2s</span>  #failure=<span class="hl">30</span></pre></div>
+      <div class="termlabel">Readiness broken on purpose (it asks /nope, which doesn't exist)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
 cifar-api-67999ddcdf-mtgtf   1/1     Running   0          99s
 cifar-api-67999ddcdf-r7l8c   1/1     Running   0          94s
-cifar-api-855468cbbb-4jjrn   <span class="bad">0/1</span>     Running   <span class="ok">0</span>          42s   <span class="c">← never ready, never restarted</span></pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "…ask the API 6 times which pod answers…"</div><pre>cifar-api-67999ddcdf-r7l8c
-cifar-api-67999ddcdf-mtgtf
-cifar-api-67999ddcdf-mtgtf  …   <span class="c">← only the old, ready pods get traffic: users see no error</span></pre></div>
+cifar-api-855468cbbb-4jjrn   <span class="bad">0/1</span>     Running   <span class="ok">0</span>          42s   <span class="c">← not ready, NOT restarted</span></pre></div>
+      <p class="small">Users kept getting answers from the two old pods. Exactly story 3.</p>
     </div>
     <div>
-      <div class="termlabel">Memory limit far too small (40Mi)</div>
-      <div class="term"><div class="cmd">kubectl -n ml-demo set resources deployment cifar-api -c api --limits=memory=40Mi --requests=memory=40Mi</div><pre>deployment.apps/cifar-api resource requirements updated</pre><div class="cmd">kubectl -n ml-demo describe pod cifar-api-85f886d766-mr797</div><pre>    Limits:
-      memory:  40Mi
-    Ready:          <span class="bad">False</span>
+      <div class="termlabel">Memory limit set far too small (40 MiB)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo set resources deployment cifar-api -c api --limits=memory=40Mi --requests=memory=40Mi</div><pre>deployment.apps/cifar-api resource requirements updated</pre><div class="cmd">kubectl -n ml-demo describe pod cifar-api-85f886d766-mr797</div><pre>    Limits:   memory: 40Mi
+    Ready:    <span class="bad">False</span>
 Events:
-  Normal   Started    kubelet  Container started
-  Warning  Unhealthy  kubelet  Startup probe failed: … connect: connection refused
-  Warning  Unhealthy  kubelet  <span class="bad">Startup probe failed</span>: … context deadline exceeded (x16 over 31s)</pre></div>
-      <p class="small">With 40 MiB the API can't even load its models, so it never answers. Depending on timing you'll see these startup-probe failures and restarts, or
-      <code>Last State: Terminated · Reason: <b>OOMKilled</b> · Exit Code: <b>137</b></code> (137 = killed by the kernel). Either way: <b>limits must fit the real app</b>.</p>
+  Warning  Unhealthy  Startup probe failed: … connection refused
+  Warning  Unhealthy  <span class="bad">Startup probe failed</span>: … context deadline exceeded (x16 over 31s)</pre></div>
+      <p class="small">With only 40 MiB the API can't even load its models, so it never answers the startup probe. Depending on timing you see this, or
+      <code>Reason: <b>OOMKilled</b> · Exit Code: <b>137</b></code>. For comparison, <code>docker stats</code> showed the API using 53.5 MiB while idle.</p>
     </div>
   </div>
 </section>
 
 <section class="say">
   <h3>🗣️ Explain it like this</h3>
-  <ol><li>"Three questions: finished starting? (startup) ready for traffic? (readiness) still alive? (liveness)."</li>
-    <li>"Not ready → the Service stops sending traffic, no restart. Not alive → restart. That's why readiness protects users and liveness recovers stuck apps."</li>
-    <li>"Requests = what the scheduler reserves. Limits = hard caps: too much memory gets the pod killed, too much CPU only slows it."</li></ol>
+  <ol><li>"Running doesn't mean working. So Kubernetes asks three questions by visiting <code>/ready</code> and <code>/health</code>: finished starting? ready for users? still alive?"</li>
+    <li>"Not ready → no users, no restart. Not alive → restart. That's the whole difference."</li>
+    <li>"Each pod books CPU and memory (request) and may use up to a maximum (limit). Too much memory → killed. Too much CPU → only slowed down."</li></ol>
 </section>
 
 <section class="callout try">
   <h3>🧪 Try this (guess first!)</h3>
   <ol class="challenges">
-    <li>Set model loading to 80 s and start the pod.
-      <details class="answer"><summary>Answer</summary>The startup probe allows 30 × 2 s = 60 s. After 60 s of failures the kubelet gives up and restarts the container, which starts loading again… forever. If your model is big, raise <code>failureThreshold</code>.</details></li>
-    <li>Break /ready, wait, then fix it. Was the pod restarted?
-      <details class="answer"><summary>Answer</summary>No. After 2 failed checks it leaves the Service (no traffic); after the next success it comes back. RESTARTS stays 0. Exactly what we saw with <code>/nope</code>.</details></li>
-    <li>Freeze the app. How long until the restart?
-      <details class="answer"><summary>Answer</summary>Liveness checks every 10 s and needs 3 failures in a row: about 20–30 s. Readiness notices first (after ~10 s) and stops the traffic.</details></li>
-    <li>Set the memory limit to 40 and usage to 150.
-      <details class="answer"><summary>Answer</summary>OOMKilled, exit code 137, restart, killed again: CrashLoopBackOff. Our <code>docker stats</code> showed the API using 53.5 MiB while idle, and it needs more while loading models and serving (the Day-4 README measured ≈ 150 MiB). 40 MiB is below even the idle need.</details></li>
+    <li>In story 3 the app is "not ready" for a while. Is it restarted?
+      <details class="answer"><summary>Answer</summary>No. Readiness only decides whether users are sent to it. When <code>/ready</code> says yes again, it gets users again. RESTARTS stays 0, exactly like our real <code>/nope</code> test.</details></li>
+    <li>In story 4 the app freezes. Which question notices first, and why?
+      <details class="answer"><summary>Answer</summary>Readiness: it asks every 5 s and needs only 2 NOs (≈ 10 s), so users are protected quickly. Liveness asks every 10 s and needs 3 NOs (≈ 30 s) before it restarts, so a short hiccup doesn't cause a restart.</details></li>
+    <li>Your model takes 90 s to load. What goes wrong, and what would you change?
+      <details class="answer"><summary>Answer</summary>Story 2: the startup probe gives up after 60 s and restarts the container, which starts loading from zero: a loop. Allow more time: raise <code>failureThreshold</code> (e.g. 60 × 2 s = 120 s).</details></li>
+    <li>Set memory to 40 MiB and usage to 150 MiB. Then set CPU to 2.5 cores. Which one kills the pod?
+      <details class="answer"><summary>Answer</summary>Only memory. Memory can't be "slowed down", so the kernel kills the process (OOMKilled, exit code 137). CPU can be shared out in slices, so the app is just slowed to 1 core.</details></li>
+    <li>Add pods until the machine is full. What happens to pod 17?
+      <details class="answer"><summary>Answer</summary>It stays <b>Pending</b>: its request (250m) doesn't fit anywhere, even if the other pods are idle, because booked rooms stay booked. Fix: smaller requests, or more machines.</details></li>
   </ol>
 </section>
 
@@ -157,47 +235,72 @@ Events:
 <footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
 <script src="common.js"></script>
 <script>
-function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
-// ---- probe simulation (1 simulated second = 250 ms) ----
-let S=null,timer=null;
-function log(t,c=''){const L=$('#plog');L.innerHTML+=`<span class="${c}">${t}</span>\n`;L.scrollTop=1e9;}
-function start(){clearInterval(timer);S={t:0,clock:0,alive:0,started:false,sFail:0,rFail:0,lFail:0,ready:false,restarts:S?S.restarts:0,marks:[],readyBroken:false,frozen:false};
-  log(`t=0s  container started, loading models (${$('#lt').value} s)…`,'hl');timer=setInterval(step,250);draw();}
-function answer(path){if(S.frozen)return 'timeout';if(S.alive<+$('#lt').value)return 'refused';if(path==='/ready'&&S.readyBroken)return '503';return '200';}
-function restart(why){S.restarts++;log(`t=${S.clock}s  ${why} → kubelet RESTARTS the container (restart #${S.restarts})`,'bad');Object.assign(S,{alive:0,started:false,sFail:0,rFail:0,lFail:0,ready:false,frozen:false});}
-function step(){S.clock++;S.alive++;
-  if(!S.started){if(S.clock%2===0){const a=answer('/ready'),ok=a==='200';S.marks.push({t:S.clock,row:0,ok});
-      if(ok){S.started=true;S.ready=true;log(`t=${S.clock}s  startup probe OK → now readiness + liveness take over; READY 1/1`,'ok');}
-      else if(++S.sFail>=30){S.marks.push({t:S.clock,row:0,ok:false});restart('startup probe failed 30× (60 s)');}}}
-  else{if(S.clock%5===0){const ok=answer('/ready')==='200';S.marks.push({t:S.clock,row:1,ok});
-      if(ok){if(!S.ready)log(`t=${S.clock}s  readiness OK again → back in the Service`,'ok');S.ready=true;S.rFail=0;}
-      else if(++S.rFail>=2&&S.ready){S.ready=false;log(`t=${S.clock}s  readiness failed 2× → REMOVED from the Service (no traffic), not restarted`,'hl');}}
-    if(S.clock%10===0){const ok=answer('/health')==='200';S.marks.push({t:S.clock,row:2,ok});
-      if(ok)S.lFail=0;else if(++S.lFail>=3)restart('liveness failed 3×');}}
-  S.marks=S.marks.filter(m=>m.t>S.clock-90);draw();}
-function draw(){$('#ltOut').textContent=$('#lt').value+' s';if(!S){$('#st').textContent='not started';$('#tr').textContent='–';return;}
-  const st=!S.started?'Running 0/1 (starting)':S.ready?'Running 1/1':'Running 0/1';$('#st').textContent=st;$('#stBox').className='stat '+(S.ready?'good':'orange');
-  $('#tr').textContent=S.ready?'yes':'no';$('#trBox').className='stat '+(S.ready?'good':'bad');$('#rs').textContent=S.restarts;
-  const {ctx,w:W,h:H}=setupCanvas($('#pc')),L=78,pw=W-L-10,rows=['startup','readiness','liveness'],sx=t=>L+(t-(S.clock-90))/90*pw;
-  ctx.font='12px Segoe UI, sans-serif';rows.forEach((r,i)=>{const y=22+i*(H-40)/2;ctx.fillStyle='#495057';ctx.textAlign='right';ctx.fillText(r,L-8,y+4);ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+pw,y);ctx.stroke();});
-  S.marks.forEach(m=>{const y=22+m.row*(H-40)/2;ctx.beginPath();ctx.arc(sx(m.t),y,5,0,7);ctx.fillStyle=m.ok?'#2f9e44':'#e03131';ctx.fill();});
-  ctx.fillStyle='#868e96';ctx.textAlign='center';ctx.fillText(`last 90 s (t = ${S.clock} s)`,L+pw/2,H-4);}
-$('#start').onclick=start;
-$('#rbreak').onclick=()=>{if(!S)return;S.readyBroken=true;log(`t=${S.clock}s  /ready now answers 503`,'bad');};
-$('#freeze').onclick=()=>{if(!S)return;S.frozen=true;log(`t=${S.clock}s  app frozen: no answers at all`,'bad');};
-$('#fix').onclick=()=>{if(!S)return;S.readyBroken=false;S.frozen=false;log(`t=${S.clock}s  problem fixed`,'ok');};
-$('#lt').addEventListener('input',draw);
-// ---- resources ----
-function res(){const lim=+$('#mlim').value,mu=+$('#mu').value,mx=700;$('#muOut').textContent=mu+' MiB';$('#mbar').style.width=(mu/mx*100)+'%';$('#mline').style.left=(lim/mx*100)+'%';
-  $('#mbar').style.background=mu>lim?'#e03131':'#2f6fed';const v=$('#mv');
-  if(mu>lim){v.className='banner bad';v.innerHTML=`💀 <b>OOMKilled</b>: ${mu} MiB &gt; limit ${lim} MiB. The kernel kills the container (exit code 137), the kubelet restarts it, it grows again, killed again → CrashLoopBackOff.`;}
-  else{v.className='banner good';v.innerHTML=`✅ ${mu} MiB of ${lim} MiB allowed.`;}
-  const cu=+$('#cu').value;$('#cuOut').textContent=cu.toFixed(1)+' cores';$('#cbar').style.width=(Math.min(cu,1)/2.5*100)+'%';const c=$('#cv');
-  if(cu>1){c.className='banner info';c.innerHTML=`🐢 <b>Throttled</b>: it wants ${cu.toFixed(1)} cores but may use 1. It keeps running, just ≈ ${(cu/1).toFixed(1)}× slower. Nobody is killed for CPU.`;}
-  else{c.className='banner good';c.innerHTML=`✅ ${cu.toFixed(1)} of 1 core allowed.`;}
-  const n=+$('#np').value,fit=16;$('#npOut').textContent=n;$('#slots').innerHTML=Array.from({length:16},(_,i)=>`<span class="${i<Math.min(n,fit)?'u':''}"></span>`).join('');
-  $('#sch').className='banner '+(n>fit?'bad':'good');$('#sch').innerHTML=n>fit?`⏳ ${fit} pods fit (16 × 250m = 4 cores). The other <b>${n-fit}</b> stay <b>Pending</b>: "0/1 nodes are available: Insufficient cpu".`:`✅ ${n} × 250m = ${(n*0.25).toFixed(2)} of 4 cores reserved.`;}
-['#mlim','#mu','#cu','#np'].forEach(id=>$(id).addEventListener('input',res));window.addEventListener('resize',draw);res();draw();
+// ---------- ③ story player ----------
+// each step: t (seconds), ask (who asks what), ans (what the app answers, ok/no), lamps (s/r/l: pass|fail|wait|off), users (true = getting answers), st (READY STATUS), rs (restarts), face, say
+const S={
+ normal:{title:'✅ 1 · A normal start',steps:[
+  {t:0,ask:'–',ans:['Starting… loading the 2 models','' ],lamps:{s:'wait',r:'off',l:'off'},users:false,st:'0/1 Running',rs:0,face:'⏳',say:'The container starts. The app begins loading its two ONNX models. Users are not sent to it yet.'},
+  {t:2,ask:['🚀 Startup: GET /ready','ask'],ans:['(no answer yet: still loading)','no'],lamps:{s:'wait',r:'off',l:'off'},users:false,st:'0/1 Running',rs:0,face:'⏳',say:'First startup question: no answer yet. That\'s OK. The startup probe may fail up to 30 times (60 s) before it worries.'},
+  {t:6,ask:['🚀 Startup: GET /ready','ask'],ans:['200 OK · {"status":"ready"}','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'😀',say:'Models loaded, the answer is 200 OK: started! Now readiness and liveness take over. The pod is READY 1/1 and the Service sends it users.'},
+  {t:10,ask:['🚦 Readiness: GET /ready','ask'],ans:['200 OK','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'😀',say:'From now on: readiness every 5 s, liveness every 10 s, forever. These are the "kube-probe" lines in our logs.'},
+  {t:20,ask:['❤️ Liveness: GET /health','ask'],ans:['200 OK · {"status":"ok"}','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'😀',say:'All three lamps green. Nothing to do. This is what a healthy pod looks like 99% of the time.'}]},
+ slow:{title:'🐢 2 · The app starts too slowly',steps:[
+  {t:0,ask:'–',ans:['Starting… this model takes 80 s to load',''],lamps:{s:'wait',r:'off',l:'off'},users:false,st:'0/1 Running',rs:0,face:'⏳',say:'Same app, but imagine a much bigger model that needs 80 seconds to load.'},
+  {t:2,ask:['🚀 Startup: GET /ready','ask'],ans:['(no answer: still loading) · NO 1 of 30','no'],lamps:{s:'wait',r:'off',l:'off'},users:false,st:'0/1 Running',rs:0,face:'⏳',say:'No answer. 1 of the 30 allowed failures.'},
+  {t:30,ask:['🚀 Startup: GET /ready','ask'],ans:['still loading · NO 15 of 30','no'],lamps:{s:'wait',r:'off',l:'off'},users:false,st:'0/1 Running',rs:0,face:'⏳',say:'Half of the patience is used up. The model is only 37% loaded.'},
+  {t:60,ask:['🚀 Startup: GET /ready','ask'],ans:['still loading · NO 30 of 30','no'],lamps:{s:'fail',r:'off',l:'off'},users:false,st:'0/1 Running',rs:1,face:'🔁',say:'30 NOs = 60 s. Kubernetes gives up and RESTARTS the container. Loading starts again from zero…'},
+  {t:180,ask:['🚀 Startup: GET /ready','ask'],ans:['never finishes','no'],lamps:{s:'fail',r:'off',l:'off'},users:false,st:'0/1 CrashLoopBackOff',rs:3,face:'😵',say:'It can never finish in 60 s, so it loops: restart, load, restart. Kubernetes waits longer between tries: CrashLoopBackOff. Fix: give it more time (a bigger failureThreshold).'}]},
+ notready:{title:'🚦 3 · Alive, but not ready',steps:[
+  {t:0,ask:['🚦 Readiness: GET /ready','ask'],ans:['200 OK','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'😀',say:'A healthy, running pod, serving users.'},
+  {t:3,ask:'–',ans:['⚠️ lost its model files','no'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'🤒',say:'Something goes wrong: say its model files disappear. The process still runs; it just can\'t classify pictures.'},
+  {t:5,ask:['🚦 Readiness: GET /ready','ask'],ans:['503 · {"status":"not ready"} · NO 1 of 2','no'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'🤒',say:'/ready answers 503 "not ready". One NO is not enough yet (it needs 2 in a row).'},
+  {t:10,ask:['🚦 Readiness: GET /ready','ask'],ans:['503 · NO 2 of 2','no'],lamps:{s:'pass',r:'fail',l:'pass'},users:false,st:'0/1 Running',rs:0,face:'🤒',say:'Second NO: the pod is taken OUT of the Service. Users now go only to the other API pods. No errors for them.'},
+  {t:10.5,ask:['❤️ Liveness: GET /health','ask'],ans:['200 OK (the process is fine)','ok'],lamps:{s:'pass',r:'fail',l:'pass'},users:false,st:'0/1 Running',rs:0,face:'🤒',say:'But liveness still says yes: the process is alive. So there is NO restart. RESTARTS stays 0.'},
+  {t:25,ask:['🚦 Readiness: GET /ready','ask'],ans:['200 OK (files are back)','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'😀',say:'The problem goes away. The next YES puts it back in the Service. Nobody restarted anything.'}]},
+ frozen:{title:'🧊 4 · The app freezes',steps:[
+  {t:0,ask:['🚦 Readiness: GET /ready','ask'],ans:['200 OK','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'😀',say:'A healthy pod, serving users.'},
+  {t:3,ask:'–',ans:['🧊 stuck: answers nothing any more','no'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:0,face:'🧊',say:'A bug freezes the app (for example two threads waiting for each other forever). The process is still "Running".'},
+  {t:10,ask:['🚦 Readiness: GET /ready','ask'],ans:['(no answer) · NO 2 of 2','no'],lamps:{s:'pass',r:'fail',l:'pass'},users:false,st:'0/1 Running',rs:0,face:'🧊',say:'After ≈ 10 s readiness has 2 NOs: no more users are sent to it. Users are protected first.'},
+  {t:20,ask:['❤️ Liveness: GET /health','ask'],ans:['(no answer) · NO 2 of 3','no'],lamps:{s:'pass',r:'fail',l:'wait'},users:false,st:'0/1 Running',rs:0,face:'🧊',say:'Liveness asks every 10 s. Two NOs so far. It waits for a third, so one slow moment never causes a restart.'},
+  {t:30,ask:['❤️ Liveness: GET /health','ask'],ans:['(no answer) · NO 3 of 3','no'],lamps:{s:'pass',r:'fail',l:'fail'},users:false,st:'0/1 Running',rs:1,face:'🔁',say:'Third NO: Kubernetes RESTARTS the container. Turning it off and on again is the fix for a stuck app.'},
+  {t:37,ask:['🚀 Startup: GET /ready','ask'],ans:['200 OK (fresh start, models loaded)','ok'],lamps:{s:'pass',r:'pass',l:'pass'},users:true,st:'1/1 Running',rs:1,face:'😀',say:'The fresh container starts, the startup probe says yes, and users come back. RESTARTS = 1 tells you it happened.'}]}};
+let cur='normal',idx=0,playT=null;
+function setLamp(id,v){const e=$('#'+id);e.className='lamp '+(v==='off'?'':v);}
+function show(){const sc=S[cur],s=sc.steps[idx];$('#clock').textContent=`t = ${s.t} s`;
+  const ask=Array.isArray(s.ask)?s.ask:['(nobody is asking right now)',''];$('#bAsk').textContent=ask[0];$('#bAsk').className='bubble '+(ask[1]||'');
+  $('#bAns').textContent=s.ans[0];$('#bAns').className='bubble '+(s.ans[1]||'');$('#appFace').textContent=s.face;
+  setLamp('lS',s.lamps.s);setLamp('lR',s.lamps.r);setLamp('lL',s.lamps.l);
+  $('#a1').className='flowarrow '+(Array.isArray(s.ask)?'on':'');$('#a2').className='flowarrow '+(s.users?'on':'off');
+  $('#users').textContent=s.users?'👤👤👤':'👤👤👤';$('#users').style.opacity=s.users?1:.35;
+  $('#bUsers').textContent=s.users?'✅ get answers from this pod':'🚫 not sent here (other pods serve them)';$('#bUsers').className='bubble '+(s.users?'ok':'no');
+  $('#kst').textContent=s.st;$('#krs').textContent=s.rs;$('#rsBox').className='stat '+(s.rs?'bad':'good');
+  $('#stepNo').textContent=`step ${idx+1} of ${sc.steps.length}`;$('#back').disabled=idx===0;$('#next').disabled=idx===sc.steps.length-1;
+  $('#story').innerHTML=sc.steps.slice(0,idx+1).map((x,i)=>`<li class="${i===idx?'cur':''}"><b class="t">t=${x.t}s</b>${x.say}</li>`).join('');
+  const li=$('#story li.cur');if(li)li.scrollIntoView({block:'nearest'});}
+function pick(k){cur=k;idx=0;stop();$$('#stories button').forEach(b=>b.classList.toggle('primary',b.dataset.k===k));show();}
+function stop(){if(playT){clearInterval(playT);playT=null;}$('#play').textContent='▶ Play all';}
+$('#stories').innerHTML=Object.entries(S).map(([k,v])=>`<button class="btn" data-k="${k}">${v.title}</button>`).join('');
+$$('#stories button').forEach(b=>b.onclick=()=>pick(b.dataset.k));
+$('#next').onclick=()=>{stop();if(idx<S[cur].steps.length-1){idx++;show();}};
+$('#back').onclick=()=>{stop();if(idx>0){idx--;show();}};
+$('#play').onclick=()=>{if(playT){stop();return;}if(idx>=S[cur].steps.length-1)idx=-1;$('#play').textContent='⏸ Pause';
+  const go=()=>{if(idx<S[cur].steps.length-1){idx++;show();}else stop();};go();playT=setInterval(go,2600);};
+pick('normal');
+// ---------- ④ budgets ----------
+let mlim=512,npods=2;
+$$('#mlim button').forEach(b=>b.onclick=()=>{mlim=+b.dataset.v;$$('#mlim button').forEach(x=>x.classList.toggle('on',x===b));res();});
+function res(){const mu=+$('#mu').value,MX=700;$('#muOut').textContent=mu+' MiB';$('#mfill').style.height=(Math.min(mu,MX)/MX*100)+'%';
+  $('#mline').style.bottom=(mlim/MX*100)+'%';$('#mltxt').style.bottom=(mlim/MX*100)+'%';$('#mltxt').textContent='limit '+mlim;
+  const over=mu>mlim;$('#mfill').style.background=over?'#ff6b6b':'#74c0fc';const v=$('#mv');
+  v.className='banner '+(over?'bad':'good');v.innerHTML=over?`💀 <b>OOMKilled.</b> ${mu} MiB &gt; ${mlim} MiB. The kernel kills it at once (exit code 137). Kubernetes restarts it, it grows again, killed again…`:`✅ Fine: ${mu} of ${mlim} MiB.`;
+  const cu=+$('#cu').value;$('#cuOut').textContent=cu.toFixed(1)+' cores';$('#cfill').style.height=(Math.min(cu,1)/3*100)+'%';const c=$('#cv');
+  c.className='banner '+(cu>1?'info':'good');c.innerHTML=cu>1?`🐢 <b>Slowed down, not killed.</b> It wants ${cu.toFixed(1)} cores but gets 1, so answers take ≈ ${cu.toFixed(1)}× longer.`:`✅ Fine: ${cu.toFixed(1)} of 1 core.`;
+  const fit=Math.min(npods,16);$('#slots').innerHTML=Array.from({length:16},(_,i)=>`<span class="${i<fit?'u':''}">${i<fit?'📦':''}</span>`).join('');
+  $('#pending').innerHTML=Array.from({length:Math.max(0,npods-16)},(_,i)=>`<span>pod ${17+i}: Pending</span>`).join('');
+  const s=$('#sch');s.className='banner '+(npods>16?'bad':'good');
+  s.innerHTML=npods>16?`⏳ ${npods-16} pod${npods-16>1?'s':''} <b>Pending</b>: "0/1 nodes are available: Insufficient cpu". Every room is booked, even if the booked pods are idle.`:`✅ ${npods} pod${npods>1?'s':''} × 250m = ${(npods*0.25).toFixed(2)} of 4 cores booked.`;}
+$('#podPlus').onclick=()=>{if(npods<22)npods++;res();};$('#podMinus').onclick=()=>{if(npods>0)npods--;res();};
+['#mu','#cu'].forEach(id=>$(id).addEventListener('input',res));res();
 </script>
 </body>
 </html>
