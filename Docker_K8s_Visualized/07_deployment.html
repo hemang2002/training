@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7 · Deployment — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 7 of 12 · ≈ 25 min</div>
+  <h1>Deployment: "always keep N copies, and update them safely"</h1>
+  <p class="one-liner">A <b>Deployment</b> is the manager of our pods. We tell it: <i>"run 2 copies of cifar-api:v1"</i>. It creates a <b>ReplicaSet</b>, which creates the <b>Pods</b>.
+  A pod dies? It makes a new one. We want 4? It adds 2. New version? It swaps pods <b>one by one</b>, so users never see downtime, and it can <b>roll back</b> in one command.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A shop manager must always have 2 cashiers at the tills. One goes home sick: the manager calls in someone new. New uniforms: they swap cashiers one at a time, so a till is <b>never empty</b>.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li><b>Click a pod</b> to kill it. Watch it come back.</li><li>Change <b>replicas</b>.</li><li>Press <b>🚀 Update to v2</b>, then <b>💣 Update to a broken version</b>, then <b>↩ Roll back</b>.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>During an update there are never fewer than 2 ready pods (<code>maxUnavailable: 0</code>). A broken version <b>stalls</b> instead of taking the app down.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Deployment</b> = the manager (what you write)</span><span><b>ReplicaSet</b> = one team of identical pods for one version</span>
+    <span><b>replicas</b> = how many copies</span><span><b>Rolling update</b> = replace pods a few at a time</span><span><b>Rollback</b> = go back to the previous version</span></div>
+</section>
+
+<section class="card">
+  <h2>① Play with a Deployment</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Copies</h3>
+      <div class="ctl"><label>replicas <output id="rOut"></output></label><input type="range" id="reps" min="1" max="6" value="2"></div>
+      <h3>New version</h3>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch">
+        <button class="btn primary" id="upd">🚀 Update to v2</button>
+        <button class="btn" id="bad">💣 Update to a broken version</button>
+        <button class="btn" id="undo">↩ kubectl rollout undo</button>
+      </div>
+      <h3>Rolling-update settings</h3>
+      <div class="ctl"><label>maxSurge (extra pods allowed)</label><select id="surge"><option>1</option><option>2</option></select></div>
+      <div class="ctl"><label>maxUnavailable (pods allowed missing)</label><select id="unav"><option>0</option><option>1</option></select></div>
+    </aside>
+    <div class="stage">
+      <div class="flow" style="justify-content:flex-start;margin-bottom:.5rem"><span class="chip purple">📋 Deployment cifar-api<small id="dSpec">replicas 2 · v1</small></span><span class="arrow">→</span><span id="rsChips"></span></div>
+      <div class="dg"><div class="canvas-title">Pods (click one to kill it)</div><div class="pods" id="pods"></div></div>
+      <div class="stats"><div class="stat" id="readyBox"><b id="ready">–</b><span>Ready pods serving users</span></div><div class="stat"><b id="serving">–</b><span>Users are served by</span></div></div>
+      <div id="dv" class="banner info">–</div>
+      <div class="logbox" id="dlog" style="height:7rem"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② The YAML: <code>k8s/02-api-deployment.yaml</code></h2>
+  <div class="grid2">
+    <div class="yaml"><span class="k">apiVersion:</span> apps/v1
+<span class="k">kind:</span> <span class="v">Deployment</span>
+<span class="k">metadata:</span> {name: cifar-api, namespace: ml-demo}
+<span class="k">spec:</span>
+<span class="hl">  <span class="k">replicas:</span> <span class="v">2</span>                  <span class="c"># how many copies</span></span>
+  <span class="k">strategy:</span>
+    <span class="k">rollingUpdate:</span>
+<span class="hl">      <span class="k">maxSurge:</span> <span class="v">1</span>              <span class="c"># at most 1 extra pod during an update</span></span>
+<span class="hl">      <span class="k">maxUnavailable:</span> <span class="v">0</span>        <span class="c"># never fewer ready pods than replicas</span></span>
+  <span class="k">selector:</span>
+    <span class="k">matchLabels:</span> {app: <span class="v">cifar-api</span>}   <span class="c"># "my pods are the ones labelled app=cifar-api"</span>
+  <span class="k">template:</span>                    <span class="c"># the pod to copy (page 6)</span>
+    <span class="k">metadata:</span>
+      <span class="k">labels:</span> {app: <span class="v">cifar-api</span>}     <span class="c"># MUST match the selector</span>
+    <span class="k">spec:</span>
+      <span class="k">containers:</span>
+        - <span class="k">name:</span> api
+<span class="hl">          <span class="k">image:</span> <span class="v">cifar-api:v1</span>      <span class="c"># change this → rolling update</span></span></div>
+    <div>
+      <p>The <b>template</b> is simply the pod from page 6. The Deployment stamps out <code>replicas</code> copies of it and gives each a random name:
+      <code>cifar-api-<b>68c5fb8c48</b>-ch29k</code> = Deployment name + <b>ReplicaSet id</b> (one per version of the template) + random pod id.</p>
+      <p><b>Labels and selectors</b> are how Kubernetes objects find each other: the Deployment manages every pod that carries the label <code>app=cifar-api</code>. The Service (next page) finds them the same way.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ Real output from the trainer's PC</h2>
+  <div class="grid2">
+    <div>
+      <div class="termlabel">Deploy</div>
+      <div class="term"><div class="cmd">kubectl apply -k k8s/</div><pre>namespace/ml-demo created
+configmap/cifar-config created
+service/cifar-api created
+service/cifar-ui created
+deployment.apps/cifar-api created
+deployment.apps/cifar-ui created
+horizontalpodautoscaler.autoscaling/cifar-api created</pre><div class="cmd">kubectl -n ml-demo get pods</div><pre>NAME                         READY   STATUS              RESTARTS   AGE
+cifar-api-68c5fb8c48-ch29k   0/1     <span class="hl">ContainerCreating</span>   0          4s
+cifar-api-68c5fb8c48-frr26   0/1     Running             0          4s
+cifar-ui-55f9dd7b6b-6297t    0/1     Running             0          4s</pre><div class="cmd">kubectl -n ml-demo get deploy,rs</div><pre>NAME                        READY   UP-TO-DATE   AVAILABLE
+deployment.apps/cifar-api   2/2     2            2
+deployment.apps/cifar-ui    1/1     1            1
+
+NAME                                   DESIRED   CURRENT   READY
+replicaset.apps/cifar-api-68c5fb8c48   2         2         2
+replicaset.apps/cifar-ui-55f9dd7b6b    1         1         1</pre></div>
+      <div class="termlabel">Self-healing</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo delete pod cifar-api-68c5fb8c48-ch29k</div><pre>pod "cifar-api-68c5fb8c48-ch29k" deleted from ml-demo namespace</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+cifar-api-68c5fb8c48-frr26   1/1     Running   0          22s
+cifar-api-68c5fb8c48-<span class="ok">z7q9c</span>   0/1     Running   0          4s    <span class="c">← brand-new, already starting</span></pre></div>
+      <div class="termlabel">Scaling</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo scale deployment cifar-api --replicas=4</div><pre>deployment.apps/cifar-api scaled</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS              RESTARTS   AGE
+cifar-api-68c5fb8c48-frr26   1/1     Running             0          32s
+cifar-api-68c5fb8c48-fsrk2   0/1     ContainerCreating   0          5s
+cifar-api-68c5fb8c48-l2x6m   0/1     ContainerCreating   0          5s
+cifar-api-68c5fb8c48-z7q9c   1/1     Running             0          14s</pre></div>
+    </div>
+    <div>
+      <div class="termlabel">Rolling update (a settings change, page 9)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo rollout restart deployment/cifar-api</div><pre>deployment.apps/cifar-api restarted</pre><div class="cmd">kubectl -n ml-demo rollout status deployment/cifar-api</div><pre>Waiting for deployment "cifar-api" rollout to finish: 1 out of 2 new replicas have been updated...
+Waiting for deployment "cifar-api" rollout to finish: 1 old replicas are pending termination...
+deployment "cifar-api" <span class="ok">successfully rolled out</span></pre></div>
+      <div class="termlabel">A broken version, then rollback</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo set image deployment/cifar-api api=cifar-api:v2-typo</div><pre>deployment.apps/cifar-api image updated</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS             RESTARTS   AGE
+cifar-api-5894975d59-6dtp9   0/1     <span class="bad">ImagePullBackOff</span>   0          25s   <span class="c">← new, broken</span>
+cifar-api-67999ddcdf-mtgtf   1/1     Running            0          41s   <span class="c">← old ones keep</span>
+cifar-api-67999ddcdf-r7l8c   1/1     Running            0          36s   <span class="c">  serving users</span></pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>Warning: resource deployments/cifar-api was previously managed with 'kubectl apply'. …
+deployment.apps/cifar-api <span class="ok">rolled back</span></pre><div class="cmd">kubectl -n ml-demo get rs</div><pre>NAME                   DESIRED   CURRENT   READY
+cifar-api-5894975d59   0         0         0     <span class="c">← the broken version, emptied</span>
+cifar-api-67999ddcdf   2         2         2     <span class="c">← the version in use</span>
+cifar-api-68c5fb8c48   0         0         0     <span class="c">← the very first version (kept for undo)</span>
+cifar-ui-55f9dd7b6b    1         1         1</pre></div>
+      <p class="small muted">The "Warning … managed with kubectl apply" is normal: <code>undo</code> changed the live object, not your YAML file. Fix the file too, so git stays the truth.</p>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"A Deployment is a manager: 'keep 2 copies of this pod running'. It uses a ReplicaSet to do the counting."</li>
+    <li>"Kill a pod and a new one appears within seconds. Change <code>replicas</code> and it adds or removes pods."</li>
+    <li>"A new version starts new pods first and removes old ones only when the new ones are ready. Broken version? It stalls, users still get the old one, and <code>rollout undo</code> brings us back."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>With replicas 2, maxSurge 1, maxUnavailable 0: during an update, what's the largest number of pods at once? The smallest number of <i>ready</i> pods?
+      <details class="answer"><summary>Answer</summary>At most 3 pods (2 + 1 surge); never fewer than 2 ready (2 − 0). That's zero downtime, at the price of one extra pod's CPU and memory for a moment.</details></li>
+    <li>Set maxUnavailable to 1 and deploy the broken version.
+      <details class="answer"><summary>Answer</summary>Now Kubernetes may remove one old pod before the new one is ready, so you are left with 1 ready pod and 1-2 broken ones: half the capacity is gone. With <code>maxUnavailable: 0</code> (our file) the old pods all stay.</details></li>
+    <li>Why are there three ReplicaSets after our real test?
+      <details class="answer"><summary>Answer</summary>One per version of the pod template: the first version, the settings change (rollout restart), and the broken image. Old ones are scaled to 0 but kept (<code>revisionHistoryLimit: 3</code>) so <code>rollout undo</code> can switch back instantly.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+const HASH={v1:'68c5fb8c48',v2:'67999ddcdf',bad:'5894975d59'};const LBL={v1:'v1',v2:'v2',bad:'v2-typo'};
+let pods=[],cur='v1',hist=['v1'],uid=0;const rid=()=>Math.random().toString(36).slice(2,7);
+function log(t,c=''){const L=$('#dlog');L.innerHTML+=`<span class="${c}">${t}</span>\n`;L.scrollTop=1e9;}
+function mk(rs){const p={id:++uid,name:`cifar-api-${HASH[rs]}-${rid()}`,rs,st:'new',age:0};pods.push(p);return p;}
+function draw(){const R=+$('#reps').value;$('#rOut').textContent=R;$('#dSpec').textContent=`replicas ${R} · image ${LBL[cur]}`;
+  const rss=[...new Set([...hist,cur])];$('#rsChips').innerHTML=rss.map(rs=>{const n=pods.filter(p=>p.rs===rs&&p.st!=='term').length,r=pods.filter(p=>p.rs===rs&&p.st==='run').length;
+    return `<span class="chip ${rs===cur?'blue':'grey'}" style="margin:.1rem">ReplicaSet ${HASH[rs]}<small>${LBL[rs]} · ${n} pods · ${r} ready</small></span>`;}).join(' ');
+  $('#pods').innerHTML=pods.map(p=>`<div class="pod click ${p.st==='run'?(p.rs==='v1'?'':'v2'):p.st==='new'?'creating':p.st==='bad'?'bad':'term'}" data-id="${p.id}"><span class="ver">${LBL[p.rs]}</span><b>${p.name.slice(10)}</b><span class="st">${p.st==='run'?'Running 1/1':p.st==='new'?'ContainerCreating':p.st==='bad'?'ImagePullBackOff':'Terminating'}</span></div>`).join('');
+  $$('#pods .pod').forEach(e=>e.onclick=()=>{const p=pods.find(q=>q.id===+e.dataset.id);if(p&&p.st!=='term'){p.st='term';p.age=0;log(`💥 you killed ${p.name}`,'bad');draw();}});
+  const ready=pods.filter(p=>p.st==='run'),vs=[...new Set(ready.map(p=>LBL[p.rs]))];$('#ready').textContent=`${ready.length} / ${R}`;$('#readyBox').className='stat '+(ready.length>=R?'good':ready.length?'orange':'bad');
+  $('#serving').textContent=ready.length?vs.join(' + '):'nobody!';
+  const newReady=pods.filter(p=>p.rs===cur&&p.st==='run').length,old=pods.filter(p=>p.rs!==cur&&p.st!=='term').length,badN=pods.filter(p=>p.st==='bad').length,v=$('#dv');
+  if(badN&&old){v.className='banner bad';v.innerHTML=`⏸ <b>Rollout stuck:</b> the new pod can't pull <code>cifar-api:v2-typo</code>. Old pods keep serving, so users see <b>no error</b>. Fix: <b>↩ rollout undo</b>.`;}
+  else if(old){v.className='banner info';v.innerHTML=`🔄 <b>Rolling update in progress</b>: ${newReady} new ready, ${old} old still here.`;}
+  else if(ready.length===R){v.className='banner good';v.innerHTML=`✅ Desired state reached: ${R} × ${LBL[cur]} running.`;}
+  else{v.className='banner info';v.textContent='Working to reach the desired state…';}}
+function tick(){const R=+$('#reps').value,surge=+$('#surge').value,unav=+$('#unav').value;
+  pods.forEach(p=>{p.age++;if(p.st==='new'&&p.age>=2)p.st=p.rs==='bad'?'bad':'run';});
+  pods=pods.filter(p=>!(p.st==='term'&&p.age>=2));
+  const alive=pods.filter(p=>p.st!=='term'),nw=alive.filter(p=>p.rs===cur),old=alive.filter(p=>p.rs!==cur),ready=alive.filter(p=>p.st==='run').length;
+  if(!old.length){ // steady state: keep exactly R
+    if(nw.length<R){const p=mk(cur);log(`ReplicaSet ${HASH[cur]}: want ${R}, have ${nw.length} → create ${p.name}`,'ok');}
+    else if(nw.length>R){const p=nw[nw.length-1];p.st='term';p.age=0;log(`ReplicaSet ${HASH[cur]}: want ${R}, have ${nw.length} → delete ${p.name}`,'hl');}}
+  else{ // rolling update
+    if(nw.length<R&&alive.length<R+surge){const p=mk(cur);log(`rolling: start new ${p.name} (${alive.length+1} ≤ ${R}+${surge})`,'ok');}
+    const oldReady=old.filter(p=>p.st==='run');
+    if(old.length&&(ready-1>=R-unav||oldReady.length===0)){const p=old.find(q=>q.st!=='run')||old[0];p.st='term';p.age=0;log(`rolling: remove old ${p.name} (ready stays ≥ ${R-unav})`,'hl');}}
+  draw();}
+function rollTo(rs,msg){if(rs===cur)return;hist=hist.filter(h=>h!==rs);hist.push(cur);cur=rs;log(msg,'hl');draw();}
+$('#upd').onclick=()=>rollTo('v2','$ kubectl set image deployment/cifar-api api=cifar-api:v2');
+$('#bad').onclick=()=>rollTo('bad','$ kubectl set image deployment/cifar-api api=cifar-api:v2-typo');
+$('#undo').onclick=()=>{const prev=hist.filter(h=>h!==cur).pop();if(!prev){log('error: no rollout history found','bad');return;}rollTo(prev,'$ kubectl rollout undo deployment/cifar-api');};
+$('#reps').addEventListener('input',()=>{log(`$ kubectl scale deployment cifar-api --replicas=${$('#reps').value}`,'hl');draw();});
+log('$ kubectl apply -f 02-api-deployment.yaml','hl');draw();setInterval(tick,900);
+</script>
+</body>
+</html>

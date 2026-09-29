@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4 · Docker Compose — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 4 of 12 · ≈ 15 min</div>
+  <h1>Docker Compose: several containers as one app</h1>
+  <p class="one-liner">Our app has <b>two</b> containers: the <b>API</b> (the model) and the <b>UI</b> (the web page). Typing two long <code>docker run</code> commands every time is painful.
+  <b>docker-compose.yml</b> describes both in one file, and <code>docker compose up</code> starts them together on a private network where they find each other <b>by name</b>.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A band plays from one set list instead of each musician getting separate instructions. And on stage they call each other by <b>name</b> ("api!"), not by seat number.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, press <b>🖼️ Predict</b> with <code>API_URL=http://api:5000</code>.</li><li>Change it to <code>http://localhost:5000</code> and predict again.</li><li>In ②, switch off <b>depends_on</b> and start the app.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Inside a container, <b>localhost is the container itself</b>. To reach another container, use its <b>service name</b>. Compose's built-in DNS turns <code>api</code> into an address.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>① Two containers, one network</h2>
+  <div class="grid2">
+    <div class="yaml"><span class="c"># ml-app/docker-compose.yml (shortened)</span>
+<span class="k">services:</span>
+  <span class="k">api:</span>
+    <span class="k">build:</span> {context: ., dockerfile: api/Dockerfile}
+    <span class="k">image:</span> <span class="v">cifar-api:v1</span>
+    <span class="k">ports:</span> [<span class="v">"5000:5000"</span>]
+  <span class="k">ui:</span>
+    <span class="k">build:</span> {context: ., dockerfile: ui/Dockerfile}
+    <span class="k">image:</span> <span class="v">cifar-ui:v1</span>
+    <span class="k">ports:</span> [<span class="v">"8501:8501"</span>]
+    <span class="k">environment:</span>
+<span class="hl">      <span class="k">API_URL:</span> <span class="v" id="yUrl">http://api:5000</span>   <span class="c"># the SERVICE NAME</span></span>
+    <span class="k">depends_on:</span>
+      <span class="k">api:</span> {condition: <span class="v">service_healthy</span>}</div>
+    <div>
+      <div class="ctl"><label>UI's <code>API_URL</code></label><select id="apiUrl"><option>http://api:5000</option><option>http://localhost:5000</option><option>http://127.0.0.1:5000</option></select></div>
+      <div class="dg">
+        <div class="machine net"><div class="mt">🌐 network "ml-app_default" (made by compose)</div>
+          <div class="flow">
+            <div class="ctr" id="uiBox">🖥️ ui<small>port 8501</small></div>
+            <span class="arrow" id="arr">→</span>
+            <div class="ctr">🧠 api<small>172.26.0.3 · port 5000</small></div>
+          </div></div>
+        <div class="btn-row"><button class="btn primary" id="pred">🖼️ Predict cat_1.png</button></div>
+        <div id="res" class="banner info">Press 🖼️ Predict.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Who starts first? <code>depends_on: service_healthy</code></h2>
+  <div class="grid2">
+    <div>
+      <p>The API needs ≈ 5 s to load its models. If the UI starts first, its first requests fail. <code>depends_on</code> with <code>condition: service_healthy</code> tells compose:
+      "start the UI only after the API's HEALTHCHECK says <b>healthy</b>".</p>
+      <label class="check"><input type="checkbox" id="dep" checked> use <code>depends_on: service_healthy</code></label>
+      <div class="btn-row"><button class="btn primary" id="up">▶ docker compose up</button></div>
+    </div>
+    <div class="logbox" id="upLog"></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ The commands you'll use</h2>
+  <div class="termlabel">Real output (trainer's PC, some columns shortened)</div>
+  <div class="term"><div class="cmd">docker compose up --build -d</div><pre><span class="c"># builds both images if needed, then starts api and ui in the background</span></pre><div class="cmd">docker compose ps</div><pre>NAME           IMAGE          SERVICE   STATUS                  PORTS
+ml-app-api-1   cifar-api:v1   api       Up 20 hours (<span class="ok">healthy</span>)   0.0.0.0:5000->5000/tcp
+ml-app-ui-1    cifar-ui:v1    ui        Up 21 hours (<span class="ok">healthy</span>)   0.0.0.0:8501->8501/tcp</pre><div class="cmd">docker compose exec ui python -c "import socket;print(socket.gethostbyname('api'))"</div><pre><span class="hl">172.26.0.3</span>     <span class="c">← compose's DNS turned the name "api" into the API container's address</span></pre><div class="cmd">docker compose exec ui python -c "import urllib.request as u;print(u.urlopen('http://api:5000/health').read())"</div><pre>b'{"status":"ok"}\n'</pre><div class="cmd">docker compose logs -f ui</div><pre><span class="c"># follow the UI's logs (Ctrl + C to stop following)</span></pre><div class="cmd">docker compose down</div><pre><span class="c"># stops and removes both containers and the network (images stay)</span></pre></div>
+  <p class="small muted">The container names <code>ml-app-api-1</code> = project (folder) name + service name + number.</p>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"Compose = one file that describes all the containers of an app. <code>docker compose up</code> starts them all."</li>
+    <li>"Compose puts them on a private network. Containers talk to each other by <b>service name</b>: the UI calls <code>http://api:5000</code>."</li>
+    <li>"<code>localhost</code> inside a container means that container itself: the most common beginner bug."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Why does <code>http://localhost:5000</code> work in <i>your browser</i>, but not as the UI's <code>API_URL</code>?
+      <details class="answer"><summary>Answer</summary>Your browser runs on your PC, and compose opened the door 5000 on your PC (<code>ports: "5000:5000"</code>). The UI runs <i>inside</i> its own container, where localhost is the UI container: nothing listens on 5000 there.</details></li>
+    <li>What is still missing that we'll need in production?
+      <details class="answer"><summary>Answer</summary>Compose runs on <b>one</b> machine. If that machine dies, everything is down; there's no automatic spreading over many machines, no automatic scaling, no zero-downtime updates. That's Kubernetes (next page).</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+$('#apiUrl').addEventListener('input',()=>{$('#yUrl').textContent=$('#apiUrl').value;$('#res').className='banner info';$('#res').textContent='Press 🖼️ Predict.';});
+$('#pred').onclick=async()=>{const u=$('#apiUrl').value,r=$('#res');r.className='banner info';r.textContent='Sending…';$('#arr').style.color='#2f6fed';await sleep(500);$('#arr').style.color='';
+  if(u==='http://api:5000'){r.className='banner good';r.innerHTML='✅ UI → DNS: <code>api</code> = 172.26.0.3 → API answers <code>{"prediction":"cat","confidence":0.8586,…}</code> (real answer for cat_1.png).';}
+  else{r.className='banner bad';r.innerHTML=`❌ The UI shows <b>"API not reachable"</b>. <code>${u.replace('http://','').replace(':5000','')}</code> inside the UI container is the <b>UI container itself</b>, and nothing listens on port 5000 there: <code>Connection refused</code>.`;}};
+$('#up').onclick=async()=>{const dep=$('#dep').checked,L=$('#upLog');L.innerHTML='';$('#up').disabled=true;const log=(t,c='')=>{L.innerHTML+=`<span class="${c}">${t}</span>\n`;L.scrollTop=1e9;};
+  log('$ docker compose up','hl');log(' ✔ Network ml-app_default  Created');log(' ✔ Container ml-app-api-1  Started');await sleep(500);
+  if(!dep){log(' ✔ Container ml-app-ui-1   Started');await sleep(400);log('ui-1  | You can now view your Streamlit app in your browser.');await sleep(300);
+    log('ui-1  | GET http://api:5000/health → Connection refused (API still loading models)','bad');await sleep(600);log('ui-1  | sidebar: "API not reachable"','bad');}
+  else{log(' ⠿ Container ml-app-api-1  Waiting (health: starting)…');}
+  await sleep(700);log('api-1 | Listening at: http://0.0.0.0:5000');await sleep(700);log('api-1 | Loaded int8 (model_int8.onnx) in 321 ms');await sleep(400);log('api-1 | health check → healthy','ok');
+  if(dep){log(' ✔ Container ml-app-api-1  Healthy','ok');log(' ✔ Container ml-app-ui-1   Started');await sleep(400);log('ui-1  | You can now view your Streamlit app in your browser.');log('ui-1  | sidebar: "API ready ✓" on the very first request','ok');}
+  else{await sleep(300);log('ui-1  | next request works (the user may have seen an error first)','hl');}
+  $('#up').disabled=false;};
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 · Why Kubernetes? — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .part{cursor:pointer;transition:transform .1s}
+  .part:hover{transform:translateY(-2px)}
+  .part.sel{box-shadow:0 0 0 3px rgba(47,111,237,.35)}
+  .cp{display:flex;flex-wrap:wrap;gap:.4rem}
+  .loopstep{display:inline-block;padding:.2rem .6rem;border-radius:999px;background:var(--soft);font-weight:700;font-size:.82rem;color:var(--muted)}
+  .loopstep.on{background:var(--blue);color:#fff}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 5 of 12 · ≈ 20 min</div>
+  <h1>Why Kubernetes? From one machine to a fleet</h1>
+  <p class="one-liner">Docker Compose runs containers on <b>one</b> machine, and <b>you</b> are the one who fixes things at 3 am. <b>Kubernetes</b> (k8s) runs containers on <b>many</b> machines and
+  fixes things itself. You write down <b>what you want</b> ("2 copies of the API, always") and Kubernetes keeps checking and correcting until reality matches.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A thermostat: you set <b>21 °C</b> (what you want). It keeps measuring the room (what is) and switches the heating on or off to close the gap.
+      You never tell it <i>how</i>. Kubernetes is a thermostat for containers.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, click each problem and compare "Docker only" with "Kubernetes".</li><li>In ②, click the parts of the cluster.</li><li>In ③, crash pods and watch the loop fix it.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>You never say "start a container". You say "I want 3". Kubernetes does whatever is needed: start, stop, move.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Cluster</b> = a group of machines Kubernetes manages</span><span><b>Node</b> = one machine in it</span>
+    <span><b>Control plane</b> = the brain</span><span><b>kubelet</b> = the helper on every node that starts containers</span><span><b>Desired state</b> = what you wrote in YAML</span><span><b>kubectl</b> = the command you use to talk to the cluster</span></div>
+</section>
+
+<section class="card">
+  <h2>① Problems in real life</h2>
+  <div class="btn-row" id="probs"></div>
+  <div class="grid2" style="margin-top:.4rem">
+    <div class="side dg"><h3>🐳 Docker / Compose on one server</h3><p id="pD">–</p></div>
+    <div class="side dg"><h3>☸️ Kubernetes</h3><p id="pK">–</p><p class="small muted" id="pF"></p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② What a cluster is made of (click the parts)</h2>
+  <div class="grid2">
+    <div class="dg">
+      <div class="machine" style="border-color:#9775fa;background:#f8f5ff"><div class="mt">🧠 Control plane (the brain)</div>
+        <div class="cp"><span class="chip purple part" data-p="api">API server</span><span class="chip purple part" data-p="etcd">etcd</span><span class="chip purple part" data-p="sched">scheduler</span><span class="chip purple part" data-p="ctrl">controllers</span></div></div>
+      <div class="flow" style="margin:.5rem 0"><span class="chip part" data-p="kubectl">⌨️ you: kubectl apply -f app.yaml</span></div>
+      <div class="grid2" style="gap:.5rem">
+        <div class="machine"><div class="mt">🖥️ Node 1</div><div class="cp"><span class="chip blue part" data-p="kubelet">kubelet</span><span class="chip part" data-p="runtime">container runtime</span></div>
+          <div class="pods" style="margin-top:.4rem;min-height:0"><div class="pod part" data-p="pod"><b>api-1</b></div><div class="pod part" data-p="pod"><b>ui-1</b></div></div></div>
+        <div class="machine"><div class="mt">🖥️ Node 2</div><div class="cp"><span class="chip blue part" data-p="kubelet">kubelet</span><span class="chip part" data-p="runtime">container runtime</span></div>
+          <div class="pods" style="margin-top:.4rem;min-height:0"><div class="pod part" data-p="pod"><b>api-2</b></div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="explain" id="partTxt">Click a part of the cluster.</div>
+      <p class="small">On our PCs, Docker Desktop gives us the <b>smallest possible cluster</b>: one node that is both brain and worker.</p>
+      <div class="termlabel">Real output (trainer's PC)</div>
+      <div class="term"><div class="cmd">kubectl get nodes -o wide</div><pre>NAME             STATUS   ROLES           VERSION   INTERNAL-IP    CONTAINER-RUNTIME
+docker-desktop   <span class="ok">Ready</span>    control-plane   v1.36.1   192.168.65.3   docker://29.8.0</pre></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ The loop: desired state vs actual state</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>You write (desired)</h3>
+      <div class="ctl"><label>replicas <output id="dOut"></output></label><input type="range" id="desired" min="0" max="6" value="3"></div>
+      <h3>Life happens</h3>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch"><button class="btn" id="crash">💥 A container crashes</button><button class="btn" id="nodeDie">🔌 Node 2 dies</button><button class="btn" id="nodeBack">🔧 Repair node 2</button></div>
+      <label class="check"><input type="checkbox" id="loopOn" checked> Controllers running</label>
+    </aside>
+    <div class="stage">
+      <div class="flow" style="justify-content:flex-start;margin-bottom:.5rem"><span class="loopstep" id="s1">1 · observe</span><span class="arrow">→</span><span class="loopstep" id="s2">2 · compare</span><span class="arrow">→</span><span class="loopstep" id="s3">3 · act</span><span class="arrow">↺</span></div>
+      <div class="stats"><div class="stat blue"><b id="want">3</b><span>Desired</span></div><div class="stat" id="haveBox"><b id="have">0</b><span>Actual (running)</span></div></div>
+      <div class="grid2" style="gap:.5rem">
+        <div class="machine"><div class="mt">🖥️ Node 1</div><div class="pods" id="n1"></div></div>
+        <div class="machine" id="node2"><div class="mt" id="n2t">🖥️ Node 2</div><div class="pods" id="n2"></div></div>
+      </div>
+      <div class="logbox" id="loopLog" style="margin-top:.5rem"></div>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"Compose runs on one machine and needs you to fix problems. Kubernetes runs on many machines and fixes them itself."</li>
+    <li>"We don't give orders like 'start a container'. We write down what we want, and controllers keep comparing wanted vs actual and fix the difference, forever."</li>
+    <li>"The brain (control plane) decides; the kubelet on each node does the work. Docker Desktop is a one-node cluster for learning."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Untick "Controllers running", crash two containers, then tick it again.
+      <details class="answer"><summary>Answer</summary>Without controllers nothing happens: actual stays below desired, just like a server where nobody is watching. As soon as the loop runs again, it sees the gap and starts new copies. Kubernetes is only "self-healing" because of these loops.</details></li>
+    <li>Kill node 2. Where do its pods come back?
+      <details class="answer"><summary>Answer</summary>On node 1: the scheduler only places pods on healthy nodes. (In a real cluster, it takes about 5 minutes before pods on an unreachable node are replaced: that's the 300 s toleration you'll see in <code>kubectl describe pod</code>.)</details></li>
+    <li>Set replicas to 0.
+      <details class="answer"><summary>Answer</summary>All copies are removed: the desired state is "none". Nothing is broken; you asked for it. This is how you pause an app without deleting its configuration.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+const PROBS={crash:['💥 The API crashes at 3 am',`It stays down until <b>you</b> wake up and restart it (or <code>restart: unless-stopped</code> restarts it on the same machine, if the machine is fine).`,`The kubelet restarts the container; if the pod is gone, the Deployment makes a new one (page 7).`,'Deployment · liveness probe'],
+  load:['📈 Traffic ×5 on exam day',`You log in, start more containers by hand, and hope one machine is big enough.`,`The HorizontalPodAutoscaler adds copies automatically when CPU is high, and removes them later (page 11).`,'HPA'],
+  deploy:['🚀 Ship a new version',`Stop the old container, start the new one: users see errors in between. If the new one is broken, you scramble to go back.`,`Rolling update: new copies start first, old ones leave only when the new are ready. Broken? <code>kubectl rollout undo</code> (page 7).`,'Deployment rolling update'],
+  node:['🔌 The whole server dies',`Everything is down: the app, the UI, all of it.`,`Pods are rescheduled on the other nodes. Users barely notice if there were ≥ 2 copies.`,'Scheduler · ReplicaSet'],
+  config:['⚙️ Change a setting',`Edit the compose file or the command on each server, restart each container by hand.`,`Edit the ConfigMap once; <code>kubectl rollout restart</code> rolls the change over all copies (page 9).`,'ConfigMap'],
+  find:['🔎 "Where is the API?"',`Containers get new IPs after restarts; you hard-code addresses or use compose names (one machine only).`,`A Service gives one fixed name, <code>cifar-api</code>, and spreads requests over all healthy copies (page 8).`,'Service']};
+$('#probs').innerHTML=Object.entries(PROBS).map(([k,v])=>`<button class="btn" data-k="${k}">${v[0]}</button>`).join('');
+$$('#probs button').forEach(b=>b.onclick=()=>{$$('#probs button').forEach(x=>x.classList.toggle('primary',x===b));const p=PROBS[b.dataset.k];$('#pD').innerHTML='😴 '+p[1];$('#pK').innerHTML='🤖 '+p[2];$('#pF').innerHTML='Kubernetes object: <b>'+p[3]+'</b>';});
+$('#probs button').click();
+const PARTS={api:'<b>API server</b>: the front door of the cluster. Every <code>kubectl</code> command and every component talks to it. It checks your YAML and stores it.',
+  etcd:'<b>etcd</b>: the cluster\'s database. It stores the desired state (all your YAML) and the current state. Lose etcd, lose the cluster: it is backed up in production.',
+  sched:'<b>Scheduler</b>: picks a node for every new pod, based on how much CPU and memory the pod asks for (its <i>requests</i>, page 10) and what is free on each node.',
+  ctrl:'<b>Controllers</b>: little loops that each watch one kind of object. The Deployment/ReplicaSet controller keeps the right number of pods; the HPA controller changes that number under load.',
+  kubectl:'<b>kubectl</b>: the command-line tool you use. <code>kubectl apply -f file.yaml</code> sends your desired state to the API server. That\'s all it does: it never starts containers itself.',
+  kubelet:'<b>kubelet</b>: an agent on every node. It asks the API server "which pods should run on me?", starts their containers through the runtime, and runs the health checks (probes).',
+  runtime:'<b>Container runtime</b>: the part that really runs containers (containerd, or Docker in Docker Desktop: <code>docker://29.8.0</code> in the output).',
+  pod:'<b>Pod</b>: the smallest thing Kubernetes runs: one (or a few) containers with one IP address. Next page!'};
+$$('.part').forEach(p=>p.onclick=()=>{$$('.part').forEach(x=>x.classList.remove('sel'));$$(`.part[data-p="${p.dataset.p}"]`).forEach(x=>x.classList.add('sel'));$('#partTxt').innerHTML=PARTS[p.dataset.p];});
+// ---- desired-state loop ----
+let pods=[],uid=0,node2up=true;const names='abcdefghjkmnpqrstvwxz';
+const nm=()=>'api-'+Array.from({length:5},()=>names[Math.floor(Math.random()*names.length)]).join('');
+function log(t,c=''){const L=$('#loopLog');L.innerHTML+=`<span class="${c}">${t}</span>\n`;L.scrollTop=1e9;}
+function draw(){const want=+$('#desired').value;$('#dOut').textContent=want;$('#want').textContent=want;
+  const run=pods.filter(p=>p.st==='run').length;$('#have').textContent=run;$('#haveBox').className='stat '+(run===want?'good':'bad');
+  for(const n of [1,2]){$('#n'+n).innerHTML=pods.filter(p=>p.node===n).map(p=>`<div class="pod ${p.st==='run'?'':p.st==='new'?'creating':'bad'}"><b>${p.name}</b><span class="st">${p.st==='run'?'Running':p.st==='new'?'ContainerCreating':'Error'}</span></div>`).join('')||'<span class="small muted">(empty)</span>';}
+  $('#node2').style.opacity=node2up?1:.45;$('#n2t').textContent=node2up?'🖥️ Node 2':'🖥️ Node 2 · ❌ NotReady';}
+async function tick(){
+  const on=$('#loopOn').checked;for(const s of ['s1','s2','s3'])$('#'+s).classList.remove('on');
+  pods.filter(p=>p.st==='new'&&(p.node===1||node2up)).forEach(p=>{if(--p.t<=0)p.st='run';});
+  if(!on){draw();return;}
+  $('#s1').classList.add('on');await sleep(250);$('#s1').classList.remove('on');$('#s2').classList.add('on');
+  const want=+$('#desired').value;pods=pods.filter(p=>{if(p.st==='err'){log(`observe: ${p.name} is dead → remove it`,'bad');return false;}return true;});
+  const alive=pods.length;await sleep(250);$('#s2').classList.remove('on');$('#s3').classList.add('on');
+  if(alive<want){for(let i=alive;i<want;i++){const n1=pods.filter(p=>p.node===1).length,n2=pods.filter(p=>p.node===2).length,node=node2up&&n2<n1?2:1;
+      const p={name:nm(),node,st:'new',t:2};pods.push(p);log(`act: want ${want}, have ${alive} → create ${p.name} on node ${node}`,'ok');}}
+  else if(alive>want){const extra=pods.splice(want);extra.forEach(p=>log(`act: want ${want}, have ${alive} → delete ${p.name}`,'hl'));}
+  else log(`compare: want ${want}, have ${alive} ✓ nothing to do`);
+  await sleep(250);$('#s3').classList.remove('on');draw();}
+$('#crash').onclick=()=>{const c=pods.filter(p=>p.st==='run');if(!c.length)return;const p=c[Math.floor(Math.random()*c.length)];p.st='err';log(`💥 ${p.name} crashed`,'bad');draw();};
+$('#nodeDie').onclick=()=>{if(!node2up)return;node2up=false;pods.filter(p=>p.node===2).forEach(p=>p.st='err');log('🔌 node 2 stopped answering: its pods are lost','bad');draw();};
+$('#nodeBack').onclick=()=>{if(node2up)return;node2up=true;log('🔧 node 2 is back: new pods may be placed there again','ok');draw();};
+$('#desired').addEventListener('input',draw);$('#loopOn').addEventListener('change',()=>log($('#loopOn').checked?'▶ controllers running again':'⏸ controllers stopped: nobody is watching!','hl'));
+draw();log('$ kubectl apply -f api-deployment.yaml   (replicas: 3)','hl');setInterval(tick,1500);
+</script>
+</body>
+</html>

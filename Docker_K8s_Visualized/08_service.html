@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8 · Service — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .pod .cnt{position:absolute;top:.25rem;right:.4rem;font-family:var(--mono);font-weight:700;font-size:.75rem;color:var(--blue)}
+  .svcbox{border:3px solid var(--purple);background:#f3f0ff;border-radius:14px;padding:.45rem .7rem;font-weight:700;text-align:center}
+  .svcbox small{display:block;font-weight:500;color:var(--muted);font-family:var(--mono)}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 8 of 12 · ≈ 20 min</div>
+  <h1>Service: one fixed address for a changing group of pods</h1>
+  <p class="one-liner">Pods come and go, and every new pod gets a <b>new IP</b>. So how does the UI find the API? A <b>Service</b> gives the group a <b>fixed name and address</b>
+  (<code>cifar-api:5000</code>) and <b>spreads the requests</b> over all pods that carry the right <b>label</b> and are <b>ready</b>.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A call-centre number. You always dial the same number; behind it, whichever agent is free and working today picks up. Agents change shifts all the time, and the number never changes.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>▶ Send 12 requests</b> through the Service. Count per pod.</li><li>Switch to <b>call a pod IP directly</b>, kill that pod, and send again.</li><li>Put a typo in the <b>selector</b>.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>The Service doesn't care about pod names or IPs. It picks pods by <b>label</b> (<code>app=cifar-api</code>), and only the <b>ready</b> ones.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Service</b> = fixed name + address in front of pods</span><span><b>Selector</b> = "the pods with this label"</span><span><b>Endpoints</b> = the pod addresses behind it right now</span>
+    <span><b>ClusterIP</b> = reachable inside the cluster</span><span><b>NodePort</b> = also reachable from your PC on a port like 30080</span></div>
+</section>
+
+<section class="card">
+  <h2>① The UI needs the API</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>The UI calls…</h3>
+      <div class="seg" id="how" style="flex-direction:column"><button data-h="svc" class="on">the Service: http://cifar-api:5000</button><button data-h="ip">a pod IP directly: http://10.1.1.17:5000</button></div>
+      <h3>Service selector</h3>
+      <div class="ctl"><select id="sel"><option value="cifar-api">app: cifar-api</option><option value="cifar-apii">app: cifar-apii  (typo)</option></select></div>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch">
+        <button class="btn primary" id="send">▶ Send 12 requests</button>
+        <button class="btn" id="addPod">➕ Scale up (add a pod)</button>
+        <button class="btn" id="reset">↺ Reset</button>
+      </div>
+      <p class="small muted">Click a pod to kill it: the Deployment replaces it with a new pod and a <b>new IP</b>. Use the ⏸ button on a pod to make it "not ready".</p>
+    </div>
+    <div class="stage">
+      <div class="flow" style="justify-content:flex-start"><div class="ctr">🖥️ UI pod</div><span class="arrow">→</span>
+        <div class="svcbox" id="svcBox">☎️ Service cifar-api<small id="svcSub">ClusterIP 10.99.144.91 · selector app=cifar-api</small></div><span class="arrow">→</span></div>
+      <div class="dg" style="margin-top:.4rem"><div class="canvas-title">API pods (label app=cifar-api)</div><div class="pods" id="pods"></div></div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre id="ep"></pre></div>
+      <div id="sv" class="banner info">Press ▶ Send 12 requests.</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Three kinds of Service</h2>
+  <div class="grid3">
+    <div class="dg"><h3>🔒 ClusterIP <span class="pill blue">our API</span></h3><p>Only reachable <b>inside</b> the cluster, by name. The UI uses <code>http://cifar-api:5000</code>. Your browser can't reach it: good, the API stays private.</p></div>
+    <div class="dg"><h3>🚪 NodePort <span class="pill blue">our UI</span></h3><p>Also opens a port (30000–32767) on every node. Our UI: <code>nodePort: 30080</code> → open <b>http://localhost:30080</b> on your PC.</p></div>
+    <div class="dg"><h3>🌍 LoadBalancer</h3><p>In a cloud, asks the provider for a public IP address in front of the Service. The usual way to go public (costs money on most clouds).</p></div>
+  </div>
+  <p class="small muted">For many web apps on one address (<code>shop.com/</code>, <code>shop.com/api</code>) there's also an <b>Ingress</b>: one entry point that routes by host name or path. Example: <code>k8s/extras/ingress.yaml</code>.</p>
+</section>
+
+<section class="card">
+  <h2>③ Real output from the trainer's PC</h2>
+  <div class="grid2">
+    <div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo get svc</div><pre>NAME        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)
+cifar-api   ClusterIP   <span class="hl">10.99.144.91</span>     &lt;none&gt;        5000/TCP
+cifar-ui    NodePort    10.101.246.165   &lt;none&gt;        8501:<span class="hl">30080</span>/TCP</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
+cifar-api   10.1.1.16:5000,10.1.1.17:5000     <span class="c">← the 2 API pods behind it</span></pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "import socket;print(socket.gethostbyname('cifar-api'))"</div><pre><span class="hl">10.99.144.91</span>     <span class="c">← the name resolves to the Service's fixed IP</span></pre><div class="cmd">curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://localhost:30080</div><pre><span class="ok">HTTP 200</span>     <span class="c">← the UI through the NodePort</span></pre></div>
+    </div>
+    <div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "import urllib.request as u,json;[print(json.loads(u.urlopen('http://cifar-api:5000/').read())['pod']) for _ in range(8)]"</div><pre>cifar-api-68c5fb8c48-frr26
+cifar-api-68c5fb8c48-ch29k
+cifar-api-68c5fb8c48-frr26
+cifar-api-68c5fb8c48-ch29k
+cifar-api-68c5fb8c48-ch29k
+cifar-api-68c5fb8c48-ch29k
+cifar-api-68c5fb8c48-frr26
+cifar-api-68c5fb8c48-frr26      <span class="c">← 8 requests, spread over both pods</span></pre></div>
+      <div class="termlabel">A typo in the selector</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo patch service cifar-api -p "{\"spec\":{\"selector\":{\"app\":\"cifar-apii\"}}}"</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
+cifar-api   <span class="bad">&lt;none&gt;</span>       <span class="c">← no pod has the label "cifar-apii"</span></pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "…urlopen('http://cifar-api:5000/health')…"</div><pre><span class="bad">urllib.error.URLError: &lt;urlopen error [Errno 111] Connection refused&gt;</span></pre></div>
+      <p class="small muted">No error anywhere else: the pods are healthy, the Service exists. Silent label mistakes are why <code>kubectl get endpoints</code> is the first thing to check.</p>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"Pods are temporary and their IPs change. Never call a pod IP directly."</li>
+    <li>"A Service is a fixed name, like a phone number. It forwards each request to one of the pods that have the right label and are ready."</li>
+    <li>"ClusterIP for inside the cluster (our API), NodePort to reach it from your PC (our UI on port 30080)."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Call the pod IP directly, kill pod 10.1.1.17, send again.
+      <details class="answer"><summary>Answer</summary>Every request fails: that IP is gone. The replacement pod got a new IP. Through the Service it keeps working, because the Service always follows the label.</details></li>
+    <li>Make one pod "not ready" (⏸). Where do requests go?
+      <details class="answer"><summary>Answer</summary>Only to the ready pods. The not-ready pod is removed from the endpoints: no restart, just no traffic. That's the readiness probe's job (page 10).</details></li>
+    <li>Scale up to 4 pods. Does the UI need to know?
+      <details class="answer"><summary>Answer</summary>No. The new pods have the label, so they join the endpoints automatically and get their share of requests.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+let pods,how='svc',rr=0;const rid=()=>Math.random().toString(36).slice(2,7);let nextIp=18;
+function reset(){pods=[{name:'cifar-api-68c5fb8c48-frr26',ip:'10.1.1.16',ready:true,n:0},{name:'cifar-api-68c5fb8c48-ch29k',ip:'10.1.1.17',ready:true,n:0}];nextIp=18;rr=0;
+  $('#sel').value='cifar-api';draw();$('#sv').className='banner info';$('#sv').textContent='Press ▶ Send 12 requests.';}
+function eps(){return $('#sel').value==='cifar-api'?pods.filter(p=>p.ready&&!p.dead):[];}
+function draw(){const sel=$('#sel').value;$('#svcSub').textContent=`ClusterIP 10.99.144.91 · selector app=${sel}`;$('#svcBox').style.opacity=how==='svc'?1:.4;
+  $('#pods').innerHTML=pods.map((p,i)=>`<div class="pod click ${p.dead?'term':p.new?'creating':p.ready?'':'notready'}" data-i="${i}"><span class="cnt">${p.n||''}</span><b>${p.name.slice(10)}</b><span class="st">${p.ip} · ${p.dead?'Terminating':p.new?'starting':p.ready?'Ready':'Not ready'}</span>
+    <button class="mini" data-r="${i}" style="margin-top:.2rem;font-size:.7rem;border:1px solid var(--line);border-radius:5px;background:#fff;cursor:pointer">${p.ready?'⏸ make not ready':'▶ make ready'}</button></div>`).join('');
+  $$('#pods .pod').forEach(e=>e.onclick=ev=>{if(ev.target.dataset.r!==undefined)return;kill(+e.dataset.i);});
+  $$('#pods [data-r]').forEach(b=>b.onclick=()=>{const p=pods[+b.dataset.r];if(p.dead)return;p.ready=!p.ready;draw();});
+  const E=eps();$('#ep').innerHTML='NAME        ENDPOINTS\ncifar-api   '+(E.length?E.map(p=>p.ip+':5000').join(','):'<span class="bad">&lt;none&gt;</span>');}
+function kill(i){const p=pods[i];if(p.dead)return;p.dead=true;p.ready=false;draw();
+  setTimeout(()=>{pods.splice(pods.indexOf(p),1);const q={name:`cifar-api-68c5fb8c48-${rid()}`,ip:'10.1.1.'+(nextIp++),ready:false,new:true,n:0};pods.push(q);draw();
+    setTimeout(()=>{q.new=false;q.ready=true;draw();},1500);},900);}
+$$('#how button').forEach(b=>b.onclick=()=>{how=b.dataset.h;$$('#how button').forEach(x=>x.classList.toggle('on',x===b));draw();});
+$('#sel').addEventListener('input',draw);
+$('#addPod').onclick=()=>{const q={name:`cifar-api-68c5fb8c48-${rid()}`,ip:'10.1.1.'+(nextIp++),ready:false,new:true,n:0};pods.push(q);draw();setTimeout(()=>{q.new=false;q.ready=true;draw();},1500);};
+$('#reset').onclick=reset;
+$('#send').onclick=async()=>{pods.forEach(p=>p.n=0);let ok=0,fail=0;
+  for(let k=0;k<12;k++){let target=null;
+    if(how==='ip'){target=pods.find(p=>p.ip==='10.1.1.17'&&!p.dead&&p.ready);}
+    else{const E=eps();if(E.length)target=E[Math.floor(Math.random()*E.length)];}
+    if(target){target.n++;ok++;$$('#pods .pod').forEach(e=>e.classList.toggle('flash',pods[+e.dataset.i]===target));}else fail++;
+    draw();await sleep(160);}
+  const v=$('#sv');$$('#pods .pod').forEach(e=>e.classList.remove('flash'));  if(!fail){v.className='banner good';v.innerHTML=how==='svc'?`✅ 12 of 12 answered, spread over ${eps().length} ready pod${eps().length>1?'s':''} (numbers on the pods).`:'✅ 12 of 12 answered, but all by <b>one</b> pod, and only while that pod lives.';}
+  else{v.className='banner bad';v.innerHTML=how==='ip'?`❌ ${fail} of 12 failed: <code>10.1.1.17</code> doesn't exist any more (or isn't ready). Pod IPs are temporary.`:
+    $('#sel').value!=='cifar-api'?'❌ 12 of 12 failed: <code>Connection refused</code>. The selector <code>app=cifar-apii</code> matches no pod, so the Service has no endpoints.':`❌ ${fail} of 12 failed: no ready pod right now.`;}};
+reset();
+</script>
+</body>
+</html>

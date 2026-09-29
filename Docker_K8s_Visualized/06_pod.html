@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 · Pod — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .podbig{border:3px solid #69db7c;background:#f4fdf5;border-radius:16px;padding:.7rem;max-width:26rem;margin:auto;transition:all .3s}
+  .podbig .mt{font-weight:700;margin-bottom:.4rem}
+  .podbig.creating{border-color:#ffd43b;background:#fffbe6}.podbig.notready{border-color:#ffa94d;background:#fff4e6}.podbig.bad{border-color:#ff8787;background:#fff5f5}.podbig.gone{border-style:dashed;border-color:#ced4da;background:#f8f9fa;opacity:.55}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 6 of 12 · ≈ 15 min</div>
+  <h1>The Pod: the smallest thing Kubernetes runs</h1>
+  <p class="one-liner">Kubernetes never runs a container "naked". It wraps it in a <b>Pod</b>: one (sometimes a few) containers that share <b>one IP address</b> and live and die together.
+  A pod is like a <b>disposable</b> container with an address. When it dies, it's gone for good. That's why, on the next page, we let a <b>Deployment</b> look after pods for us.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A container is a person; a pod is the <b>hotel room</b> they get, with a room number (IP). People in the same room share it. When they check out, the room is cleaned and given to someone else with a new number.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>kubectl apply</b> and watch the STATUS column change.</li><li>Press <b>💥 app crashes</b> a few times in a row.</li><li>Press <b>🗑 kubectl delete pod</b>. Does it come back?</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>A crashed container is <b>restarted in the same pod</b> (RESTARTS goes up). A deleted pod is <b>not</b> recreated by anybody. Unless a Deployment owns it (page 7).</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Pod</b> = container(s) + one IP</span><span><b>READY 1/1</b> = 1 of 1 containers ready for traffic</span><span><b>RESTARTS</b> = how often the container was restarted</span>
+    <span><b>CrashLoopBackOff</b> = keeps crashing, Kubernetes waits longer each time</span><span><b>ImagePullBackOff</b> = can't find the image</span></div>
+</section>
+
+<section class="card">
+  <h2>① A pod's life</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Do something</h3>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch">
+        <button class="btn primary" data-a="apply">kubectl apply -f pod.yaml</button>
+        <button class="btn" data-a="crash">💥 The app crashes</button>
+        <button class="btn" data-a="badimg">🏷️ Apply with a wrong image tag</button>
+        <button class="btn" data-a="delete">🗑 kubectl delete pod cifar-api</button>
+      </div>
+    </aside>
+    <div class="stage">
+      <div class="podbig gone" id="pb"><div class="mt" id="pbT">📦 Pod "cifar-api" (doesn't exist)</div>
+        <div class="flow" style="justify-content:flex-start"><div class="ctr">🧠 container "api"<small>image cifar-api:v1 · port 5000</small></div><span class="chip" id="pbIP">IP –</span></div></div>
+      <div class="term" style="margin-top:.6rem"><div class="cmd">kubectl get pods</div><pre id="gp"></pre></div>
+      <div class="logbox" id="plog" style="height:7.5rem"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② What it looks like in YAML, and for real</h2>
+  <div class="grid2">
+    <div>
+      <div class="yaml"><span class="c"># the simplest pod (for learning only: we never write bare pods in k8s/)</span>
+<span class="k">apiVersion:</span> v1
+<span class="k">kind:</span> <span class="v">Pod</span>
+<span class="k">metadata:</span>
+  <span class="k">name:</span> cifar-api
+  <span class="k">labels:</span> {app: <span class="v">cifar-api</span>}     <span class="c"># a sticky note: used by Services (page 8)</span>
+<span class="k">spec:</span>
+  <span class="k">containers:</span>
+    - <span class="k">name:</span> api
+      <span class="k">image:</span> <span class="v">cifar-api:v1</span>
+      <span class="k">ports:</span> [{containerPort: 5000}]</div>
+      <p class="small muted">Every Kubernetes YAML has the same four parts: <code>apiVersion</code>, <code>kind</code> (what it is), <code>metadata</code> (name, labels) and <code>spec</code> (what you want).</p>
+    </div>
+    <div>
+      <div class="termlabel">Real output (trainer's PC): the pods our Deployment created</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo get pods -o wide</div><pre>NAME                         READY   STATUS    RESTARTS   AGE   IP
+cifar-api-68c5fb8c48-ch29k   1/1     Running   0          11s   <span class="hl">10.1.1.17</span>
+cifar-api-68c5fb8c48-frr26   1/1     Running   0          11s   <span class="hl">10.1.1.16</span>
+cifar-ui-55f9dd7b6b-6297t    1/1     Running   0          11s   10.1.1.18</pre><div class="cmd">kubectl -n ml-demo describe pod cifar-api-68c5fb8c48-ch29k</div><pre>Labels:         app=cifar-api
+IP:             10.1.1.17
+Controlled By:  ReplicaSet/cifar-api-68c5fb8c48     <span class="c">← who owns it (page 7)</span>
+    Image:          cifar-api:v1
+    State:          Running
+    Ready:          True
+    Restart Count:  0
+Events:
+  Normal  Scheduled  default-scheduler  Successfully assigned ml-demo/cifar-api-… to docker-desktop
+  Normal  Pulled     kubelet            Container image "cifar-api:v1" already present on machine
+  Normal  Created    kubelet            Container created
+  Normal  Started    kubelet            Container started</pre></div>
+      <p class="small"><b>Tip:</b> when a pod misbehaves, <code>kubectl describe pod</code> and read the <b>Events</b> at the bottom. And <code>kubectl logs &lt;pod&gt;</code> shows what the app printed.</p>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"Kubernetes runs pods, not containers. A pod = our container + its own IP address."</li>
+    <li>"If the app crashes, the kubelet restarts the container inside the same pod. If it keeps crashing, it waits longer each time: CrashLoopBackOff."</li>
+    <li>"If a pod is deleted or its machine dies, nobody brings it back. So we never create pods by hand; a Deployment does it for us. Next page."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Crash the app three times quickly. What happens to RESTARTS and STATUS?
+      <details class="answer"><summary>Answer</summary>RESTARTS goes 1, 2, 3. After repeated crashes STATUS shows <b>CrashLoopBackOff</b>: Kubernetes waits 10 s, 20 s, 40 s… (up to 5 minutes) before trying again, so a broken app doesn't burn the CPU. Find the reason with <code>kubectl logs &lt;pod&gt; --previous</code>.</details></li>
+    <li>Apply with a wrong image tag.
+      <details class="answer"><summary>Answer</summary><b>ErrImagePull</b>, then <b>ImagePullBackOff</b>: the kubelet can't find <code>cifar-api:v2-typo</code> anywhere. We saw exactly this in the real rollout test (page 7).</details></li>
+    <li>Delete the pod. Now what?
+      <details class="answer"><summary>Answer</summary>It's gone, for good. <code>kubectl get pods</code> says "No resources found". A bare pod has no owner to recreate it.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+let P=null,timer=null,t0=0;
+function row(){if(!P)return 'No resources found in default namespace.';const age=Math.max(1,Math.round((Date.now()-t0)/1000))+'s';
+  return 'NAME        READY   STATUS              RESTARTS   AGE\n'+`cifar-api   ${P.ready?'1/1':'0/1'}     ${P.st.padEnd(19)} ${String(P.restarts).padEnd(10)} ${age}`;}
+function log(t,c=''){const L=$('#plog');L.innerHTML+=`<span class="${c}">${t}</span>\n`;L.scrollTop=1e9;}
+function draw(){const pb=$('#pb');if(!P){pb.className='podbig gone';$('#pbT').textContent='📦 Pod "cifar-api" (doesn\'t exist)';$('#pbIP').textContent='IP –';}
+  else{pb.className='podbig '+({Pending:'creating',ContainerCreating:'creating',Running:P.ready?'':'notready',CrashLoopBackOff:'bad',Error:'bad',ErrImagePull:'bad',ImagePullBackOff:'bad',Terminating:'gone'}[P.st]||'');
+    $('#pbT').textContent=`📦 Pod "cifar-api" · ${P.st}${P.ready?' · READY':''}`;$('#pbIP').textContent='IP '+(P.ip||'–');}
+  $('#gp').textContent=row();}
+async function seq(steps){clearTimeout(timer);for(const [ms,fn] of steps){await new Promise(r=>timer=setTimeout(r,ms));fn();draw();}}
+const ip=()=>'10.1.1.'+(16+Math.floor(Math.random()*40));
+$$('[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
+  if(a==='apply'||a==='badimg'){if(P&&P.st!=='Terminating'){log('Error from server (AlreadyExists): pods "cifar-api" already exists','bad');return;}
+    P={st:'Pending',ready:false,restarts:0,ip:null,bad:a==='badimg'};t0=Date.now();log(`$ kubectl apply -f pod.yaml${a==='badimg'?'   (image: cifar-api:v2-typo)':''}`,'hl');log('pod/cifar-api created');draw();
+    seq([[600,()=>{P.st='ContainerCreating';P.ip=ip();log('Scheduled: assigned to docker-desktop');}],
+      ...(P.bad?[[1200,()=>{P.st='ErrImagePull';log('Failed to pull image "cifar-api:v2-typo": not found','bad');}],[1500,()=>{P.st='ImagePullBackOff';log('Back-off pulling image "cifar-api:v2-typo"','bad');}]]:
+      [[1000,()=>{P.st='Running';log('Started container api (loading models…)');}],[1400,()=>{P.ready=true;log('Readiness probe OK → READY 1/1','ok');}]])]);}
+  else if(a==='crash'){if(!P||P.st!=='Running'&&P.st!=='CrashLoopBackOff'){log('No running pod to crash.');return;}
+    P.restarts++;P.ready=false;P.st='Error';log(`💥 container exited with an error (restart #${P.restarts})`,'bad');draw();
+    const wait=[1000,1500,2500,4000,6000][Math.min(4,P.restarts-1)];
+    seq([[400,()=>{P.st=P.restarts>=3?'CrashLoopBackOff':'Running';log(P.restarts>=3?`back-off: waiting ${[10,20,40,80,160][Math.min(4,P.restarts-1)]} s before the next try (sped up here)`:'kubelet restarted the container in the same pod',P.restarts>=3?'hl':'');}],
+      [wait,()=>{P.st='Running';log('container running again');}],[900,()=>{P.ready=true;log('READY 1/1','ok');}]]);}
+  else if(a==='delete'){if(!P){log('Error from server (NotFound): pods "cifar-api" not found','bad');return;}
+    log('$ kubectl delete pod cifar-api','hl');P.st='Terminating';P.ready=false;draw();seq([[1200,()=>{P=null;log('pod "cifar-api" deleted');log('…and nobody creates a new one. A bare pod has no owner.','bad');}]]);}});
+draw();
+</script>
+</body>
+</html>

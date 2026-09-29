@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docker &amp; Kubernetes, Visualized — from one container to a self-healing cluster</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:.9rem}
+  .lesson{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;box-shadow:var(--shadow);transition:transform .12s;position:relative}
+  .lesson:hover{transform:translateY(-3px)}
+  .lesson .num{position:absolute;top:.7rem;right:.9rem;font-weight:800;font-size:1.5rem;color:#e9ecef}
+  .lesson .em{font-size:1.8rem;line-height:1}
+  .lesson h3{margin:.35rem 0 .2rem;font-size:1.05rem}
+  .lesson p{margin:0 0 .45rem;color:var(--muted);font-size:.9rem}
+  .road{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;justify-content:center}
+  .road .chip{font-size:.82rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Day 4 · interactive · works offline · ≈ 4 hours with the lab</div>
+  <h1>From "works on my machine" to a self-healing cluster</h1>
+  <p class="one-liner">Thirteen small pages that explain Docker and Kubernetes <b>one idea at a time</b>, each building on the one before, using our own image-classifier app from Days 2–3.
+  Every page has a small simulation to play with, <b>real command output</b> from a real run, and a <b>🗣️ "Explain it like this"</b> box with three sentences you can say to the class.</p>
+</section>
+
+<section class="card">
+  <h2>🧭 The story, in one line</h2>
+  <div class="road">
+    <span class="chip">😩 works on my machine</span><span class="arrow">→</span><span class="chip blue">📦 image</span><span class="arrow">→</span><span class="chip blue">▶ container</span><span class="arrow">→</span>
+    <span class="chip blue">🧩 compose</span><span class="arrow">→</span><span class="chip">🖥️ one machine isn't enough</span><span class="arrow">→</span><span class="chip purple">☸️ cluster</span><span class="arrow">→</span>
+    <span class="chip green">Pod</span><span class="arrow">→</span><span class="chip green">Deployment</span><span class="arrow">→</span><span class="chip green">Service</span><span class="arrow">→</span>
+    <span class="chip orange">ConfigMap</span><span class="arrow">→</span><span class="chip orange">probes &amp; limits</span><span class="arrow">→</span><span class="chip orange">autoscaling</span><span class="arrow">→</span><span class="chip">🧪 lab</span>
+  </div>
+  <p class="small muted center">Each step answers the problem the previous step left open. That's the order to teach it in.</p>
+</section>
+
+<section class="card">
+  <h2>🗺️ The pages</h2>
+  <div class="lessons">
+    <a class="lesson" href="00_install.html"><span class="num">0</span><div class="em">🧰</div><h3>Install Docker Desktop</h3><p>One program for Windows or Linux, with Kubernetes as a switch. Check commands with real output.</p><span class="pill blue">≈ 20 min</span></a>
+    <a class="lesson" href="01_why_containers.html"><span class="num">1</span><div class="em">😩</div><h3>Why containers?</h3><p>Ship code alone vs. ship a container. VM vs container. Image, container, registry.</p><span class="pill blue">≈ 15 min</span></a>
+    <a class="lesson" href="02_images_layers.html"><span class="num">2</span><div class="em">🥞</div><h3>Images &amp; layers</h3><p>Our Dockerfile line by line; the build cache: 3.4 s vs 165 s, measured.</p><span class="pill blue">≈ 20 min</span></a>
+    <a class="lesson" href="03_run_container.html"><span class="num">3</span><div class="em">🚪</div><h3>Running a container</h3><p>Ports (-p), the 0.0.0.0 bug, settings (-e), logs, exec, a container's life.</p><span class="pill blue">≈ 20 min</span></a>
+    <a class="lesson" href="04_compose.html"><span class="num">4</span><div class="em">🧩</div><h3>Docker Compose</h3><p>API + UI together; containers talk by service name; localhost is a trap.</p><span class="pill blue">≈ 15 min</span></a>
+    <a class="lesson" href="05_why_kubernetes.html"><span class="num">5</span><div class="em">☸️</div><h3>Why Kubernetes?</h3><p>Real-life problems, the parts of a cluster, and the desired-state loop.</p><span class="pill blue">≈ 20 min</span></a>
+    <a class="lesson" href="06_pod.html"><span class="num">6</span><div class="em">🫛</div><h3>Pod</h3><p>The smallest unit: its life, CrashLoopBackOff, and why a bare pod isn't enough.</p><span class="pill blue">≈ 15 min</span></a>
+    <a class="lesson" href="07_deployment.html"><span class="num">7</span><div class="em">👔</div><h3>Deployment</h3><p>Self-healing, scaling, rolling updates, a broken version and rollback.</p><span class="pill blue">≈ 25 min</span></a>
+    <a class="lesson" href="08_service.html"><span class="num">8</span><div class="em">☎️</div><h3>Service</h3><p>A fixed name for changing pods; load balancing; labels; ClusterIP vs NodePort.</p><span class="pill blue">≈ 20 min</span></a>
+    <a class="lesson" href="09_config_secret.html"><span class="num">9</span><div class="em">⚙️</div><h3>ConfigMap, Secret, Namespace</h3><p>Settings outside the image; base64 is not encryption; one folder per app.</p><span class="pill blue">≈ 15 min</span></a>
+    <a class="lesson" href="10_health_resources.html"><span class="num">10</span><div class="em">🩺</div><h3>Health checks &amp; resources</h3><p>Startup, readiness, liveness probes; requests, limits, OOMKilled.</p><span class="pill blue">≈ 25 min</span></a>
+    <a class="lesson" href="11_autoscaling.html"><span class="num">11</span><div class="em">📈</div><h3>Autoscaling (HPA)</h3><p>More pods when busy, fewer when quiet: the formula and the 60 s wait.</p><span class="pill blue">≈ 20 min</span></a>
+    <a class="lesson" href="12_lab_commands.html"><span class="num">12</span><div class="em">🧪</div><h3>Hands-on lab</h3><p>25 steps: every command in order, with the real output to compare against.</p><span class="pill blue">≈ 75 min</span></a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧑‍🏫 How to teach with these pages</h2>
+  <div class="grid3">
+    <div><h3>1 · Show the problem</h3><p>Start each page with its one-liner: it names the problem that the previous page left open.</p></div>
+    <div><h3>2 · Play, then say it</h3><p>Do the three "👆 Do this" clicks on the projector, then read the "🗣️ Explain it like this" box: three sentences, in order.</p></div>
+    <div><h3>3 · Guess, then check</h3><p>Ask the "🧪 Try this" questions <b>before</b> opening the answer. Then run the matching lab step for real.</p></div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:.6rem"><table class="plain">
+    <tr><th>Block</th><th>Pages</th><th>Then students do</th></tr>
+    <tr><td>Before the day</td><td>0</td><td>Install at home; everyone arrives with "Hello from Docker!" working</td></tr>
+    <tr><td>Docker (≈ 70 min)</td><td>1 → 2 → 3 → 4</td><td>Lab Part A + B</td></tr>
+    <tr><td>Kubernetes basics (≈ 60 min)</td><td>5 → 6 → 7 → 8</td><td>Lab C1–C7, C9, C10</td></tr>
+    <tr><td>Running it well (≈ 60 min)</td><td>9 → 10 → 11</td><td>Lab C8, C11, extras X1–X2, cleanup C12</td></tr>
+  </table></div>
+  <p class="small muted">All outputs were captured on 29 Sep 2026 on a Windows 11 PC with Docker Desktop (Docker 29.8.0, Kubernetes v1.36.1, one node) using the course files in <code>Day4_Docker_Kubernetes_Cloud/</code>.
+  The autoscaling numbers come from the verified run in the Day-4 README. The Simple/Detailed switch (top right) is kept for consistency with the ML lessons.</p>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · 13 pages · works offline · no data leaves your computer</footer>
+<script src="common.js"></script>
+</body>
+</html>

@@ -5,6 +5,10 @@
 > with Kubernetes (replicas, probes, rolling updates, autoscaling), and finally put the app on a
 > free cloud tier so students can open it on their phones.
 
+> 🎓 **Teaching visually?** Open [`../Docker_K8s_Visualized/index.html`](../Docker_K8s_Visualized/index.html): one interactive page per concept
+> (container → image → compose → Pod → Deployment → Service → ConfigMap → probes → HPA), each with an "Explain it like this" box,
+> plus a step-by-step lab with the real output of every command.
+
 ## 🎯 Learning objectives
 
 1. Explain images vs containers vs registries, layers and the build cache.

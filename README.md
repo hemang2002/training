@@ -26,6 +26,7 @@ Extra  Live demos          ──► object detection (Faster R-CNN) + GAN (DCGA
 | [`Day5_Thinking_Like_an_ML_Engineer/`](Day5_Thinking_Like_an_ML_Engineer/) | 106 questions with answers, 15 debugging scenarios, 5 design cases, 10 Fermi problems, 30-question quiz | `README.md` |
 | [`Live_Demos/`](Live_Demos/) | detection (Penn-Fudan) + optimization, DCGAN + optimization, cached checkpoints as a safety net | `README.md` |
 | [`Training_Visualized/`](Training_Visualized/) | 12 interactive, offline HTML lessons (model → gradient descent → backprop → training loop → activations & softmax → NN playground → overfitting → dropout & BatchNorm → metrics → CNN → transfer learning → quantization/pruning/distillation), Simple/Detailed view | `index.html` |
+| [`Docker_K8s_Visualized/`](Docker_K8s_Visualized/) | 13 interactive, offline HTML pages for Day 4 (install Docker Desktop → why containers → images & layers → running containers → compose → why Kubernetes → Pod → Deployment → Service → ConfigMap/Secret → probes & resources → autoscaling → hands-on lab with real command output) | `index.html` |
 | [`References/`](References/) | 150+ verified links (docs, papers, tutorials, videos) by topic + free cloud comparison | `README.md` |
 | `models/` | the Day-2 output shared by Days 3–4: `model_fp32.onnx`, `model_int8.onnx`, `model_card.json`, `labels.json` | — |
 | `data/` | datasets, downloaded automatically (git-ignored) | — |

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1 · Why containers? — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .stack{display:flex;flex-direction:column-reverse;gap:3px;min-width:12rem}
+  .stack div{border-radius:6px;padding:.3rem .5rem;font-size:.84rem;font-weight:600;text-align:center}
+  .res{margin-top:.6rem}
+  .res li{margin:.2rem 0}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 1 of 12 · ≈ 15 min</div>
+  <h1>Why containers? "It works on my machine!"</h1>
+  <p class="one-liner">Our Day-3 API works on your laptop. You copy it to a server and it crashes: a different Python, a different numpy, the model files are missing.
+  A <b>container</b> fixes this by shipping the app <b>together with everything it needs</b>: the right Python, the libraries, the model files and the start command. In one box.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>Moving house: you don't send "a list of furniture" and hope the new house has the same furniture. You pack <b>everything into a shipping container</b>.
+      Every ship, truck and crane in the world can carry that same standard box without opening it.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, change the server's versions, then press <b>▶ Run on the server</b> with "only the code".</li>
+      <li>Switch to <b>a container</b> and run again.</li><li>In ②, compare a virtual machine with a container.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>With a container, the server only needs <b>one thing installed: Docker</b>. Everything else travels inside the box.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Image</b> = the packed box (read-only)</span><span><b>Container</b> = a running copy of an image</span>
+    <span><b>Dockerfile</b> = the packing list / recipe</span><span><b>Registry</b> = a shop for images (Docker Hub)</span><span><b>Tag</b> = a version label, like <code>:v1</code></span></div>
+</section>
+
+<section class="card">
+  <h2>① Ship the API to a server</h2>
+  <div class="grid2">
+    <div class="machine"><div class="mt">💻 Your laptop (it works here)</div>
+      <div class="flow" style="justify-content:flex-start"><span class="chip green">Python 3.12</span><span class="chip green">numpy 2.5</span><span class="chip green">onnxruntime 1.30</span><span class="chip green">model files ✓</span></div></div>
+    <div class="machine"><div class="mt">🖥️ The server</div>
+      <div class="grid2" style="gap:.3rem .8rem">
+        <div class="ctl" style="margin:0"><label>Python</label><select id="sPy"><option>3.12</option><option selected>3.9</option></select></div>
+        <div class="ctl" style="margin:0"><label>numpy</label><select id="sNp"><option>2.5</option><option selected>1.24</option></select></div>
+        <div class="ctl" style="margin:0"><label>onnxruntime</label><select id="sOrt"><option>1.30</option><option selected>not installed</option></select></div>
+        <div class="ctl" style="margin:0"><label>Model files</label><select id="sMod"><option>copied</option><option selected>forgotten</option></select></div>
+      </div></div>
+  </div>
+  <div class="flow" style="margin-top:.8rem"><span><b>What do we send?</b></span>
+    <div class="seg" id="how"><button data-h="code" class="on">📄 only the code (app.py)</button><button data-h="ctr">📦 a container image</button></div>
+    <button class="btn primary" id="runS">▶ Run on the server</button></div>
+  <div id="resS" class="banner info res">Press ▶ Run on the server.</div>
+</section>
+
+<section class="card">
+  <h2>② A container is not a virtual machine</h2>
+  <div class="grid2">
+    <div>
+      <p>A <b>virtual machine</b> (VM) pretends to be a whole computer: it carries a complete operating system, gigabytes big, and takes minutes to boot.
+      A <b>container</b> is just an <b>isolated process</b> on your computer. It shares your operating system's core (the kernel) and only carries the app and its libraries.</p>
+      <div class="seg" id="vmSeg"><button data-v="vm">🖥️ Virtual machines</button><button data-v="ctr" class="on">📦 Containers</button></div>
+      <div class="stats" id="vmStats"></div>
+      <p class="small muted">On Windows and macOS, Docker Desktop runs one small Linux VM in the background (WSL 2 on Windows), and all containers share it.</p>
+    </div>
+    <div class="dg"><div class="flow" id="stacks" style="align-items:flex-end"></div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ Four words to remember</h2>
+  <div class="flow">
+    <span class="chip purple">📝 Dockerfile<small>the recipe</small></span><span class="arrow">→ docker build →</span>
+    <span class="chip blue">📦 Image<small>packed box, read-only</small></span><span class="arrow">→ docker run →</span>
+    <span class="chip green">🟢 Container<small>the running copy</small></span>
+  </div>
+  <div class="flow" style="margin-top:.6rem"><span class="chip blue">📦 Image</span><span class="arrow">⇄ docker push / pull ⇄</span><span class="chip orange">🏪 Registry<small>Docker Hub: a shop for images</small></span></div>
+  <p class="small muted center">One image can start many containers, like one cake mould makes many cakes. Our API image is called <code>cifar-api:v1</code>: name <code>cifar-api</code>, tag <code>v1</code>.</p>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"Code alone is not enough: it needs the right Python, libraries and files. Servers never match your laptop exactly."</li>
+    <li>"An image packs the app with <b>everything</b> it needs. A container is that image running."</li>
+    <li>"The server now needs only Docker. The same box runs the same way on a laptop, a server or the cloud."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>With "only the code", set the server to exactly match your laptop (3.12, 2.5, 1.30, copied). Does it work? Is that realistic?
+      <details class="answer"><summary>Answer</summary>Yes, it works, but only because you made the server identical by hand. With 10 servers, 5 developers and updates every week, keeping them identical is almost impossible. The container makes it automatic.</details></li>
+    <li>With "a container image", set every server option to the worst value. What happens?
+      <details class="answer"><summary>Answer</summary>It still works. The container brings its own Python 3.12, numpy, onnxruntime and model files. The server's own versions don't matter at all.</details></li>
+    <li>How many containers can you start from one image?
+      <details class="answer"><summary>Answer</summary>As many as you like: the image is read-only, and each container gets its own thin writable layer. That's how Kubernetes will run 2, 4 or 6 copies of our API (page 7).</details></li>
+  </ol>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Image or container: which one is running and uses CPU?
+      <details class="answer"><summary>Answer</summary>The container. The image is only the packed, frozen template stored on disk.</details></li>
+    <li>Why does a container start in seconds but a VM in minutes?
+      <details class="answer"><summary>Answer</summary>A container doesn't boot an operating system; it starts one process (our gunicorn server) on the already-running kernel.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+let how='code';
+$$('#how button').forEach(b=>b.onclick=()=>{how=b.dataset.h;$$('#how button').forEach(x=>x.classList.toggle('on',x===b));$('#resS').className='banner info res';$('#resS').textContent='Press ▶ Run on the server.';});
+$('#runS').onclick=()=>{
+  const py=$('#sPy').value,np=$('#sNp').value,ort=$('#sOrt').value,mod=$('#sMod').value,r=$('#resS');
+  if(how==='ctr'){r.className='banner good res';r.innerHTML=`✅ <b>It works.</b> <code>docker run cifar-api:v1</code> → <code>{"status":"ok"}</code>.<br>The box brought its own Python 3.12, numpy 2.5, onnxruntime 1.30 and the model files. The server's own Python ${py} and numpy ${np} are never used. The server only needed Docker.`;return;}
+  const errs=[];
+  if(py!=='3.12')errs.push(`<code>SyntaxError</code> / missing features: the code was written for Python 3.12, the server has ${py}.`);
+  if(ort==='not installed')errs.push('<code>ModuleNotFoundError: No module named \'onnxruntime\'</code>');
+  if(np!=='2.5')errs.push(`numpy ${np} instead of 2.5: some functions behave differently, or <code>ImportError</code> when onnxruntime needs a newer numpy.`);
+  if(mod==='forgotten')errs.push('<code>/ready</code> answers <code>{"status":"not ready","reason":"no models found in /app/models"}</code>');
+  if(!errs.length){r.className='banner good res';r.innerHTML='✅ <b>It works this time</b>, because you made the server identical to your laptop by hand. Now do that for 10 servers, every time a library updates…';}
+  else{r.className='banner bad res';r.innerHTML=`❌ <b>"But it works on my machine!"</b> ${errs.length} problem${errs.length>1?'s':''} on the server:<ul>${errs.map(e=>`<li>${e}</li>`).join('')}</ul>`;}
+};
+const VM={vm:{stats:[['≈ 1–20 GB','Size of each'],['minutes','Start time'],['a full OS each','What\'s inside']],
+  html:`${[1,2].map(i=>`<div class="stack"><div style="background:#e9ecef">Hardware</div><div style="background:#dee2e6">Host OS + hypervisor</div><div style="background:#ffe8cc">Guest OS (whole Linux/Windows)</div><div style="background:#d0ebff">libraries</div><div style="background:#b2f2bb">App ${i}</div></div>`).join('')}`},
+  ctr:{stats:[['≈ 115 MB','Our API image (download size)'],['≈ 5 s','Start → model loaded (measured)'],['only app + libs','What\'s inside']],
+  html:`<div class="stack" style="min-width:18rem"><div style="background:#e9ecef">Hardware</div><div style="background:#dee2e6">Host OS kernel (shared by all)</div><div style="background:#c5f6fa">Docker (container runtime)</div>
+    <div style="display:flex;gap:3px;padding:0"><div style="flex:1;background:#d0ebff">libs</div><div style="flex:1;background:#d0ebff">libs</div><div style="flex:1;background:#d0ebff">libs</div></div>
+    <div style="display:flex;gap:3px;padding:0"><div style="flex:1;background:#b2f2bb">API</div><div style="flex:1;background:#b2f2bb">UI</div><div style="flex:1;background:#b2f2bb">DB</div></div></div>`}};
+function showVM(k){$$('#vmSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===k));const v=VM[k];$('#stacks').innerHTML=v.html;$('#vmStats').innerHTML=v.stats.map(([a,b])=>`<div class="stat ${k==='ctr'?'good':'orange'}"><b>${a}</b><span>${b}</span></div>`).join('');}
+$$('#vmSeg button').forEach(b=>b.onclick=()=>showVM(b.dataset.v));showVM('ctr');
+</script>
+</body>
+</html>

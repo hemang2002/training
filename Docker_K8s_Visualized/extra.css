@@ -1,0 +1,79 @@
+/* Extra styles for the Docker & Kubernetes pages (loaded after style.css) */
+
+/* ---------- terminal: a command and its real output ---------- */
+.term{background:#0f1729;color:#e6edf7;border-radius:12px;padding:.55rem .9rem .3rem;margin:.55rem 0;font-family:var(--mono);font-size:.84rem;overflow-x:auto}
+.term .cmd{white-space:pre;color:#fff;position:relative;padding:.1rem 4.2rem .1rem 0;font-weight:600}
+.term .cmd::before{content:"$ ";color:#a5e075}
+.term .cmd .copy{position:absolute;right:0;top:0;font:600 .72rem var(--sans);background:#26324d;color:#cfd8e6;border:0;border-radius:6px;padding:.15rem .45rem;cursor:pointer}
+.term .cmd .copy:hover{background:#34426a}
+.term pre{margin:.15rem 0 .55rem;white-space:pre;color:#b8c4d6;font:inherit;font-weight:400}
+.term .c{color:#7f8ea3;white-space:pre}
+.term .hl{color:#ffcf70}
+.term .ok{color:#8ce99a}
+.term .bad{color:#ff8787}
+.termlabel{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:.8rem 0 -.2rem}
+
+/* ---------- "explain it like this" box for the trainer ---------- */
+.say{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+.say h3{margin:0 0 .3rem;color:#2b8a3e}
+.say ol{margin:.2rem 0;padding-left:1.3rem}
+.say li{margin:.2rem 0}
+
+/* ---------- diagram pieces ---------- */
+.dg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.8rem;position:relative}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;justify-content:center}
+.arrow{font-size:1.4rem;color:#adb5bd;font-weight:700}
+.chip{display:inline-flex;align-items:center;gap:.35rem;border:2px solid var(--line);border-radius:10px;padding:.3rem .6rem;background:#fff;font-weight:600;font-size:.88rem}
+.chip small{font-weight:500;color:var(--muted)}
+.chip.blue{border-color:#74a0f5;background:#eef4ff}
+.chip.green{border-color:#8ce99a;background:#ebfbee}
+.chip.orange{border-color:#ffc078;background:#fff4e6}
+.chip.red{border-color:#ffa8a8;background:#fff5f5}
+.chip.purple{border-color:#b197fc;background:#f3f0ff}
+.chip.grey{border-color:#dee2e6;background:#f8f9fa;color:#868e96}
+
+/* a machine / node / network box */
+.machine{border:2px solid #ced4da;border-radius:14px;padding:.6rem;background:#f8f9fa;min-width:12rem}
+.machine > .mt{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.machine.net{border-style:dashed;border-color:#74a0f5;background:#f5f8ff}
+
+/* containers and pods */
+.ctr{border:2px solid #4dabf7;background:#e7f5ff;border-radius:10px;padding:.35rem .55rem;font-size:.85rem;font-weight:600;min-width:7rem}
+.ctr small{display:block;font-weight:500;color:var(--muted);font-size:.75rem}
+.pods{display:flex;flex-wrap:wrap;gap:.5rem;min-height:4.4rem;align-items:flex-start}
+.pod{position:relative;border:2px solid #69db7c;background:#ebfbee;border-radius:12px;padding:.35rem .55rem;font-size:.78rem;min-width:7.6rem;transition:all .35s ease;cursor:default}
+.pod b{display:block;font-family:var(--mono);font-size:.76rem}
+.pod .st{display:block;font-weight:700;font-size:.74rem}
+.pod.click{cursor:pointer}
+.pod.click:hover{box-shadow:0 0 0 3px rgba(224,49,49,.25)}
+.pod.creating{border-color:#ffd43b;background:#fff9db}
+.pod.notready{border-color:#ffa94d;background:#fff4e6}
+.pod.bad{border-color:#ff8787;background:#fff5f5}
+.pod.term{border-color:#dee2e6;background:#f1f3f5;color:#868e96;opacity:.7}
+.pod.v2{border-color:#9775fa;background:#f3f0ff}
+.pod .ver{position:absolute;top:.25rem;right:.4rem;font-size:.68rem;font-weight:700;color:var(--muted)}
+.pod.flash{box-shadow:0 0 0 4px rgba(47,111,237,.35)}
+
+/* kubectl-style table */
+table.kt{border-collapse:collapse;font-family:var(--mono);font-size:.8rem;width:100%}
+table.kt th{text-align:left;color:var(--muted);font-weight:700;padding:.15rem .6rem .15rem 0;font-family:var(--sans);font-size:.75rem}
+table.kt td{padding:.12rem .6rem .12rem 0;white-space:nowrap}
+.logbox{font-family:var(--mono);font-size:.78rem;background:#0f1729;color:#cfd8e6;border-radius:10px;padding:.5rem .7rem;height:9.5rem;overflow:auto;white-space:pre-wrap}
+.logbox .ok{color:#8ce99a}.logbox .bad{color:#ff8787}.logbox .hl{color:#ffcf70}
+
+/* step checklist on the lab / install page */
+.stepcard{border:1px solid var(--line);border-radius:14px;background:#fff;padding:.8rem 1rem;margin:.8rem 0;box-shadow:var(--shadow)}
+.stepcard > h3{display:flex;gap:.5rem;align-items:center;margin:0 0 .3rem}
+.stepcard > h3 input{width:1.15rem;height:1.15rem;accent-color:var(--green)}
+.stepcard.done{border-color:#8ce99a;background:#f4fdf5}
+.stepcard .why{color:var(--muted);font-size:.9rem;margin:.1rem 0 .3rem}
+.tabs{display:flex;gap:.3rem;margin:.4rem 0}
+.yaml{background:#0f1729;color:#e6edf7;border-radius:12px;padding:.7rem .9rem;font-family:var(--mono);font-size:.82rem;white-space:pre;overflow-x:auto;line-height:1.5}
+.yaml .k{color:#ff9ac1}.yaml .v{color:#a5e075}.yaml .c{color:#7f8ea3}.yaml .hl{background:rgba(255,207,112,.2);display:inline-block;width:100%}
+
+/* long URLs and inline commands may wrap on phones */
+p code,li code,td code,.stepcard ol,.stepcard p{overflow-wrap:anywhere}
+
+/* keep room for the version / counter badge in the pod's corner */
+.pod b{padding-right:1.6rem;overflow-wrap:anywhere}
+

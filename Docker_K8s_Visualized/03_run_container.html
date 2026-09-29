@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3 · Running a container — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .path{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:.4rem;align-items:center}
+  @media (max-width:760px){.path{grid-template-columns:1fr}.path .arrow{transform:rotate(90deg);justify-self:center}}
+  .dot{display:inline-block;width:.8rem;height:.8rem;border-radius:50%;background:var(--blue);margin-left:.3rem;vertical-align:middle;opacity:0;transition:opacity .2s}
+  .dot.on{opacity:1}
+  .states{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+  .states .chip.cur{box-shadow:0 0 0 3px rgba(47,111,237,.35)}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 3 of 12 · ≈ 20 min</div>
+  <h1>Running a container: ports, settings, lifecycle</h1>
+  <p class="one-liner"><code>docker run</code> turns an image into a running container. A container is <b>sealed</b> by default: nothing from outside can reach it.
+  You open a door with <b>-p host:container</b>, change settings with <b>-e NAME=value</b>, and look inside with <b>logs</b> and <b>exec</b>. The same image, many different runs.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A container is a flat in a big building. The app lives in flat <b>5000</b>. <code>-p 8000:5000</code> means: "a visitor who rings the building's door
+      <b>8000</b> is sent up to flat 5000". Without <code>-p</code>, nobody can visit.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, press <b>Send request</b>. Then change the ports and try again.</li><li>Set the app to listen on <b>127.0.0.1</b>. What happens?</li><li>In ③, click through the lifecycle buttons.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>You visit <code>localhost:<b>HOST</b></code>; the app always listens on its <b>CONTAINER</b> port. And inside a container the app must listen on <b>0.0.0.0</b>, or the door leads nowhere.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>① Opening a door: <code>-p host:container</code></h2>
+  <div class="grid2" style="margin-bottom:.6rem">
+    <div class="ctl" style="margin:0"><label>Host port (on your PC)</label><select id="hp"><option>5000</option><option selected>8000</option><option>5001</option></select></div>
+    <div class="ctl" style="margin:0"><label>Container port (after the colon)</label><select id="cp"><option selected>5000</option><option>80</option></select></div>
+    <div class="ctl" style="margin:0"><label>The app inside listens on</label><select id="bind"><option value="0.0.0.0" selected>0.0.0.0 (every network card)</option><option value="127.0.0.1">127.0.0.1 (only inside the container)</option></select></div>
+    <div class="ctl" style="margin:0"><label>Your browser opens</label><select id="url"><option value="host" selected>http://localhost:HOST/health</option><option value="5000">http://localhost:5000/health</option></select></div>
+  </div>
+  <div class="term"><div class="cmd" id="cmdline">docker run -d --name api -p 8000:5000 cifar-api:v1</div></div>
+  <div class="path dg">
+    <div class="machine"><div class="mt">💻 Your PC</div><span class="chip blue" id="uChip">localhost:8000</span><span class="dot" id="d1"></span></div>
+    <span class="arrow">→</span>
+    <div class="machine"><div class="mt">🐳 Docker's door</div><span class="chip" id="doorChip">8000 → 5000</span><span class="dot" id="d2"></span></div>
+    <span class="arrow">→</span>
+    <div class="machine"><div class="mt">📦 Container "api"</div><span class="chip green" id="appChip">gunicorn on 0.0.0.0:5000</span><span class="dot" id="d3"></span></div>
+  </div>
+  <div class="btn-row"><button class="btn primary" id="send">📨 Send request</button></div>
+  <div id="res1" class="banner info">Press 📨 Send request.</div>
+</section>
+
+<section class="card">
+  <h2>② Same image, different settings: <code>-e</code></h2>
+  <div class="grid2">
+    <div>
+      <p>The image has defaults baked in (<code>ENV DEFAULT_MODEL=int8</code>). <code>-e</code> overrides them when the container starts. <b>No rebuild</b>: that's why settings go in environment variables, not in the code.</p>
+      <div class="seg" id="envSeg"><button data-m="int8" class="on">no -e (image default)</button><button data-m="fp32">-e DEFAULT_MODEL=fp32</button></div>
+    </div>
+    <div>
+      <div class="termlabel">Real output (trainer's PC)</div>
+      <div class="term"><div class="cmd" id="envCmd">docker run -d --name api -p 5001:5000 cifar-api:v1</div><div class="cmd" id="envCurl">curl.exe -s http://localhost:5001/models</div><pre id="envOut"></pre></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ A container's life</h2>
+  <div class="grid2">
+    <div>
+      <div class="states" id="states"></div>
+      <div class="btn-row" style="margin-top:.6rem">
+        <button class="btn" data-a="run">docker run</button><button class="btn" data-a="stop">docker stop</button><button class="btn" data-a="start">docker start</button><button class="btn" data-a="rm">docker rm</button>
+      </div>
+      <div id="lifeMsg" class="banner info">The container doesn't exist yet. Press <b>docker run</b>.</div>
+    </div>
+    <div>
+      <div class="term"><div class="cmd">docker ps -a --filter "name=demo-api"</div><pre id="psOut"></pre></div>
+      <p class="small muted">The table format is real (trainer's PC); the status changes as you click. <code>docker ps</code> without <code>-a</code> only shows <b>running</b> containers.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>④ Look inside a running container</h2>
+  <div class="termlabel">Real output (trainer's PC)</div>
+  <div class="term"><div class="cmd">docker logs demo-api</div><pre>[INFO] Starting gunicorn 26.2.0
+[INFO] Listening at: http://0.0.0.0:5000 (1)
+[INFO] Booting worker with pid: 14
+INFO model_service: Loaded fp32 (model_fp32.onnx) in 1146 ms
+INFO model_service: Loaded int8 (model_int8.onnx) in 321 ms
+INFO api: Model dir: /app/models | variants: ['fp32', 'int8'] | default: int8
+"GET /health HTTP/1.1" 200 16 "-" "Python-urllib/3.12"   <span class="c">← Docker's HEALTHCHECK every 30 s</span></pre><div class="cmd">docker exec ml-app-api-1 whoami</div><pre><span class="ok">appuser</span>    <span class="c">← not root: safer</span></pre><div class="cmd">docker exec ml-app-api-1 ls /app /app/models</div><pre>/app:
+app.py
+model_service.py
+models
+
+/app/models:
+labels.json
+model_card.json
+model_fp32.onnx
+model_int8.onnx</pre><div class="cmd">docker stats --no-stream ml-app-api-1 ml-app-ui-1</div><pre>NAME           CPU %     MEM USAGE / LIMIT
+ml-app-api-1   0.15%     53.5MiB / 7.667GiB
+ml-app-ui-1    27.99%    44.68MiB / 7.667GiB</pre></div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"<code>docker run</code> starts a container from an image. <code>-p 8000:5000</code> opens a door: PC port 8000 goes to container port 5000."</li>
+    <li>"Inside the container the app must listen on <code>0.0.0.0</code>. <code>127.0.0.1</code> would mean 'only me', so the door leads nowhere."</li>
+    <li>"<code>-e</code> changes settings without rebuilding. <code>logs</code>, <code>exec</code> and <code>stats</code> let us look inside."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Run with <code>-p 8000:5000</code>, then open <code>http://localhost:5000/health</code>. Works?
+      <details class="answer"><summary>Answer</summary>No: nothing on your PC listens on 5000. The door is 8000. Rule: <b>host</b> port (left) is what you type in the browser; <b>container</b> port (right) is where the app listens.</details></li>
+    <li>Set the container port to 80 (<code>-p 8000:80</code>).
+      <details class="answer"><summary>Answer</summary>Fails: the door leads to flat 80, but the app lives in flat 5000. The right-hand number must match the port the app listens on (<code>EXPOSE 5000</code> in the Dockerfile).</details></li>
+    <li>Set the app to 127.0.0.1. Is the app broken?
+      <details class="answer"><summary>Answer</summary>No! It runs fine <i>inside</i> the container. We tested it for real: from outside, <code>curl http://localhost:5003/health</code> got an <b>empty reply</b>, but
+      <code>docker exec demo-bad python -c "…urlopen('http://127.0.0.1:5000/health')…"</code> answered <code>b'{"status":"ok"}'</code>. 127.0.0.1 inside a container means "only this container".</details></li>
+    <li>What's the difference between <code>docker stop</code> and <code>docker rm</code>?
+      <details class="answer"><summary>Answer</summary><code>stop</code> ends the process (status Exited); the container still exists and can be started again. <code>rm</code> deletes it. <code>docker rm -f</code> does both at once.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+function upd1(){const hp=$('#hp').value,cp=$('#cp').value,bind=$('#bind').value,u=$('#url').value==='host'?hp:'5000';
+  $('#cmdline').firstChild.textContent=`docker run -d --name api -p ${hp}:${cp} cifar-api:v1${bind==='127.0.0.1'?' gunicorn --bind 127.0.0.1:5000 app:app':''}`;
+  $('#uChip').textContent='localhost:'+u;$('#doorChip').textContent=`${hp} → ${cp}`;$('#appChip').textContent=`gunicorn on ${bind}:5000`;
+  $('#appChip').className='chip '+(bind==='0.0.0.0'?'green':'orange');$('#res1').className='banner info';$('#res1').textContent='Press 📨 Send request.';['#d1','#d2','#d3'].forEach(d=>$(d).classList.remove('on'));}
+['#hp','#cp','#bind','#url'].forEach(id=>$(id).addEventListener('input',upd1));
+$('#send').onclick=async()=>{const hp=$('#hp').value,cp=$('#cp').value,bind=$('#bind').value,u=$('#url').value==='host'?hp:'5000',r=$('#res1');
+  ['#d1','#d2','#d3'].forEach(d=>$(d).classList.remove('on'));$('#d1').classList.add('on');await sleep(450);
+  if(u!==hp){r.className='banner bad';r.innerHTML=`❌ <code>curl: (7) Failed to connect to localhost port ${u}</code>: nothing on your PC listens on ${u}. The door you opened is <b>${hp}</b>.`+(u==='5000'?' <span class="small">(On the trainer\'s PC 5000 was actually taken by another container, the compose API: then you\'d reach <i>that</i> one instead. Check with <code>docker ps</code>.)</span>':'');return;}
+  $('#d1').classList.remove('on');$('#d2').classList.add('on');await sleep(450);
+  if(cp!=='5000'){r.className='banner bad';r.innerHTML=`❌ <code>curl: (56) Recv failure: Connection reset</code>: Docker forwards to container port ${cp}, but the app listens on 5000. The right-hand number must be the app's port.`;return;}
+  $('#d2').classList.remove('on');$('#d3').classList.add('on');await sleep(450);
+  if(bind==='127.0.0.1'){r.className='banner bad';r.innerHTML=`❌ <b>Empty reply</b> (real test: <code>curl.exe -s -m 5 http://localhost:5003/health</code> printed nothing). The request reached the container's network card, but the app only listens on its own loopback 127.0.0.1. Inside, it still works: <code>b'{"status":"ok"}'</code>.`;return;}
+  r.className='banner good';r.innerHTML=`✅ <code>{"status":"ok"}</code> Browser → localhost:${hp} → Docker → container port 5000 → gunicorn on 0.0.0.0.`;};
+const MODELS={int8:`{"variants":{"fp32":{"accuracy":0.9,<span class="hl">"default":false</span>,…},"int8":{"accuracy":0.894,<span class="hl">"default":true</span>,…}}}`,
+  fp32:`{"variants":{"fp32":{"accuracy":0.9,<span class="hl">"default":true</span>,…},"int8":{"accuracy":0.894,<span class="hl">"default":false</span>,…}}}`};
+function env(m){$$('#envSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('#envCmd').firstChild.textContent=m==='fp32'?'docker run -d --name demo-fp32 -p 5002:5000 -e DEFAULT_MODEL=fp32 -e WORKERS=1 cifar-api:v1':'docker run -d --name demo-api -p 5001:5000 cifar-api:v1';
+  $('#envCurl').firstChild.textContent=`curl.exe -s http://localhost:${m==='fp32'?5002:5001}/models`;$('#envOut').innerHTML=MODELS[m];}
+$$('#envSeg button').forEach(b=>b.onclick=()=>env(b.dataset.m));env('int8');
+// lifecycle
+let life='none',age=0;
+const ST=[['none','(doesn\'t exist)'],['running','Up (healthy)'],['exited','Exited (0)'],['removed','removed']];
+function drawLife(msg){$('#states').innerHTML=ST.map(([k,t])=>`<span class="chip ${k===life?'blue cur':'grey'}">${t}</span>`).join('<span class="arrow">→</span>');
+  const row=life==='running'?`23d576618e68   cifar-api:v1   "sh -c 'exec gunicor…"   29 seconds ago   <span class="ok">Up 27 seconds (healthy)</span>   0.0.0.0:5001->5000/tcp   demo-api`:
+    life==='exited'?`23d576618e68   cifar-api:v1   "sh -c 'exec gunicor…"   32 seconds ago   <span class="bad">Exited (0) 1 second ago</span>                            demo-api`:'';
+  $('#psOut').innerHTML='CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS                    PORTS                    NAMES\n'+row;if(msg)$('#lifeMsg').innerHTML=msg;}
+$$('[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a,m=$('#lifeMsg');
+  if(a==='run'){if(life==='running'||life==='exited'){m.className='banner bad';drawLife('❌ <code>Conflict. The container name "/demo-api" is already in use</code>. Remove it first (<code>docker rm</code>) or pick another name.');return;}life='running';m.className='banner good';drawLife('✅ Created and started. It prints a long ID (<code>23d576618e68…</code>) and runs in the background (<code>-d</code>).');}
+  else if(a==='stop'){if(life!=='running'){m.className='banner bad';drawLife('Nothing running to stop.');return;}life='exited';m.className='banner info';drawLife('⏹ Stopped: the process got a polite SIGTERM and exited. The container (and its logs) still exist.');}
+  else if(a==='start'){if(life!=='exited'){m.className='banner bad';drawLife(life==='running'?'Already running.':'There is no container to start. Use <code>docker run</code>.');return;}life='running';m.className='banner good';drawLife('▶ Started again: same container, same settings.');}
+  else if(a==='rm'){if(life==='running'){m.className='banner bad';drawLife('❌ <code>cannot remove container: container is running: stop the container before removing or force remove</code>. Use <code>docker stop</code> first, or <code>docker rm -f</code>.');return;}
+    if(life!=='exited'){m.className='banner bad';drawLife('Nothing to remove.');return;}life='removed';m.className='banner info';drawLife('🗑 Removed. The <b>image</b> is still there: <code>docker run</code> can make a fresh container anytime.');life='none';setTimeout(()=>drawLife(),50);}});
+drawLife();upd1();
+</script>
+</body>
+</html>

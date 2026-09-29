@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2 · Images &amp; layers — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .layers{display:flex;flex-direction:column-reverse;gap:4px}
+  .layer{display:grid;grid-template-columns:1fr auto auto;gap:.6rem;align-items:center;border:2px solid #dee2e6;border-radius:9px;padding:.35rem .6rem;background:#f8f9fa;font-size:.86rem;transition:all .25s}
+  .layer code{background:transparent;padding:0;font-size:.82rem}
+  .layer .sz{font-family:var(--mono);color:var(--muted);font-size:.78rem}
+  .layer .tag{font-weight:700;font-size:.75rem;min-width:5.5rem;text-align:right}
+  .layer.cached{border-color:#8ce99a;background:#ebfbee}.layer.cached .tag{color:var(--green)}
+  .layer.build{border-color:#ffa94d;background:#fff4e6}.layer.build .tag{color:#d9480f}
+  .layer.now{box-shadow:0 0 0 3px rgba(240,140,0,.35)}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 2 of 12 · ≈ 20 min</div>
+  <h1>Images: a stack of layers</h1>
+  <p class="one-liner">A <b>Dockerfile</b> is a recipe: one instruction per line. <code>docker build</code> runs it and every instruction adds one <b>layer</b> on top of the last.
+  Docker <b>remembers</b> every layer. If nothing changed in a step (and in the steps below it), it reuses the old layer: "<b>CACHED</b>". Get the order right and a rebuild takes seconds instead of minutes.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A lasagne: pasta, sauce, cheese, pasta, sauce… If you want different cheese on top, you don't redo the whole dish, only the top layer.
+      But if you change the <b>bottom</b> layer, everything above it must be made again.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>🏗️ First build</b>: every layer is built.</li><li>Press <b>✏️ I changed app.py</b>: watch which layers say CACHED.</li>
+      <li>Press <b>📦 I changed requirements.txt</b>. Then switch on <b>bad order</b> and change app.py again.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Rule: a layer is rebuilt if <b>it or anything below it</b> changed. So put what changes <b>rarely</b> (libraries) at the bottom and what changes <b>often</b> (your code) at the top.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>① Build the API image</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>What happened since the last build?</h3>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch">
+        <button class="btn" data-ev="first">🏗️ First build (nothing cached)</button>
+        <button class="btn" data-ev="none">🔁 Nothing changed</button>
+        <button class="btn primary" data-ev="app">✏️ I changed app.py</button>
+        <button class="btn" data-ev="req">📦 I changed requirements.txt</button>
+      </div>
+      <h3>Dockerfile order</h3>
+      <label class="check"><input type="checkbox" id="bad"> Bad order: <code>COPY . .</code> before <code>pip install</code></label>
+      <div class="stats" style="display:grid;grid-template-columns:1fr"><div class="stat" id="tbox"><b id="ttime">–</b><span>Build time (measured on the trainer's laptop)</span></div></div>
+    </aside>
+    <div class="stage">
+      <div class="dg"><div class="canvas-title">The image, bottom layer first (read it from the bottom up)</div><div class="layers" id="layers"></div></div>
+      <div id="verdict" class="banner info" style="margin-top:.6rem">Pick what changed.</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Our real Dockerfile, line by line</h2>
+  <div class="grid2">
+    <div class="yaml"><span class="c"># ml-app/api/Dockerfile (simplified: the real file uses a 2-stage build)</span>
+<span class="k">FROM</span> python:3.12-slim              <span class="c"># start from a small Linux + Python</span>
+<span class="k">COPY</span> api/requirements.txt .        <span class="c"># 1) only the list of libraries…</span>
+<span class="k">RUN</span>  pip install -r requirements.txt <span class="c"># 2) …install them (slow, but cached)</span>
+<span class="k">RUN</span>  useradd --uid 1000 appuser     <span class="c"># a normal user, not root</span>
+<span class="k">WORKDIR</span> /app
+<span class="k">COPY</span> api/app.py api/model_service.py ./   <span class="c"># 3) our code: changes often → near the top</span>
+<span class="k">COPY</span> models/ ./models/              <span class="c"># the ONNX model files</span>
+<span class="k">USER</span> 1000
+<span class="k">ENV</span>  DEFAULT_MODEL=int8 WORKERS=2   <span class="c"># settings you can override at run time</span>
+<span class="k">EXPOSE</span> 5000
+<span class="k">HEALTHCHECK</span> … /health               <span class="c"># Docker checks the app is alive</span>
+<span class="k">CMD</span>  exec gunicorn --bind 0.0.0.0:5000 app:app</div>
+    <div>
+      <table class="plain">
+        <tr><th>Instruction</th><th>What it does</th></tr>
+        <tr><td><code>FROM</code></td><td>The starting layer: someone else's image (here: slim Debian Linux + Python 3.12).</td></tr>
+        <tr><td><code>COPY</code></td><td>Copies files from your folder into the image.</td></tr>
+        <tr><td><code>RUN</code></td><td>Runs a command while building (install things).</td></tr>
+        <tr><td><code>ENV</code></td><td>A default setting (environment variable).</td></tr>
+        <tr><td><code>EXPOSE</code></td><td>Documents the port the app listens on.</td></tr>
+        <tr><td><code>CMD</code></td><td>The command that runs when a container starts.</td></tr>
+      </table>
+      <p class="small muted">Detail: the real file builds the libraries in a separate "builder" stage and copies only the finished folder (<code>/opt/venv</code>) into the final image,
+      so pip's leftovers never end up in it. That's called a <b>multi-stage build</b>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ How big is it? Small images matter</h2>
+  <div class="termlabel">Real output from the trainer's PC</div>
+  <div class="term"><div class="cmd">docker images cifar-api</div><pre>IMAGE          ID             DISK USAGE   CONTENT SIZE
+cifar-api:v1   56e7611b396a        449MB          <span class="hl">115MB</span></pre><div class="cmd">docker history cifar-api:v1</div><pre>CREATED BY                                      SIZE
+CMD ["sh" "-c" "exec gunicorn --workers …        0B
+HEALTHCHECK {Test:[CMD-SHELL python -c "impo…    0B
+EXPOSE [5000/tcp]                                0B
+USER 1000                                        0B
+COPY models/ ./models/                           <span class="hl">11.6MB</span>    <span class="c">← our 2 ONNX models</span>
+COPY api/app.py api/model_service.py ./          <span class="hl">24.6kB</span>    <span class="c">← our code: tiny!</span>
+COPY /opt/venv /opt/venv                         <span class="hl">189MB</span>     <span class="c">← the libraries (onnxruntime, numpy, …)</span>
+RUN useradd --create-home --uid 1000 appuser     69.6kB
+…  (python:3.12-slim base layers)                ≈ 134MB</pre></div>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th>Image</th><th>Base</th><th>Libraries</th><th>Size</th><th>Rebuild after editing app.py</th></tr>
+    <tr><td><code>cifar-api:naive</code> (<code>Dockerfile.naive</code>)</td><td><code>python:3.12</code> (≈ 1 GB)</td><td>torch + torchvision (not even needed)</td><td><b style="color:var(--red)">several GB</b></td><td>reinstalls everything: many minutes</td></tr>
+    <tr><td><code>cifar-api:v1</code> (<code>Dockerfile</code>)</td><td><code>python:3.12-slim</code></td><td>onnxruntime, numpy, flask, pillow, gunicorn</td><td><b style="color:var(--green)">115 MB</b> download (449 MB on disk)</td><td>3.4 s (measured)</td></tr>
+  </table></div>
+  <p class="small muted">Small images download faster, start faster (important when Kubernetes adds copies under load, page 11) and have fewer things that can be attacked.</p>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"The Dockerfile is a recipe. Every line becomes a layer of the image."</li>
+    <li>"Docker reuses layers that didn't change: that's the cache. But one changed layer forces every layer above it to be rebuilt."</li>
+    <li>"So: libraries first, code last. Our rebuild went from 165 seconds to 3 seconds just by ordering the lines well."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>You changed <code>app.py</code>. Which layers are rebuilt, and how long does it take?
+      <details class="answer"><summary>Answer</summary>Only <code>COPY app.py</code> and the layers above it (models, settings). <code>pip install</code> says CACHED. Measured: <b>3.4 s</b>.</details></li>
+    <li>You added a library to <code>requirements.txt</code>. Why is it so much slower?
+      <details class="answer"><summary>Answer</summary>The <code>COPY requirements.txt</code> layer changed, so <code>pip install</code> and everything above it must run again: downloading and installing all libraries. Measured: <b>164.8 s</b>, of which pip took 78.7 s.</details></li>
+    <li>Tick "bad order" and change only <code>app.py</code>. What happens, and why?
+      <details class="answer"><summary>Answer</summary><code>COPY . .</code> copies <i>all</i> files (including app.py) <b>below</b> pip install. Any code edit changes that layer, so pip reinstalls every time: ≈ 165 s for a one-line change. That's the classic beginner mistake (problem 3 in <code>Dockerfile.naive</code>).</details></li>
+  </ol>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why does our code layer weigh only 24.6 kB when the image is 449 MB?
+      <details class="answer"><summary>Answer</summary>Our code is two small Python files. Almost all the size is the base Linux + Python (≈ 134 MB) and the libraries (189 MB).</details></li>
+    <li>What does <code>.dockerignore</code> do?
+      <details class="answer"><summary>Answer</summary>It lists files Docker should not send to the build (like <code>.git</code>, <code>__pycache__</code>, <code>.venv</code>, <code>*.pth</code>): smaller, faster builds and no secrets copied by accident.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+// layers from the bottom up; "uses" = which files the step depends on
+const GOOD=[{t:'FROM python:3.12-slim',sz:'≈ 134 MB',uses:['base']},{t:'COPY api/requirements.txt .',sz:'1 kB',uses:['req']},{t:'RUN pip install -r requirements.txt',sz:'189 MB',uses:[]},
+  {t:'RUN useradd … appuser · WORKDIR /app',sz:'70 kB',uses:[]},{t:'COPY api/app.py api/model_service.py ./',sz:'24.6 kB',uses:['app']},{t:'COPY models/ ./models/',sz:'11.6 MB',uses:['models']},{t:'USER · ENV · EXPOSE · HEALTHCHECK · CMD',sz:'0 B',uses:[]}];
+const BAD=[{t:'FROM python:3.12-slim',sz:'≈ 134 MB',uses:['base']},{t:'COPY . .   (everything, including app.py)',sz:'11.7 MB',uses:['req','app','models']},{t:'RUN pip install -r requirements.txt',sz:'189 MB',uses:[]},
+  {t:'USER · ENV · EXPOSE · HEALTHCHECK · CMD',sz:'0 B',uses:[]}];
+// measured totals (docker build on the trainer's laptop, 29 Sep 2026); first build and bad order are estimates from those numbers
+function timeFor(ev,bad){if(ev==='none')return {t:'4.8 s',m:true};if(ev==='first')return {t:'≈ 3 min',m:false,extra:' + downloading the base image once'};
+  if(ev==='req')return {t:'164.8 s',m:true};if(ev==='app')return bad?{t:'≈ 165 s',m:false}:{t:'3.4 s',m:true};}
+let running=false;
+function drawLayers(list,states,now){$('#layers').innerHTML=list.map((l,i)=>`<div class="layer ${states[i]||''} ${now===i?'now':''}"><code>${l.t}</code><span class="sz">${l.sz}</span><span class="tag">${states[i]==='cached'?'✓ CACHED':states[i]==='build'?(now===i?'⚙️ building…':'⚙️ rebuilt'):''}</span></div>`).join('');}
+async function build(ev){
+  if(running)return;running=true;const bad=$('#bad').checked,list=bad?BAD:GOOD,changed={first:['base','req','app','models'],none:[],app:['app'],req:['req']}[ev],st=[];let broken=ev==='first';
+  $('#verdict').className='banner info';$('#verdict').textContent='Building…';$('#ttime').textContent='…';
+  for(let i=0;i<list.length;i++){if(!broken&&list[i].uses.some(u=>changed.includes(u)))broken=true;st[i]=broken?'build':'cached';drawLayers(list,st,i);await sleep(broken&&list[i].t.includes('pip')?1100:350);}
+  drawLayers(list,st,-1);const T=timeFor(ev,bad),nb=st.filter(s=>s==='build').length;
+  $('#ttime').textContent=T.t;$('#tbox').className='stat '+(parseFloat(T.t.replace('≈ ',''))<10?'good':'bad');
+  const pip=st[list.findIndex(l=>l.t.includes('pip'))]==='build';
+  $('#verdict').className='banner '+(pip?'bad':'good');
+  $('#verdict').innerHTML=(pip?`🐢 <b>pip install ran again</b>: ${nb} of ${list.length} layers rebuilt, ${T.t}${T.extra||''}.`:`⚡ <b>Fast</b>: only ${nb} of ${list.length} layers rebuilt, ${T.t}. pip install was CACHED.`)+(T.m?' <span class="small">(measured)</span>':' <span class="small">(estimate)</span>')+
+    (bad&&ev==='app'?' Because <code>COPY . .</code> sits below pip install, a one-line code change reinstalls every library.':'');
+  running=false;}
+$$('[data-ev]').forEach(b=>b.onclick=()=>build(b.dataset.ev));
+$('#bad').addEventListener('change',()=>{drawLayers($('#bad').checked?BAD:GOOD,[],-1);$('#verdict').className='banner info';$('#verdict').textContent='Pick what changed.';$('#ttime').textContent='–';});
+drawLayers(GOOD,[],-1);
+</script>
+</body>
+</html>

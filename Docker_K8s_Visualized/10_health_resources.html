@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 · Health checks &amp; resources — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+<style>
+  .bar{height:1.3rem;background:var(--soft);border-radius:6px;position:relative;overflow:hidden}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);transition:width .3s}
+  .bar .lim{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--red)}
+  .slots{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:.3rem}
+  .slots span{height:1.1rem;border-radius:3px;background:#e9ecef}
+  .slots span.u{background:#74c0fc}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 10 of 12 · ≈ 25 min</div>
+  <h1>Health checks &amp; resources: is it OK, and how much may it use?</h1>
+  <p class="one-liner">"Running" doesn't mean "working". Kubernetes asks every pod three questions, the <b>probes</b>: <i>Have you finished starting?</i> <i>Can you take traffic now?</i> <i>Are you still alive?</i>
+  And every pod says how much CPU and memory it <b>needs</b> (requests) and may <b>never exceed</b> (limits). Our API answers the probes on <code>/ready</code> and <code>/health</code>.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A new employee: first a training period (<b>startup</b>). Each morning: "are you ready to take customers?" (<b>readiness</b>): if not, no customers, but no firing.
+      A security guard checks "is anyone at the desk at all?" (<b>liveness</b>): if the desk stays empty, the person is replaced.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>▶ Start pod</b> and watch the startup probe.</li><li>Press <b>🔌 /ready breaks</b>, then <b>🧊 app freezes</b>. Compare what happens.</li><li>In ②, push memory above the limit.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Readiness failing = <b>no traffic</b>, no restart. Liveness failing = <b>restart</b>. Memory above the limit = <b>killed</b>; CPU above the limit = only <b>slowed down</b>.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>① The three probes on one API pod</h2>
+  <div class="lab">
+    <aside class="controls">
+      <div class="ctl"><label>Model loading takes <output id="ltOut"></output></label><input type="range" id="lt" min="2" max="80" value="6"></div>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch">
+        <button class="btn primary" id="start">▶ Start pod</button>
+        <button class="btn" id="rbreak">🔌 /ready breaks (e.g. models missing)</button>
+        <button class="btn" id="freeze">🧊 app freezes (stuck, no answers)</button>
+        <button class="btn" id="fix">✅ problem gone</button>
+      </div>
+      <p class="small muted">Our real settings (02-api-deployment.yaml): startup every 2 s, up to 30 failures (60 s); readiness every 5 s, 2 failures; liveness every 10 s, 3 failures. The clock runs 4× faster here.</p>
+    </aside>
+    <div class="stage">
+      <div class="stats"><div class="stat" id="stBox"><b id="st">–</b><span>Pod status</span></div><div class="stat" id="trBox"><b id="tr">–</b><span>Gets traffic from the Service?</span></div><div class="stat"><b id="rs">0</b><span>Restarts</span></div></div>
+      <div class="canvas-box"><div class="canvas-title">Probe results over time (● pass · ● fail)</div><canvas id="pc" style="height:150px"></canvas></div>
+      <div class="logbox" id="plog" style="height:8rem;margin-top:.5rem"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Requests and limits</h2>
+  <div class="grid2">
+    <div>
+      <div class="yaml"><span class="k">resources:</span>
+  <span class="k">requests:</span>          <span class="c"># "I need at least this" → used to pick a node</span>
+    <span class="k">cpu:</span> <span class="v">250m</span>         <span class="c"># 250 millicores = ¼ of a CPU core</span>
+    <span class="k">memory:</span> <span class="v">256Mi</span>
+  <span class="k">limits:</span>            <span class="c"># "never more than this"</span>
+    <span class="k">cpu:</span> <span class="v">"1"</span>          <span class="c"># above → slowed down (throttled)</span>
+    <span class="k">memory:</span> <span class="v">512Mi</span>      <span class="c"># above → killed (OOMKilled)</span></div>
+      <h3 style="margin-top:.8rem">Memory</h3>
+      <div class="ctl"><label>Memory limit</label><select id="mlim"><option>40</option><option>256</option><option selected>512</option></select></div>
+      <div class="ctl"><label>The app uses <output id="muOut"></output></label><input type="range" id="mu" min="20" max="700" step="10" value="150"></div>
+      <div class="bar"><i id="mbar"></i><span class="lim" id="mline"></span></div>
+      <div id="mv" class="banner info" style="margin-top:.5rem">–</div>
+      <h3>CPU</h3>
+      <div class="ctl"><label>The app wants <output id="cuOut"></output></label><input type="range" id="cu" min="0.1" max="2.5" step="0.1" value="0.5"></div>
+      <div class="bar"><i id="cbar" style="background:#7048e8"></i><span class="lim" style="left:40%"></span></div>
+      <div id="cv" class="banner info" style="margin-top:.5rem">–</div>
+    </div>
+    <div>
+      <h3>How the scheduler uses <i>requests</i></h3>
+      <p class="small">The scheduler only puts a pod on a node if its <b>requests</b> still fit. Our node: 4 CPU cores (each square = 250m).</p>
+      <div class="ctl"><label>API pods wanted <output id="npOut"></output></label><input type="range" id="np" min="1" max="24" value="2"></div>
+      <div class="slots" id="slots"></div>
+      <div id="sch" class="banner info" style="margin-top:.5rem">–</div>
+      <div class="termlabel">Real output (trainer's PC)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo describe pod cifar-api-68c5fb8c48-ch29k</div><pre>    Limits:
+      cpu:     1
+      memory:  512Mi
+    Requests:
+      cpu:      250m
+      memory:   256Mi
+    Liveness:   http-get http://:http/health delay=0s timeout=1s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:http/ready delay=0s timeout=1s period=5s #success=1 #failure=2
+    Startup:    http-get http://:http/ready delay=0s timeout=1s period=2s #success=1 #failure=30
+QoS Class:                   Burstable</pre><div class="cmd">kubectl -n ml-demo logs -l app=cifar-api --tail=4</div><pre>"GET /ready HTTP/1.1" 200 44 "-" "<span class="hl">kube-probe/1.36</span>"
+"GET /ready HTTP/1.1" 200 44 "-" "kube-probe/1.36"
+"GET /health HTTP/1.1" 200 16 "-" "kube-probe/1.36"     <span class="c">← the kubelet knocking</span></pre></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ Real failures from the trainer's PC</h2>
+  <div class="grid2">
+    <div>
+      <div class="termlabel">Readiness probe pointed at a wrong path (/nope)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo patch deployment cifar-api --type=json -p "[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/readinessProbe/httpGet/path\",\"value\":\"/nope\"}]"</div><pre>deployment.apps/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+cifar-api-67999ddcdf-mtgtf   1/1     Running   0          99s
+cifar-api-67999ddcdf-r7l8c   1/1     Running   0          94s
+cifar-api-855468cbbb-4jjrn   <span class="bad">0/1</span>     Running   <span class="ok">0</span>          42s   <span class="c">← never ready, never restarted</span></pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "…ask the API 6 times which pod answers…"</div><pre>cifar-api-67999ddcdf-r7l8c
+cifar-api-67999ddcdf-mtgtf
+cifar-api-67999ddcdf-mtgtf  …   <span class="c">← only the old, ready pods get traffic: users see no error</span></pre></div>
+    </div>
+    <div>
+      <div class="termlabel">Memory limit far too small (40Mi)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo set resources deployment cifar-api -c api --limits=memory=40Mi --requests=memory=40Mi</div><pre>deployment.apps/cifar-api resource requirements updated</pre><div class="cmd">kubectl -n ml-demo describe pod cifar-api-85f886d766-mr797</div><pre>    Limits:
+      memory:  40Mi
+    Ready:          <span class="bad">False</span>
+Events:
+  Normal   Started    kubelet  Container started
+  Warning  Unhealthy  kubelet  Startup probe failed: … connect: connection refused
+  Warning  Unhealthy  kubelet  <span class="bad">Startup probe failed</span>: … context deadline exceeded (x16 over 31s)</pre></div>
+      <p class="small">With 40 MiB the API can't even load its models, so it never answers. Depending on timing you'll see these startup-probe failures and restarts, or
+      <code>Last State: Terminated · Reason: <b>OOMKilled</b> · Exit Code: <b>137</b></code> (137 = killed by the kernel). Either way: <b>limits must fit the real app</b>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"Three questions: finished starting? (startup) ready for traffic? (readiness) still alive? (liveness)."</li>
+    <li>"Not ready → the Service stops sending traffic, no restart. Not alive → restart. That's why readiness protects users and liveness recovers stuck apps."</li>
+    <li>"Requests = what the scheduler reserves. Limits = hard caps: too much memory gets the pod killed, too much CPU only slows it."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Set model loading to 80 s and start the pod.
+      <details class="answer"><summary>Answer</summary>The startup probe allows 30 × 2 s = 60 s. After 60 s of failures the kubelet gives up and restarts the container, which starts loading again… forever. If your model is big, raise <code>failureThreshold</code>.</details></li>
+    <li>Break /ready, wait, then fix it. Was the pod restarted?
+      <details class="answer"><summary>Answer</summary>No. After 2 failed checks it leaves the Service (no traffic); after the next success it comes back. RESTARTS stays 0. Exactly what we saw with <code>/nope</code>.</details></li>
+    <li>Freeze the app. How long until the restart?
+      <details class="answer"><summary>Answer</summary>Liveness checks every 10 s and needs 3 failures in a row: about 20–30 s. Readiness notices first (after ~10 s) and stops the traffic.</details></li>
+    <li>Set the memory limit to 40 and usage to 150.
+      <details class="answer"><summary>Answer</summary>OOMKilled, exit code 137, restart, killed again: CrashLoopBackOff. Our <code>docker stats</code> showed the API using 53.5 MiB while idle, and it needs more while loading models and serving (the Day-4 README measured ≈ 150 MiB). 40 MiB is below even the idle need.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+// ---- probe simulation (1 simulated second = 250 ms) ----
+let S=null,timer=null;
+function log(t,c=''){const L=$('#plog');L.innerHTML+=`<span class="${c}">${t}</span>\n`;L.scrollTop=1e9;}
+function start(){clearInterval(timer);S={t:0,clock:0,alive:0,started:false,sFail:0,rFail:0,lFail:0,ready:false,restarts:S?S.restarts:0,marks:[],readyBroken:false,frozen:false};
+  log(`t=0s  container started, loading models (${$('#lt').value} s)…`,'hl');timer=setInterval(step,250);draw();}
+function answer(path){if(S.frozen)return 'timeout';if(S.alive<+$('#lt').value)return 'refused';if(path==='/ready'&&S.readyBroken)return '503';return '200';}
+function restart(why){S.restarts++;log(`t=${S.clock}s  ${why} → kubelet RESTARTS the container (restart #${S.restarts})`,'bad');Object.assign(S,{alive:0,started:false,sFail:0,rFail:0,lFail:0,ready:false,frozen:false});}
+function step(){S.clock++;S.alive++;
+  if(!S.started){if(S.clock%2===0){const a=answer('/ready'),ok=a==='200';S.marks.push({t:S.clock,row:0,ok});
+      if(ok){S.started=true;S.ready=true;log(`t=${S.clock}s  startup probe OK → now readiness + liveness take over; READY 1/1`,'ok');}
+      else if(++S.sFail>=30){S.marks.push({t:S.clock,row:0,ok:false});restart('startup probe failed 30× (60 s)');}}}
+  else{if(S.clock%5===0){const ok=answer('/ready')==='200';S.marks.push({t:S.clock,row:1,ok});
+      if(ok){if(!S.ready)log(`t=${S.clock}s  readiness OK again → back in the Service`,'ok');S.ready=true;S.rFail=0;}
+      else if(++S.rFail>=2&&S.ready){S.ready=false;log(`t=${S.clock}s  readiness failed 2× → REMOVED from the Service (no traffic), not restarted`,'hl');}}
+    if(S.clock%10===0){const ok=answer('/health')==='200';S.marks.push({t:S.clock,row:2,ok});
+      if(ok)S.lFail=0;else if(++S.lFail>=3)restart('liveness failed 3×');}}
+  S.marks=S.marks.filter(m=>m.t>S.clock-90);draw();}
+function draw(){$('#ltOut').textContent=$('#lt').value+' s';if(!S){$('#st').textContent='not started';$('#tr').textContent='–';return;}
+  const st=!S.started?'Running 0/1 (starting)':S.ready?'Running 1/1':'Running 0/1';$('#st').textContent=st;$('#stBox').className='stat '+(S.ready?'good':'orange');
+  $('#tr').textContent=S.ready?'yes':'no';$('#trBox').className='stat '+(S.ready?'good':'bad');$('#rs').textContent=S.restarts;
+  const {ctx,w:W,h:H}=setupCanvas($('#pc')),L=78,pw=W-L-10,rows=['startup','readiness','liveness'],sx=t=>L+(t-(S.clock-90))/90*pw;
+  ctx.font='12px Segoe UI, sans-serif';rows.forEach((r,i)=>{const y=22+i*(H-40)/2;ctx.fillStyle='#495057';ctx.textAlign='right';ctx.fillText(r,L-8,y+4);ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+pw,y);ctx.stroke();});
+  S.marks.forEach(m=>{const y=22+m.row*(H-40)/2;ctx.beginPath();ctx.arc(sx(m.t),y,5,0,7);ctx.fillStyle=m.ok?'#2f9e44':'#e03131';ctx.fill();});
+  ctx.fillStyle='#868e96';ctx.textAlign='center';ctx.fillText(`last 90 s (t = ${S.clock} s)`,L+pw/2,H-4);}
+$('#start').onclick=start;
+$('#rbreak').onclick=()=>{if(!S)return;S.readyBroken=true;log(`t=${S.clock}s  /ready now answers 503`,'bad');};
+$('#freeze').onclick=()=>{if(!S)return;S.frozen=true;log(`t=${S.clock}s  app frozen: no answers at all`,'bad');};
+$('#fix').onclick=()=>{if(!S)return;S.readyBroken=false;S.frozen=false;log(`t=${S.clock}s  problem fixed`,'ok');};
+$('#lt').addEventListener('input',draw);
+// ---- resources ----
+function res(){const lim=+$('#mlim').value,mu=+$('#mu').value,mx=700;$('#muOut').textContent=mu+' MiB';$('#mbar').style.width=(mu/mx*100)+'%';$('#mline').style.left=(lim/mx*100)+'%';
+  $('#mbar').style.background=mu>lim?'#e03131':'#2f6fed';const v=$('#mv');
+  if(mu>lim){v.className='banner bad';v.innerHTML=`💀 <b>OOMKilled</b>: ${mu} MiB &gt; limit ${lim} MiB. The kernel kills the container (exit code 137), the kubelet restarts it, it grows again, killed again → CrashLoopBackOff.`;}
+  else{v.className='banner good';v.innerHTML=`✅ ${mu} MiB of ${lim} MiB allowed.`;}
+  const cu=+$('#cu').value;$('#cuOut').textContent=cu.toFixed(1)+' cores';$('#cbar').style.width=(Math.min(cu,1)/2.5*100)+'%';const c=$('#cv');
+  if(cu>1){c.className='banner info';c.innerHTML=`🐢 <b>Throttled</b>: it wants ${cu.toFixed(1)} cores but may use 1. It keeps running, just ≈ ${(cu/1).toFixed(1)}× slower. Nobody is killed for CPU.`;}
+  else{c.className='banner good';c.innerHTML=`✅ ${cu.toFixed(1)} of 1 core allowed.`;}
+  const n=+$('#np').value,fit=16;$('#npOut').textContent=n;$('#slots').innerHTML=Array.from({length:16},(_,i)=>`<span class="${i<Math.min(n,fit)?'u':''}"></span>`).join('');
+  $('#sch').className='banner '+(n>fit?'bad':'good');$('#sch').innerHTML=n>fit?`⏳ ${fit} pods fit (16 × 250m = 4 cores). The other <b>${n-fit}</b> stay <b>Pending</b>: "0/1 nodes are available: Insufficient cpu".`:`✅ ${n} × 250m = ${(n*0.25).toFixed(2)} of 4 cores reserved.`;}
+['#mlim','#mu','#cu','#np'].forEach(id=>$(id).addEventListener('input',res));window.addEventListener('resize',draw);res();draw();
+</script>
+</body>
+</html>

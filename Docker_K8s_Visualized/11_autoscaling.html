@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 · Autoscaling (HPA) — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 11 of 12 · ≈ 20 min</div>
+  <h1>Autoscaling: more copies when it's busy, fewer when it's quiet</h1>
+  <p class="one-liner">On page 7 <b>you</b> changed <code>replicas</code>. The <b>HorizontalPodAutoscaler</b> (HPA) does it for you: every 15 seconds it looks at the pods' CPU and asks
+  <i>"how many copies would bring the average CPU back to 60%?"</i>. Busy → more pods (up to 6). Quiet again → back to 2, after waiting a minute to be sure.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A supermarket opens extra checkouts when the queues get long, and closes them again when it's quiet, but not the very second one queue is empty, in case more customers come.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>▶ Run the load test</b> (16 users for 3 minutes, like <code>k8s/loadtest</code>).</li><li>Watch CPU and the number of pods.</li><li>Switch off <b>metrics-server</b> and try again.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Scaling up is quick; scaling down waits (60 s window). And without <b>metrics-server</b> the HPA is blind: <code>&lt;unknown&gt;</code>, no scaling.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>① Watch the HPA work</h2>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Traffic</h3>
+      <div class="ctl"><label>Users sending requests <output id="uOut"></output></label><input type="range" id="users" min="0" max="24" value="0"></div>
+      <div class="btn-row" style="flex-direction:column;align-items:stretch"><button class="btn primary" id="lt">▶ Run the load test (16 users, 3 min)</button><button class="btn" id="stop">⏹ Stop traffic</button></div>
+      <h3>Cluster</h3>
+      <label class="check"><input type="checkbox" id="ms" checked> metrics-server installed</label>
+      <p class="small muted">1 second here = 5 simulated seconds. New pods need ≈ 20 s before they're ready.</p>
+    </aside>
+    <div class="stage">
+      <div class="term"><div class="cmd">kubectl -n ml-demo get hpa cifar-api -w</div><pre id="hpaLine"></pre></div>
+      <div class="stats"><div class="stat" id="cpuBox"><b id="cpu">–</b><span>Average CPU (of request)</span></div><div class="stat blue"><b id="reps">2</b><span>Replicas</span></div><div class="stat"><b id="calc">–</b><span>HPA's calculation</span></div></div>
+      <div class="canvas-box"><div class="canvas-title">Last 5 minutes: <span style="color:#e8590c">average CPU %</span> and <span style="color:#2f6fed">number of pods</span> (dashed = 60% target)</div><canvas id="hc" style="height:230px"></canvas></div>
+      <div class="dg" style="margin-top:.5rem"><div class="pods" id="pods"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② The rule, and our YAML</h2>
+  <div class="grid2">
+    <div>
+      <p class="center" style="font-family:var(--mono);font-size:1.05rem;background:var(--soft);padding:.6rem;border-radius:10px">desired = ⌈ current pods × current CPU ÷ target CPU ⌉</p>
+      <p>Example: 2 pods at 360% CPU, target 60% → 2 × 360 ÷ 60 = 12 → capped at <b>maxReplicas 6</b>.
+      CPU is measured as a % of the pod's <b>request</b> (250m). 360% = 0.9 cores, close to the 1-core limit.</p>
+      <p class="small muted">Why a 60-second wait before scaling down (<code>stabilizationWindowSeconds</code>)? Traffic is bumpy; without it the HPA would add and remove pods every few seconds ("flapping"). The default is 300 s; we shortened it for class.</p>
+    </div>
+    <div class="yaml"><span class="c"># k8s/06-api-hpa.yaml</span>
+<span class="k">apiVersion:</span> autoscaling/v2
+<span class="k">kind:</span> <span class="v">HorizontalPodAutoscaler</span>
+<span class="k">spec:</span>
+  <span class="k">scaleTargetRef:</span> {kind: Deployment, name: <span class="v">cifar-api</span>}
+<span class="hl">  <span class="k">minReplicas:</span> <span class="v">2</span></span>
+<span class="hl">  <span class="k">maxReplicas:</span> <span class="v">6</span></span>
+  <span class="k">metrics:</span>
+    - <span class="k">type:</span> Resource
+      <span class="k">resource:</span>
+        <span class="k">name:</span> cpu
+<span class="hl">        <span class="k">target:</span> {type: Utilization, averageUtilization: <span class="v">60</span>}</span>
+  <span class="k">behavior:</span>
+    <span class="k">scaleDown:</span> {stabilizationWindowSeconds: <span class="v">60</span>}</div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ Real output</h2>
+  <div class="grid2">
+    <div>
+      <div class="termlabel">Trainer's PC (Docker Desktop has no metrics-server)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo get hpa</div><pre>NAME        REFERENCE              TARGETS              MINPODS   MAXPODS   REPLICAS
+cifar-api   Deployment/cifar-api   cpu: <span class="bad">&lt;unknown&gt;</span>/60%   2         6         2</pre></div>
+      <p class="small"><code>&lt;unknown&gt;</code> = the HPA can't see CPU numbers. On Docker Desktop you install metrics-server once (it downloads a small add-on from the internet):</p>
+      <div class="term"><div class="cmd">kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml</div><div class="cmd">kubectl -n kube-system patch deployment metrics-server --type=json -p "[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--kubelet-insecure-tls\"}]"</div><div class="cmd">kubectl top pods -n ml-demo</div><pre><span class="c"># after ~1 minute: CPU and memory per pod</span></pre></div>
+    </div>
+    <div>
+      <div class="termlabel">The verified run from the Day-4 README (kind cluster, same manifests)</div>
+      <div class="term"><div class="cmd">kubectl -n ml-demo create configmap loadtest-script --from-file=k8s/loadtest/loadtest.py</div><div class="cmd">kubectl apply -f k8s/loadtest/loadtest-job.yaml</div><div class="cmd">kubectl -n ml-demo get hpa cifar-api -w</div><div class="cmd">kubectl -n ml-demo logs -f job/loadtest</div></div>
+      <div class="stats"><div class="stat orange"><b>360%</b><span>CPU of request at the peak</span></div><div class="stat blue"><b>2 → 6</b><span>Replicas, in ≈ 1 minute</span></div>
+        <div class="stat"><b>71,635</b><span>Requests</span></div><div class="stat good"><b>0</b><span>Errors</span></div></div>
+      <p class="small muted">These are the numbers the Day-4 README reports for this exact load test; the requests were spread over all 6 pods. The job's last line has the form <code>total=… errors=…</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="say">
+  <h3>🗣️ Explain it like this</h3>
+  <ol><li>"The HPA is a controller that changes <code>replicas</code> for us, based on CPU."</li>
+    <li>"The rule: if 2 pods are at 3× the target CPU, we need about 3× as many pods, between min 2 and max 6."</li>
+    <li>"Up is fast, down waits a minute. And it needs metrics-server to see CPU at all."</li></ol>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Run the load test. How many pods at the peak? Does CPU come back under 60%?
+      <details class="answer"><summary>Answer</summary>6 pods (the maximum). With 16 users the load needs ≈ 12 pods to reach 60%, so even at 6 the CPU stays above target (≈ 120%). maxReplicas protects your wallet and your cluster.</details></li>
+    <li>After the test ends, how long until it's back to 2?
+      <details class="answer"><summary>Answer</summary>About a minute: the HPA waits until the calculation has said "fewer" for the whole 60-second window, then drops to minReplicas 2.</details></li>
+    <li>Why do small images matter for autoscaling?
+      <details class="answer"><summary>Answer</summary>A new pod on a new node must download the image first. 115 MB takes seconds; a 6 GB naive image takes minutes, and the traffic spike may be over by then (page 2).</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+// load model: each user adds 45% of one pod's CPU request (16 users on 2 pods → 360% each, as in the README); a pod can use at most its 1-core limit = 400%
+const PER_USER=45,CAP=400,TARGET=60,MIN=2,MAX=6,READY_S=20,WIN=60;
+let t=0,pods=[{age:99},{age:99}],hist=[],recs=[],lastEval=-15,ltEnd=-1;
+function users(){return +$('#users').value;}
+function step(){t+=5;if(ltEnd>0&&t>=ltEnd){$('#users').value=0;ltEnd=-1;}
+  pods.forEach(p=>p.age+=5);const ready=pods.filter(p=>p.age>=READY_S).length||1,demand=users()*PER_USER+2*ready,util=Math.min(CAP,demand/ready);
+  if(t-lastEval>=15){lastEval=t;
+    if($('#ms').checked){const want=Math.max(MIN,Math.min(MAX,Math.ceil(pods.length*util/TARGET)));recs.push({t,want});recs=recs.filter(r=>r.t>t-WIN);
+      const target=want>=pods.length?want:Math.max(...recs.map(r=>r.want));
+      while(pods.length<target)pods.push({age:0});while(pods.length>target)pods.pop();
+      const before=hist.length?hist[hist.length-1].reps:pods.length;
+      $('#calc').textContent=`⌈${before} × ${Math.round(util)}% ÷ 60%⌉ = ${Math.ceil(before*util/TARGET)} → ${target}${want<before&&target>want?' (waiting: 60 s window)':''}`;}
+    else $('#calc').textContent='no metrics → no change';}
+  hist.push({t,util,reps:pods.length});hist=hist.filter(h=>h.t>t-300);draw(util);}
+function draw(util){$('#uOut').textContent=users();const ms=$('#ms').checked;
+  $('#cpu').textContent=ms?Math.round(util)+'%':'<unknown>';$('#cpuBox').className='stat '+(!ms?'':util>TARGET*1.1?'bad':'good');$('#reps').textContent=pods.length;
+  $('#hpaLine').innerHTML=`NAME        REFERENCE              TARGETS          MINPODS   MAXPODS   REPLICAS\ncifar-api   Deployment/cifar-api   cpu: ${ms?`<span class="${util>TARGET?'hl':'ok'}">${Math.round(util)}%</span>`:'<span class="bad">&lt;unknown&gt;</span>'}/60%   2         6         ${pods.length}`;
+  $('#pods').innerHTML=pods.map((p,i)=>`<div class="pod ${p.age<READY_S?'creating':''}"><b>cifar-api-…-${(i+10).toString(36)}${i}</b><span class="st">${p.age<READY_S?'starting…':'Ready'} · ${p.age<READY_S?'–':Math.round(util)+'% CPU'}</span></div>`).join('');
+  const {ctx,w:W,h:H}=setupCanvas($('#hc')),L=40,R=30,T=10,pw=W-L-R,ph=H-T-24,sx=tt=>L+(tt-(t-300))/300*pw,sy=v=>T+(1-Math.min(400,v)/400)*ph,sr=n=>T+(1-n/8)*ph;
+  ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
+  for(const v of [0,100,200,300,400]){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(v+'%',L-4,sy(v)+4);}
+  for(const n of [0,2,4,6,8]){ctx.textAlign='left';ctx.fillStyle='#2f6fed';ctx.fillText(n,L+pw+6,sr(n)+4);}
+  ctx.strokeStyle='#adb5bd';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,sy(60));ctx.lineTo(L+pw,sy(60));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#868e96';ctx.textAlign='center';ctx.fillText('time →',L+pw/2,H-4);
+  if(hist.length>1){ctx.strokeStyle='#e8590c';ctx.lineWidth=2.2;ctx.beginPath();hist.forEach((h,i)=>i?ctx.lineTo(sx(h.t),sy(h.util)):ctx.moveTo(sx(h.t),sy(h.util)));ctx.stroke();
+    ctx.strokeStyle='#2f6fed';ctx.lineWidth=2.8;ctx.beginPath();hist.forEach((h,i)=>{const x=sx(h.t),y=sr(h.reps);if(!i)ctx.moveTo(x,y);else{ctx.lineTo(x,sr(hist[i-1].reps));ctx.lineTo(x,y);}});ctx.stroke();}}
+$('#lt').onclick=()=>{$('#users').value=16;ltEnd=t+180;};
+$('#stop').onclick=()=>{$('#users').value=0;ltEnd=-1;};
+$('#users').addEventListener('input',()=>{ltEnd=-1;});
+window.addEventListener('resize',()=>draw(hist.length?hist[hist.length-1].util:0));
+setInterval(step,1000);step();
+</script>
+</body>
+</html>

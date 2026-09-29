@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0 · Install Docker Desktop — Docker &amp; Kubernetes, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="extra.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🐳 Docker &amp; Kubernetes, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 0 of 12 · ≈ 20 min (mostly waiting for downloads)</div>
+  <h1>Install everything: one program</h1>
+  <p class="one-liner">You install <b>only Docker Desktop</b>. It gives you <b>Docker</b> (to build and run containers), <b>Docker Compose</b> (to run several containers together)
+  and a <b>one-click Kubernetes</b> with <code>kubectl</code>. No minikube, no kind, no cloud account. Tick each step when it works on your PC.</p>
+</section>
+<section class="start">
+  <h2>👋 What you need</h2>
+  <div class="row">
+    <div class="box"><h3>💻 A PC</h3><p>Windows 10/11 (64-bit) or Ubuntu 24.04+ with a desktop. At least <b>8 GB RAM</b> (16 GB is comfortable) and ~15 GB free disk.</p></div>
+    <div class="box"><h3>🌐 Internet</h3><p>Only for the first downloads (Docker Desktop ≈ 600 MB, Python base image ≈ 50 MB, Python packages ≈ 50 MB).</p></div>
+    <div class="box"><h3>🔑 Admin rights</h3><p>Installing needs administrator (Windows) or <code>sudo</code> (Linux) once. After that, everything runs as your normal user.</p></div>
+  </div>
+</section>
+
+<div class="seg" id="osSeg" style="margin:.4rem 0 .2rem"><button data-os="win" class="on">🪟 Windows</button><button data-os="linux">🐧 Linux (Ubuntu)</button></div>
+
+<div class="os-win">
+<div class="stepcard"><h3><input type="checkbox"> 1 · Download and install Docker Desktop</h3>
+  <ol>
+    <li>Open <b>https://www.docker.com/products/docker-desktop/</b> → <b>Download for Windows</b>.</li>
+    <li>Run <code>Docker Desktop Installer.exe</code>. Keep <b>"Use WSL 2 instead of Hyper-V"</b> ticked → <b>OK</b>.</li>
+    <li>When it says <b>Close and restart</b>, restart the PC.</li>
+    <li>Open <b>Docker Desktop</b> from the Start menu, accept the terms (you can skip signing in).</li>
+    <li>Wait until the bottom-left corner shows <b>"Engine running"</b>.</li>
+  </ol>
+  <p class="small muted">If Docker asks you to update WSL, press the button it shows, then open Docker Desktop again.</p>
+</div>
+</div>
+
+<div class="os-linux" hidden>
+<div class="stepcard"><h3><input type="checkbox"> 1a · Check that your PC can run virtual machines (KVM)</h3>
+  <div class="term"><div class="cmd">ls -al /dev/kvm</div><pre>crw-rw----+ 1 root kvm 10, 232 … /dev/kvm</pre><div class="cmd">sudo usermod -aG kvm $USER</div></div>
+  <p class="why">If <code>/dev/kvm</code> doesn't exist, switch on virtualization (VT-x / AMD-V) in the BIOS. After <code>usermod</code>, <b>log out and log in</b> again.</p>
+</div>
+<div class="stepcard"><h3><input type="checkbox"> 1b · Add Docker's package source</h3>
+  <div class="term"><div class="cmd">sudo apt update && sudo apt install -y ca-certificates curl</div><div class="cmd">sudo install -m 0755 -d /etc/apt/keyrings</div><div class="cmd">sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc</div><div class="cmd">sudo chmod a+r /etc/apt/keyrings/docker.asc</div><div class="cmd">echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list</div><div class="cmd">sudo apt update</div></div>
+</div>
+<div class="stepcard"><h3><input type="checkbox"> 1c · Download and install Docker Desktop</h3>
+  <div class="term"><div class="cmd">curl -LO https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb</div><div class="cmd">sudo apt install -y ./docker-desktop-amd64.deb</div><pre><span class="c"># a line "Download is performed unsandboxed as root…" at the end is normal</span></pre></div>
+  <p class="why">Then open <b>Docker Desktop</b> from the applications menu, accept the terms, and wait for <b>"Engine running"</b>.</p>
+</div>
+</div>
+
+<div class="stepcard"><h3><input type="checkbox"> 2 · Check Docker works</h3>
+  <p class="why">Open a <b>new</b> terminal (Windows: PowerShell · Linux: Terminal) and run:</p>
+  <div class="termlabel">Real output from the trainer's PC</div>
+  <div class="term"><div class="cmd">docker --version</div><pre>Docker version 29.8.0, build 88096ef</pre><div class="cmd">docker compose version</div><pre>Docker Compose version v5.5.1</pre><div class="cmd">docker run --rm hello-world</div><pre>Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+4f55086f7dd0: Pull complete
+Status: Downloaded newer image for hello-world:latest
+
+<span class="ok">Hello from Docker!</span>
+<span class="ok">This message shows that your installation appears to be working correctly.</span>
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.</pre></div>
+  <p class="why">Your version numbers may be newer. That's fine. <b>"Hello from Docker!"</b> is what matters, and those four steps are the whole of Docker in a nutshell (page 1).</p>
+</div>
+
+<div class="stepcard"><h3><input type="checkbox"> 3 · Switch on Kubernetes (same clicks on Windows and Linux)</h3>
+  <ol>
+    <li>Docker Desktop → left menu <b>Kubernetes</b> → <b>Create cluster</b> (older versions: ⚙️ <b>Settings → Kubernetes → Enable Kubernetes → Apply</b>).</li>
+    <li>Choose <b>Kubeadm</b> (a single node: the simplest, and it can use the images you build yourself) → <b>Create</b>.</li>
+    <li>Wait 1–3 minutes until it shows <b>Kubernetes running</b> in green.</li>
+  </ol>
+  <div class="os-linux" hidden><p class="why">🐧 Linux only: install <code>kubectl</code> once (Windows already has it):</p>
+    <div class="term"><div class="cmd">curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"</div><div class="cmd">sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl</div></div></div>
+</div>
+
+<div class="stepcard"><h3><input type="checkbox"> 4 · Check Kubernetes works</h3>
+  <div class="termlabel">Real output from the trainer's PC</div>
+  <div class="term"><div class="cmd">kubectl version --client</div><pre>Client Version: v1.36.1
+Kustomize Version: v5.8.1</pre><div class="cmd">kubectl config use-context docker-desktop</div><pre>Switched to context "docker-desktop".</pre><div class="cmd">kubectl get nodes</div><pre>NAME             STATUS   ROLES           AGE   VERSION
+docker-desktop   <span class="ok">Ready</span>    control-plane   19h   v1.36.1</pre></div>
+  <p class="why">One node called <b>docker-desktop</b> with STATUS <b>Ready</b>: your PC is now a (tiny) Kubernetes cluster.</p>
+</div>
+
+<div class="stepcard"><h3><input type="checkbox"> 5 · Get the course files</h3>
+  <p class="why">Open a terminal <b>in the course folder</b> (the one that contains <code>Day4_Docker_Kubernetes_Cloud</code>):
+  Windows: open the folder in File Explorer → click the address bar → type <code>powershell</code> → Enter. Linux: right-click in the folder → <b>Open in Terminal</b>.</p>
+  <div class="term"><div class="cmd">cd Day4_Docker_Kubernetes_Cloud/ml-app</div><div class="cmd">docker compose up --build</div><pre><span class="c"># first time: a few minutes. Wait for these two lines:</span>
+api-1  | [INFO] Listening at: http://0.0.0.0:5000
+ui-1   |   You can now view your Streamlit app in your browser.</pre></div>
+  <p class="why">Open <b>http://localhost:8501</b>, pick a sample picture, and the model answers. Stop with <b>Ctrl + C</b>. You're ready for the lab (page 12).</p>
+</div>
+
+<section class="card">
+  <h2>🧯 If something goes wrong</h2>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th>What you see</th><th>What it means</th><th>What to do</th></tr>
+    <tr><td><code>'docker' is not recognized</code> / <code>command not found</code></td><td>Not installed, or the terminal was opened before installing</td><td>Install (step 1), then open a <b>new</b> terminal</td></tr>
+    <tr><td><code>failed to connect to the docker API</code> / <code>Cannot connect to the Docker daemon</code></td><td>Docker Desktop is not running</td><td>Open it and wait for "Engine running"</td></tr>
+    <tr><td>Linux: Docker Desktop won't start, mentions KVM</td><td>Virtualization off, or you didn't log out/in after <code>usermod</code></td><td>Turn on VT-x/AMD-V in the BIOS; log out and in</td></tr>
+    <tr><td><code>port is already allocated</code></td><td>Another program uses port 5000, 8501 or 30080 (often the Day-3 API still running)</td><td>Stop it (Ctrl + C in its terminal) or <code>docker ps</code> to find it</td></tr>
+    <tr><td><code>kubectl</code>: <code>connection refused</code> or <code>EOF</code></td><td>Kubernetes isn't running, or kubectl points at an old cluster</td><td><code>kubectl config use-context docker-desktop</code>; check Kubernetes is green in Docker Desktop</td></tr>
+    <tr><td><code>x509: certificate signed by unknown authority</code></td><td>Your <code>~/.kube/config</code> belongs to an older copy of the cluster</td><td>Docker Desktop → Kubernetes → <b>Reset cluster</b> (or restart Docker Desktop), then <code>kubectl get nodes</code> again</td></tr>
+    <tr><td><code>TLS handshake timeout</code> now and then</td><td>The PC is short of memory: too many containers running</td><td>Stop containers you don't need (<code>docker ps</code>, <code>docker stop &lt;name&gt;</code>); give Docker more memory in Settings → Resources</td></tr>
+  </table></div>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>Docker &amp; Kubernetes, Visualized · works offline</footer>
+<script src="common.js"></script>
+<script>
+function showOS(os){$$('#osSeg button').forEach(b=>b.classList.toggle('on',b.dataset.os===os));$$('.os-win').forEach(e=>e.hidden=os!=='win');$$('.os-linux').forEach(e=>e.hidden=os!=='linux');try{localStorage.setItem('dk-os',os);}catch(e){}}
+$$('#osSeg button').forEach(b=>b.onclick=()=>showOS(b.dataset.os));
+let os='win';try{os=localStorage.getItem('dk-os')||(/Linux/.test(navigator.userAgent)&&!/Android/.test(navigator.userAgent)?'linux':'win');}catch(e){}showOS(os);
+</script>
+</body>
+</html>
