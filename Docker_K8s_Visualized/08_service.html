@@ -51,7 +51,7 @@
         <button class="btn" id="reset">↺ Reset</button>
       </div>
       <p class="small muted">Click a pod to kill it: the Deployment replaces it with a new pod and a <b>new IP</b>. Use the ⏸ button on a pod to make it "not ready".</p>
-    </div>
+    </aside>
     <div class="stage">
       <div class="flow" style="justify-content:flex-start"><div class="ctr">🖥️ UI pod</div><span class="arrow">→</span>
         <div class="svcbox" id="svcBox">☎️ Service cifar-api<small id="svcSub">ClusterIP 10.99.144.91 · selector app=cifar-api</small></div><span class="arrow">→</span></div>
@@ -73,7 +73,7 @@
 </section>
 
 <section class="card">
-  <h2>③ Real output from the trainer's PC</h2>
+  <h2>③ Real output</h2>
   <div class="grid2">
     <div>
       <div class="term"><div class="cmd">kubectl -n ml-demo get svc</div><pre>NAME        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)
