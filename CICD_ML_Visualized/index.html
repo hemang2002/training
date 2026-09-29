@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CI/CD for ML — Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .scen{display:flex;flex-direction:column;gap:.35rem;margin:.5rem 0}
+  .scen .btn{text-align:left;font-size:.88rem;padding:.42rem .6rem}
+  .scen .btn.on{border-color:var(--blue);background:#e7f0ff}
+  /* pipeline */
+  .lane{border:1px dashed var(--line);border-radius:12px;padding:.55rem .6rem .7rem;margin:.4rem 0;background:#fcfcfd}
+  .lane > .lt{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:.35rem}
+  .node{flex:1 1 0;min-width:5.6rem;max-width:10rem;border:2px solid var(--line);border-radius:10px;background:#fff;padding:.4rem .45rem;text-align:center;position:relative;transition:all .25s}
+  .node .ic{font-size:1.35rem;line-height:1.2}
+  .node .nm{font-size:.8rem;font-weight:700;line-height:1.2}
+  .node .st{font-size:.72rem;color:var(--muted);margin-top:.15rem;min-height:1em}
+  .node.run{border-color:var(--blue);box-shadow:0 0 0 4px #d0e1ff;transform:translateY(-2px)}
+  .node.pass{border-color:var(--green);background:#ebfbee}
+  .node.fail{border-color:var(--red);background:#fff5f5}
+  .node.skip{opacity:.38}
+  .arrow{align-self:center;color:#adb5bd;font-weight:700}
+  .loopback{font-size:.8rem;color:var(--muted);text-align:center;margin-top:.3rem}
+  .loopback.on{color:var(--purple);font-weight:700}
+  .say{border-left:4px solid var(--blue);background:var(--info);padding:.6rem .8rem;border-radius:8px;min-height:3.2rem}
+  .say.bad{border-color:var(--red);background:#fff5f5}.say.good{border-color:var(--green);background:#ebfbee}
+  .shelf{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:.18rem .6rem;font-size:.8rem;background:#fff}
+  .chip.new{border-color:var(--orange);background:#fff4e6}
+  .serve{display:flex;height:1.5rem;border-radius:6px;overflow:hidden;font-size:.75rem;font-weight:700;color:#fff;background:var(--soft)}
+  .serve span{display:flex;align-items:center;justify-content:center;transition:width .5s;white-space:nowrap;overflow:hidden}
+  ol.story{margin:.4rem 0 0;padding-left:1.3rem;font-size:.88rem}
+  ol.story li{margin:.18rem 0;color:var(--muted)}
+  ol.story li.now{color:var(--ink);font-weight:600}
+  /* three things that change */
+  .tri{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:.7rem}
+  .tri > div{border:1px solid var(--line);border-radius:12px;padding:.7rem .8rem;background:#fff}
+  .tri .big{font-size:2rem}
+  /* gates */
+  .gate{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:8px;border:1px solid var(--line);margin:.3rem 0;background:#fff;font-size:.9rem}
+  .gate .lamp{width:.9rem;height:.9rem;border-radius:50%;flex:none}
+  .gate.ok .lamp{background:var(--green)} .gate.no .lamp{background:var(--red)} .gate.no{background:#fff5f5}
+  /* registry */
+  .reg{display:flex;flex-direction:column;gap:.35rem}
+  .ver{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;border:1px solid var(--line);border-radius:10px;padding:.45rem .6rem;background:#fff;font-size:.88rem}
+  .ver b{font-family:var(--mono)}
+  .ver .tag{margin-left:auto;font-size:.75rem;font-weight:700;border-radius:999px;padding:.1rem .55rem;background:var(--soft);color:var(--muted)}
+  .ver .tag.prod{background:#ebfbee;color:var(--green)} .ver .tag.stg{background:#fff4e6;color:var(--orange)}
+  .recipe{font-family:var(--mono);font-size:.85rem;background:var(--soft);border-radius:10px;padding:.6rem .8rem;line-height:1.8}
+  /* repo tree */
+  .tree{font-family:var(--mono);font-size:.86rem;line-height:1.75;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.6rem .7rem;overflow-x:auto}
+  .tree a{cursor:pointer;color:var(--ink);text-decoration:none;display:block;border-radius:6px;padding:0 .3rem;white-space:nowrap}
+  .tree a:hover{background:var(--soft)} .tree a.on{background:#e7f0ff;color:var(--blue);font-weight:700}
+  .tree .dir{color:var(--muted);padding:0 .3rem;white-space:nowrap}
+  .tree .i1{padding-left:1.2rem}.tree .i2{padding-left:2.4rem}
+  .fileinfo{font-size:.9rem;margin:.2rem 0 .4rem}
+  .stagetag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:999px;padding:.05rem .5rem;margin-right:.25rem;background:#e7f0ff;color:var(--blue)}
+  .codegrid{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:1rem}
+  @media (max-width:860px){.codegrid{grid-template-columns:minmax(0,1fr)}}
+  p code,li code,td code{overflow-wrap:anywhere}
+</style>
+</head>
+<body class="simple">
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="#top">🔁 CI/CD for ML, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="#why" title="Why?">1</a><a href="#three" title="What changes in ML">2</a><a href="#pipe" title="The pipeline">3</a>
+    <a href="#code" title="Code structure">4</a><a href="#sum" title="Summary">5</a>
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap" id="top">
+<section class="hero">
+  <div class="kicker">Theory only · ≈ 40 min · no installation needed</div>
+  <h1>CI/CD for machine learning</h1>
+  <p class="one-liner">Every time something changes (the <b>code</b>, the <b>data</b> or the <b>model</b>), a robot runs the same checklist:
+  <b>check → train → test → package → release carefully → watch</b>. If any step fails, it stops <b>before</b> users are affected.
+  That robot is the <b>CI/CD pipeline</b>.</p>
+</section>
+
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A restaurant kitchen. Every new dish is tasted by the chef <b>before</b> it goes to the guests (CI).
+      Then it's first served to <b>one table</b>. If they like it, it goes on the menu for everyone (CD). A waiter keeps asking guests how it tastes (monitoring).</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ③, press <b>Next ▶</b> through the ✅ good change.</li>
+      <li>Then try the ❌ stories: see <b>where</b> the pipeline stops each problem.</li>
+      <li>In ④, click the files to see how each step is just a small script.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>A red step is <b>not</b> a broken pipeline. It is the pipeline <b>doing its job</b>: a bad change was caught before any user saw it.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br>
+    <span><b>CI</b> (Continuous Integration) = check every change automatically</span>
+    <span><b>CD</b> (Continuous Delivery / Deployment) = release every good change automatically and safely</span>
+    <span><b>CT</b> (Continuous Training) = retrain automatically when new data arrives</span>
+    <span><b>Pipeline</b> = the fixed list of steps the robot runs</span>
+    <span><b>Quality gate</b> = a rule a model must pass to go further</span>
+    <span><b>Model registry</b> = a shelf of numbered models, one labelled "production"</span>
+    <span><b>Canary</b> = give the new model to a few users first</span></div>
+</section>
+
+<!-- ① WHY -->
+<section class="card" id="why">
+  <h2>① Why do we need it?</h2>
+  <div class="grid2">
+    <div>
+      <h3>😰 Without a pipeline (by hand)</h3>
+      <ol class="steps">
+        <li><b>"It works on my laptop."</b> The model was trained with a different library version, and in production it gives other answers.</li>
+        <li><b>Nobody ran the tests.</b> A tiny change in preprocessing flips the image colours. Accuracy silently drops.</li>
+        <li><b>Which model is live?</b> "model_final_v2_NEW.pth"… trained on which data? Nobody knows.</li>
+        <li><b>Rollback takes hours.</b> Someone must find the old file and copy it to the server at night.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>😌 With a pipeline (automatic)</h3>
+      <ol class="steps">
+        <li><b>Same steps every time,</b> in a clean, identical environment (a container).</li>
+        <li><b>Tests and data checks run on every change,</b> in minutes, not "when someone remembers".</li>
+        <li><b>Every model has a version and a recipe:</b> this code + this data + these settings.</li>
+        <li><b>Rollback is one click:</b> point "production" back to the previous version.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ② THREE THINGS -->
+<section class="card" id="three">
+  <h2>② What is different in ML?</h2>
+  <p>In normal software only the <b>code</b> changes, so CI/CD tests the code. In ML, the result also depends on the <b>data</b>, and the <b>model</b> is created by training.
+  Each one can break things, often <b>silently</b> (no error message, just worse answers).</p>
+  <div class="tri">
+    <div><div class="big">💻</div><h3>Code</h3><p>Preprocessing, model architecture, the API.</p>
+      <p class="small"><b>Silent failure:</b> images resized to 64 instead of 96. It still runs, but accuracy drops.</p><p class="small"><b>Checked by:</b> unit tests, lint.</p></div>
+    <div><div class="big">📊</div><h3>Data</h3><p>New pictures, new labels, a new source.</p>
+      <p class="small"><b>Silent failure:</b> a camera update makes all photos darker; 10% of labels are missing.</p><p class="small"><b>Checked by:</b> schema checks, statistics, drift checks.</p></div>
+    <div><div class="big">🧠</div><h3>Model</h3><p>The result of training on code + data.</p>
+      <p class="small"><b>Silent failure:</b> overall accuracy is fine, but the "cat" class got much worse.</p><p class="small"><b>Checked by:</b> evaluation against a quality gate and against the current model.</p></div>
+  </div>
+  <div class="tbl-wrap"><table class="plain" style="margin-top:.8rem">
+    <tr><th>What starts the pipeline? (trigger)</th><th>Example</th><th>Which part runs</th></tr>
+    <tr><td>🔔 Code pushed to git</td><td>New augmentation in <code>train.py</code></td><td>CI → (if merged) training → CD</td></tr>
+    <tr><td>📥 New data arrives</td><td>This week's labelled pictures</td><td>Data checks → training → CD</td></tr>
+    <tr><td>⏰ Schedule</td><td>Every Monday at 02:00</td><td>Retraining (CT) → CD</td></tr>
+    <tr><td>🚨 Monitoring alert</td><td>Live pictures look different from training data (drift)</td><td>Retraining (CT) → CD</td></tr>
+  </table></div>
+</section>
+
+<!-- ③ PIPELINE PLAYER -->
+<section class="card" id="pipe">
+  <h2>③ The ML pipeline, step by step</h2>
+  <p>Pick a story, then press <b>Next ▶</b>. Each step lights up: <b style="color:var(--blue)">blue</b> = running, <b style="color:var(--green)">green</b> = passed, <b style="color:var(--red)">red</b> = stopped here.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Story</h3>
+      <div class="scen" id="scen">
+        <button class="btn on" data-s="good" type="button">✅ A good change goes live</button>
+        <button class="btn" data-s="code" type="button">❌ A bug in the code</button>
+        <button class="btn" data-s="data" type="button">❌ Bad new data</button>
+        <button class="btn" data-s="worse" type="button">❌ The new model is worse</button>
+        <button class="btn" data-s="canary" type="button">❌ Fails with real users</button>
+        <button class="btn" data-s="drift" type="button">🔁 The world changes (drift)</button>
+      </div>
+      <div class="btn-row"><button class="btn" id="back" type="button">◀ Back</button><button class="btn primary" id="next" type="button">Next ▶</button></div>
+      <div class="btn-row"><button class="btn" id="play" type="button">▶ Play all</button><button class="btn ghost" id="reset" type="button">↺ Start again</button></div>
+    </aside>
+    <div class="stage">
+      <div class="lane"><div class="lt">CI: check &amp; build (every change)</div><div class="flow" id="ci"></div></div>
+      <div class="lane"><div class="lt">CD: release &amp; watch (only good builds)</div><div class="flow" id="cd"></div></div>
+      <div class="loopback" id="loop">↩ 👀 Monitor can trigger 🔔 retraining (continuous training)</div>
+      <div class="say" id="say" style="margin-top:.6rem">–</div>
+      <div class="grid2" style="margin-top:.6rem;gap:.7rem">
+        <div><div class="canvas-title">📦 What the pipeline has produced</div><div class="shelf" id="shelf"></div></div>
+        <div><div class="canvas-title">👥 Which model answers the users</div><div class="serve" id="serve"></div><div class="small muted" id="serveTxt"></div></div>
+      </div>
+      <details class="answer" style="margin-top:.5rem" open><summary>The whole story</summary><ol class="story" id="story"></ol></details>
+    </div>
+  </div>
+  <div class="explain adv" style="margin-top:.8rem"><b>Detailed: what each step really checks</b>
+    <div class="tbl-wrap"><table class="plain small" style="margin-top:.4rem">
+      <tr><th>Step</th><th>Typical checks</th></tr>
+      <tr><td>🧹 Code checks</td><td>Lint/format, unit tests (preprocessing shape and range, label mapping), a tiny "smoke" training on 50 pictures to prove the code runs.</td></tr>
+      <tr><td>📊 Data checks</td><td>Schema (columns, types, image size), missing values, class balance, duplicates, and train–test leakage. Drift: compare statistics with the last training set.</td></tr>
+      <tr><td>🏋️ Train</td><td>Fixed seed, pinned library versions, data version recorded, all parameters logged (experiment tracking).</td></tr>
+      <tr><td>🎯 Evaluate</td><td>Metrics on a fixed test set, compared with thresholds <b>and</b> with the current production model. Per-class recall, latency, size, fairness slices.</td></tr>
+      <tr><td>📦 Package</td><td>Export (e.g. ONNX, int8), build a container image, register the model with its recipe (commit, data version, metrics).</td></tr>
+      <tr><td>🧪 Staging</td><td>Deploy to a copy of production. Smoke tests: health endpoint, one known picture gives the known answer, latency budget.</td></tr>
+      <tr><td>🐤 Canary → 🚀 Full</td><td>A small share of real traffic first; compare error rate and latency with the old model; then 100%, or automatic rollback.</td></tr>
+      <tr><td>👀 Monitor</td><td>Latency, errors, prediction distribution, input drift, and accuracy once true labels arrive. Alerts can trigger retraining.</td></tr>
+    </table></div></div>
+</section>
+
+<!-- ⑦ CODE STRUCTURE -->
+<section class="card" id="code">
+  <h2>④ What it looks like in a project (basic structure)</h2>
+  <p>A pipeline is just a few <b>small scripts</b> (one per step) plus a <b>workflow file</b> that says "run these in this order, stop if one fails".
+  Click a file. These are skeletons that show the idea; they are not meant to be run.</p>
+  <div class="codegrid">
+    <div class="tree" id="tree"></div>
+    <div style="min-width:0"><div class="fileinfo" id="finfo"></div><pre class="code" id="fcode" style="margin-top:0"></pre></div>
+  </div>
+  <div class="explain" style="margin-top:.6rem">💡 <b>The one rule behind all of it:</b> every step is a script that <b>exits with 0 when OK</b> and <b>non-zero when not</b>.
+    The pipeline tool (GitHub Actions, GitLab CI, Jenkins, Azure DevOps…) just runs them in order and stops at the first non-zero exit.</div>
+</section>
+
+<!-- SUMMARY -->
+<section class="card" id="sum">
+  <h2>⑤ CI vs CD vs CT, in one table</h2>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th></th><th>CI: Continuous Integration</th><th>CD: Continuous Delivery / Deployment</th><th>CT: Continuous Training</th></tr>
+    <tr><td><b>Question</b></td><td>Is this change safe to merge?</td><td>Can we release it to users safely?</td><td>Is the live model still good for today's data?</td></tr>
+    <tr><td><b>Starts when</b></td><td>Code pushed / pull request</td><td>A build passed CI and the gate</td><td>New data, schedule, or drift alert</td></tr>
+    <tr><td><b>ML-specific steps</b></td><td>Data checks, small training run, tests of preprocessing</td><td>Model registry, staging, canary, rollback</td><td>Retrain, evaluate against production, re-release</td></tr>
+    <tr><td><b>Output</b></td><td>✅/❌ on the commit, a packaged model</td><td>A new model serving users</td><td>A fresher model (through CD again)</td></tr>
+  </table></div>
+  <p class="small muted" style="margin-top:.5rem"><b>Delivery vs deployment:</b> continuous <i>delivery</i> stops before production and a human clicks "release"; continuous <i>deployment</i> releases automatically once all gates pass.</p>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first, then check!)</h3>
+  <ol class="challenges">
+    <li><b>Where is each problem caught?</b> In ③, play every ❌ story. Write down the step where it stops.
+      <details class="answer"><summary>Answer</summary>Code bug → 🧹 Code checks (a unit test). Bad data → 📊 Data checks. Worse model → 🎯 Evaluate (quality gate). Problem with real users → 🐤 Canary, with automatic rollback.
+      The earlier a problem is caught, the cheaper it is: the code bug costs a few minutes; the canary problem reached 10% of users for a short time.</details></li>
+    <li><b>Red is good?</b> In the ❌ stories, did any user get a bad answer?
+      <details class="answer"><summary>Answer</summary>In the first three, no: the pipeline stopped before release, and users kept the old model. Only in the canary story did some users (the 10%) see the problem, for a short time, before the automatic rollback. That's why we release gradually.</details></li>
+    <li><b>The model didn't change, but it got worse.</b> In the 🔁 drift story, nobody changed any code. Why did the pipeline run?
+      <details class="answer"><summary>Answer</summary>The world changed: the live pictures no longer look like the training pictures (drift). Monitoring noticed and triggered retraining on fresh data. This is what makes ML different from normal software: a model can go stale even when nothing in the repository changes.</details></li>
+    </ol>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>Why is "the tests passed" not enough to release an ML model?
+      <details class="answer"><summary>Answer</summary>Tests check the <b>code</b>. The model can still be worse because of the <b>data</b> or the training. You also need data checks and a quality gate on the model's metrics, compared with the current production model.</details></li>
+    <li>What four things must be recorded to rebuild a model exactly?
+      <details class="answer"><summary>Answer</summary>The code version (git commit), the data version, the settings (hyper-parameters and seed) and the environment (library versions / container image).</details></li>
+    <li>What's the difference between continuous delivery and continuous deployment?
+      <details class="answer"><summary>Answer</summary>Delivery: every good build is <i>ready</i> to release, but a human presses the button. Deployment: it's released automatically when all gates pass.</details></li>
+    <li>Why keep old models in the registry?
+      <details class="answer"><summary>Answer</summary>For instant rollback, to compare new models against them, and to explain past predictions (audits).</details></li>
+  </ol>
+</section>
+</main>
+<footer>CI/CD for ML, Visualized · theory only · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+// Every HTML string rendered on this page is a constant written in this file (no user input), so it is safe to parse.
+const put=(el,html)=>el.replaceChildren(document.createRange().createContextualFragment(html));
+
+// ================= ③ pipeline player =================
+const STAGES=[['🔔','Trigger'],['🧹','Code checks'],['📊','Data checks'],['🏋️','Train'],['🎯','Evaluate'],['📦','Package &amp; register'],
+              ['🧪','Staging'],['🐤','Canary 10%'],['🚀','Full release'],['👀','Monitor']];
+const OLD='v7';
+// one step = [stage index or null, 'pass'|'fail', short status, sentence, {shelf:[...], serve:[old%, new%], bad, loop}]
+const S={
+  good:[
+    [0,'pass','git push','A data scientist adds a new augmentation (random flips) and pushes the code. The pipeline starts by itself.',{shelf:['💻 commit a1b2c3']}],
+    [1,'pass','12 tests ✔','Lint and 12 unit tests pass: preprocessing still gives a 3 × 96 × 96 picture with values in the right range.'],
+    [2,'pass','schema ✔ drift ✔','50,000 pictures, 10 classes, no missing labels, sizes correct, and they look like last time\'s data (no drift).',{shelf:['📊 data v12']}],
+    [3,'pass','model v8','Training runs in a clean container with a fixed seed. The recipe is recorded: commit a1b2c3 + data v12 + params.yaml.',{shelf:['🧠 model v8']}],
+    [4,'pass','90.1% ≥ 89.4%','Quality gate: v8 has 90.1% (production v7: 89.4%), every class recall ≥ 0.70, 18 ms per picture. All rules pass.'],
+    [5,'pass','ml-api:v8','The model is exported, put in a container image, and registered as v8 in the model registry, with its metrics and recipe.',{shelf:['🐳 image ml-api:v8','🗄️ registry v8']}],
+    [6,'pass','smoke ✔','Deployed to staging (a copy of production). Health check OK; a known test picture gives the known answer.'],
+    [7,'pass','errors same','10% of real users get v8. Errors and speed stay the same as v7 for 30 minutes.',{serve:[90,10]}],
+    [8,'pass','100% v8','All users now get v8. v7 stays on the shelf for a quick rollback.',{serve:[0,100]}],
+    [9,'pass','all normal','Monitoring watches latency, errors and the kind of pictures arriving. All normal. 🎉 Done, and nobody copied a file by hand.']],
+  code:[
+    [0,'pass','git push','Someone "cleans up" the preprocessing code and pushes it.',{shelf:['💻 commit f00d42']}],
+    [1,'fail','1 test ✘','❌ test_preprocess fails: expected a 3 × 96 × 96 picture, got 96 × 96 × 3 (channels in the wrong place). The pipeline stops here.',{bad:true}],
+    [null,'stop','','Nothing is trained or released. The developer sees a red ❌ on the commit within minutes and fixes it. Users keep model v7 and never notice.',{bad:true}]],
+  data:[
+    [0,'pass','new data','The weekly batch of new labelled pictures arrives. The pipeline starts by itself (no code change).',{shelf:['📊 data v13 (new)']}],
+    [1,'pass','12 tests ✔','The code hasn\'t changed; tests pass.'],
+    [2,'fail','12% no label','❌ Data check fails: 12% of the new pictures have no label, and 3,000 pictures are 64 × 64 instead of 96 × 96. Training on this would teach the model wrong things.',{bad:true}],
+    [null,'stop','','The pipeline stops before training. The data team gets the report, fixes the export, and the data is checked again. Users keep v7.',{bad:true}]],
+  worse:[
+    [0,'pass','git push','A change makes the model smaller to save money (fewer channels).',{shelf:['💻 commit 9e1d77']}],
+    [1,'pass','12 tests ✔','The code works: all tests pass.'],
+    [2,'pass','schema ✔','Same data as last time: v12.',{shelf:['📊 data v12']}],
+    [3,'pass','model v8','Training finishes normally. No error anywhere.',{shelf:['🧠 model v8']}],
+    [4,'fail','87.2% < 89.4%','❌ Quality gate: v8 has 87.2%, worse than production (89.4%), and "cat" recall fell to 0.61 (< 0.70). Code fine, data fine, model worse.',{bad:true}],
+    [null,'stop','','v8 is not released. The report shows exactly which rule failed and by how much. The team decides: retrain longer, or agree on a new gate for a cheaper model.',{bad:true}]],
+  canary:[
+    [0,'pass','git push','The API is updated to accept bigger uploads.',{shelf:['💻 commit 5c0ffe']}],
+    [1,'pass','12 tests ✔','Tests pass.'],
+    [2,'pass','schema ✔','Data v12, unchanged.',{shelf:['📊 data v12']}],
+    [3,'pass','model v8','Trained.',{shelf:['🧠 model v8']}],
+    [4,'pass','90.0%','The gate passes on the test set.'],
+    [5,'pass','ml-api:v8','Packaged and registered.',{shelf:['🐳 image ml-api:v8','🗄️ registry v8']}],
+    [6,'pass','smoke ✔','Staging smoke tests pass (they use small test pictures).'],
+    [7,'fail','errors 4.8%','❌ With real users, big phone photos make the new container run out of memory: 4.8% errors vs 0.2% on v7. The canary check fails.',{serve:[90,10],bad:true}],
+    [null,'stop','','↩ Automatic rollback: 100% of users back on v7 within a minute. Only the 10% canary group saw errors, for a short time. Nobody had to wake up at night.',{serve:[100,0],bad:true}]],
+  drift:[
+    [9,'fail','drift 0.34','👀 Monitoring: this month\'s pictures are much darker (a new phone camera). Their statistics are far from the training data (drift score 0.34 > 0.20). Accuracy on newly labelled pictures fell from 89% to 81%.',{bad:true,loop:true}],
+    [0,'pass','retrain','🔁 The alert triggers retraining. No code change: this is continuous training (CT).',{loop:true}],
+    [1,'pass','12 tests ✔','Same code, tests pass.'],
+    [2,'pass','data v13','Data v13 = the old pictures + 8,000 recent, darker, labelled pictures. Schema OK.',{shelf:['📊 data v13']}],
+    [3,'pass','model v8','Retrained on v13.',{shelf:['🧠 model v8']}],
+    [4,'pass','88.9% vs 81%','Gate, on a test set that includes recent pictures: v8 88.9%, production v7 only 81.0% on the same set. Passes.'],
+    [5,'pass','ml-api:v8','Packaged and registered.',{shelf:['🐳 image ml-api:v8','🗄️ registry v8']}],
+    [6,'pass','smoke ✔','Staging OK.'],
+    [7,'pass','errors same','Canary 10%: fine.',{serve:[90,10]}],
+    [8,'pass','100% v8','Everyone on v8.',{serve:[0,100]}],
+    [9,'pass','drift 0.05','Drift back to normal. The loop closes: monitoring → retrain → release → monitoring.']]
+};
+const P={k:'good',i:-1,timer:null};
+function buildPipe(){const mk=(a,b)=>STAGES.slice(a,b).map((s,j)=>`${j?'<span class="arrow">→</span>':''}<div class="node" id="n${a+j}"><div class="ic">${s[0]}</div><div class="nm">${s[1]}</div><div class="st"></div></div>`).join('');
+  put($('#ci'),mk(0,6));put($('#cd'),mk(6,10));}
+function showPipe(){
+  const steps=S[P.k],st=STAGES.map(()=>['','']),kind=c=>c.split(' ').slice(0,2).join(' ');
+  let shelf=[],serve=[100,0],loop=false;const fresh=new Set();
+  for(let j=0;j<=P.i;j++){const [g,s,t,,x={}]=steps[j];
+    if(g!==null)st[g]=[j===P.i&&s==='pass'&&j<steps.length-1?'run':s,t];
+    (x.shelf||[]).forEach(c=>{shelf=shelf.filter(o=>kind(o)!==kind(c));shelf.push(c);if(j===P.i)fresh.add(c);});
+    if(x.serve)serve=x.serve;if(x.loop)loop=true;}
+  const stopped=steps.slice(0,P.i+1).some((s,j)=>s[1]==='fail'&&steps[j+1]&&steps[j+1][1]==='stop');   // a fail that ends the story
+  if(stopped)st.forEach((v,g)=>{if(!v[0])st[g]=['skip','skipped'];});
+  STAGES.forEach((_,g)=>{const n=$('#n'+g);n.className='node '+st[g][0];n.querySelector('.st').textContent=st[g][1];});
+  $('#loop').classList.toggle('on',loop);
+  const cur=steps[P.i],x=(cur&&cur[4])||{},say=$('#say');
+  if(P.i<0){say.className='say';put(say,'Press <b>Next ▶</b> to start the story.');}
+  else{const done=P.i===steps.length-1;say.className='say'+(x.bad?' bad':done?' good':'');put(say,`<b>Step ${P.i+1} of ${steps.length}.</b> ${cur[3]}`);}
+  put($('#shelf'),shelf.length?shelf.map(c=>`<span class="chip${fresh.has(c)?' new':''}">${c}</span>`).join(''):'<span class="small muted">nothing yet</span>');
+  const [o,nw]=serve;
+  put($('#serve'),`<span style="width:${o}%;background:var(--blue)">${o?OLD+' '+o+'%':''}</span><span style="width:${nw}%;background:${x.bad?'var(--red)':'var(--orange)'}">${nw?'v8 '+nw+'%':''}</span>`);
+  $('#serveTxt').textContent=nw===0?`Everyone is served by the old model ${OLD}.`:nw===100?'Everyone is on the new model v8.':`${nw}% of users try the new model; the rest stay on ${OLD}.`;
+  put($('#story'),steps.map((s,j)=>`<li class="${j===P.i?'now':''}" style="${j>P.i?'opacity:.35':''}">${s[0]===null?'⛔':STAGES[s[0]][0]} ${s[3]}</li>`).join(''));
+  $('#back').disabled=P.i<0;$('#next').disabled=P.i>=steps.length-1;
+}
+function stopPlay(){if(P.timer){clearInterval(P.timer);P.timer=null;$('#play').textContent='▶ Play all';}}
+function pick(k){P.k=k;P.i=-1;stopPlay();$$('#scen .btn').forEach(b=>b.classList.toggle('on',b.dataset.s===k));showPipe();}
+$$('#scen .btn').forEach(b=>b.onclick=()=>pick(b.dataset.s));
+$('#next').onclick=()=>{stopPlay();P.i=Math.min(P.i+1,S[P.k].length-1);showPipe();};
+$('#back').onclick=()=>{stopPlay();P.i=Math.max(P.i-1,-1);showPipe();};
+$('#reset').onclick=()=>pick(P.k);
+$('#play').onclick=()=>{if(P.timer){stopPlay();return;}if(P.i>=S[P.k].length-1)P.i=-1;$('#play').textContent='⏸ Pause';
+  P.timer=setInterval(()=>{if(P.i>=S[P.k].length-1){stopPlay();return;}P.i++;showPipe();},2400);};
+buildPipe();showPipe();
+
+// ================= ④ repo skeleton =================
+const FILES={
+'.github/workflows/ci.yml':{tags:['🧹','📊','🏋️','🎯'],lang:'yaml',what:'<b>CI workflow.</b> Runs on every push and pull request. Each <code>run:</code> line is one step; the first failure stops the job.',code:
+`# Runs on every push / pull request
+name: ci
+on: [push, pull_request]
+
+jobs:
+  check-train-evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4           # get the code
+      - run: pip install -r requirements.txt
+
+      - run: ruff check src tests          # 🧹 code style
+      - run: pytest tests                  # 🧹 unit tests
+
+      - run: python src/data/validate.py   # 📊 data checks (stops if bad)
+      - run: python src/train.py           # 🏋️ train → model + recipe
+      - run: python src/evaluate.py        # 🎯 quality gate (stops if worse)
+
+      - uses: actions/upload-artifact@v4   # keep the model + report
+        with: {name: model, path: artifacts/}`},
+'.github/workflows/cd.yml':{tags:['📦','🧪','🐤','🚀'],lang:'yaml',what:'<b>CD workflow.</b> Runs only after CI passed on <code>main</code>. Builds the container, tries it in staging, then releases gradually.',code:
+`# Runs when CI passed on the main branch
+name: cd
+on:
+  workflow_run: {workflows: [ci], types: [completed], branches: [main]}
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production                 # can require a human "approve" click
+    steps:
+      - uses: actions/checkout@v4
+      - run: python src/register.py         # 📦 model → registry as a new version
+      - run: docker build -t ml-api:v8 .    # 📦 container image
+      - run: docker push ml-api:v8
+
+      - run: ./deploy.sh staging            # 🧪 staging
+      - run: pytest tests/smoke             #    smoke tests
+
+      - run: ./deploy.sh canary 10          # 🐤 10% of users
+      - run: python src/watch_canary.py     #    compare errors / speed, roll back if bad
+      - run: ./deploy.sh production 100     # 🚀 everyone`},
+'.github/workflows/retrain.yml':{tags:['🔔','🔁'],lang:'yaml',what:'<b>Continuous training.</b> Starts on a schedule, or when monitoring sends a drift alert. It re-runs the same checks and training, then CD as usual.',code:
+`# Continuous training (CT)
+name: retrain
+on:
+  schedule: [{cron: "0 2 * * 1"}]               # every Monday 02:00
+  repository_dispatch: {types: [drift-alert]}   # sent by monitoring
+
+jobs:
+  retrain:
+    uses: ./.github/workflows/ci.yml            # same checks + train + gate
+    with: {data_version: latest}`},
+'params.yaml':{tags:['⚙️'],lang:'yaml',what:'<b>All settings in one file</b>, versioned with the code. Changing a number here is a code change, so it goes through CI too.',code:
+`seed: 42
+data:
+  version: v12
+  image_size: 96
+train:
+  epochs: 5
+  lr: 0.0003
+  batch_size: 64
+gate:                       # the quality-gate rules
+  min_accuracy: 0.85
+  max_drop_vs_prod: 0.005
+  min_class_recall: 0.70
+  max_latency_ms: 50
+  max_size_mb: 20`},
+'src/data/validate.py':{tags:['📊'],lang:'py',what:'<b>Data checks.</b> Fails loudly (non-zero exit) before bad data can reach training.',code:
+`# 📊 Data checks — stop BEFORE training on bad data
+import sys
+
+def main():
+    data = load_new_data()                        # the pictures + labels
+    problems = []
+    if missing_labels(data) > 0.01:
+        problems.append("more than 1% of labels missing")
+    if wrong_image_sizes(data) > 0:
+        problems.append("some images are not 96x96")
+    if unknown_classes(data):
+        problems.append("labels outside the 10 known classes")
+    if drift_score(data, last_training_data()) > 0.20:
+        problems.append("new data looks very different (drift)")
+    for p in problems:
+        print("❌", p)
+    sys.exit(1 if problems else 0)               # 1 = red step, pipeline stops
+
+if __name__ == "__main__":
+    main()`},
+'src/train.py':{tags:['🏋️'],lang:'py',what:'<b>Training.</b> Same as a notebook, but as a script: it reads the settings from <code>params.yaml</code>, fixes the seed, and saves the model with its recipe.',code:
+`# 🏋️ Train — reproducible: same inputs → same model
+import yaml, torch
+
+params = yaml.safe_load(open("params.yaml"))
+torch.manual_seed(params["seed"])
+
+data  = load_data(version=params["data"]["version"])
+model = build_model()
+train(model, data, **params["train"])
+
+save(model, "artifacts/model.pt")
+save_json({"commit": git_commit(),                # the recipe
+           "data_version": params["data"]["version"],
+           "params": params}, "artifacts/recipe.json")`},
+'src/evaluate.py':{tags:['🎯'],lang:'py',what:'<b>Quality gate.</b> Compares the new model with the rules <i>and</i> with production. ',code:
+`# 🎯 Evaluate — the quality gate
+import sys, yaml
+
+gate = yaml.safe_load(open("params.yaml"))["gate"]
+new  = evaluate("artifacts/model.pt", test_set())
+prod = evaluate(registry.production_model(), test_set())
+
+ok = (new.accuracy     >= gate["min_accuracy"] and
+      new.accuracy     >= prod.accuracy - gate["max_drop_vs_prod"] and
+      new.worst_recall >= gate["min_class_recall"] and
+      new.latency_ms   <= gate["max_latency_ms"] and
+      new.size_mb      <= gate["max_size_mb"])
+
+save_json(new.report(), "artifacts/metrics.json")
+sys.exit(0 if ok else 1)`},
+'src/serve/app.py':{tags:['🚀','👀'],lang:'py',what:'<b>The API</b> that users call. It loads whatever model the registry marks as production, and logs what it sees for monitoring.',code:
+`# 🚀 Serving — loads the "production" model from the registry
+from fastapi import FastAPI
+
+app = FastAPI()
+model = registry.load("production")               # v7 today, v8 after promotion
+
+@app.get("/health")
+def health():
+    return {"ok": True, "model": model.version}
+
+@app.post("/predict")
+def predict(picture):
+    answer = model(preprocess(picture))
+    log_for_monitoring(picture_stats(picture), answer)   # 👀 feeds the drift checks
+    return answer`},
+'tests/test_preprocess.py':{tags:['🧹'],lang:'py',what:'<b>Unit tests</b> for the code that is easiest to break silently: preprocessing and the label list.',code:
+`# 🧹 Unit tests — small, fast, run on every push
+def test_shape_and_range():
+    x = preprocess(fake_picture(width=640, height=480))
+    assert x.shape == (3, 96, 96)                  # channels first, right size
+    assert -3 < x.mean() < 3                       # normalised, not 0..255
+
+def test_labels_are_stable():
+    assert CLASSES[3] == "cat"                     # renaming classes breaks old models
+
+def test_model_runs_on_one_picture():
+    assert model(preprocess(fake_picture())).shape == (1, 10)`},
+'tests/smoke/test_api.py':{tags:['🧪'],lang:'py',what:'<b>Smoke tests</b> against the deployed staging service: is it up, and does a known picture give the known answer?',code:
+`# 🧪 Smoke tests — run against staging after deploy
+def test_health(url):
+    assert get(url + "/health").json()["ok"]
+
+def test_known_picture(url):
+    answer = post(url + "/predict", file="tests/data/cat.png").json()
+    assert answer["label"] == "cat"
+
+def test_fast_enough(url):
+    assert timed_post(url + "/predict", file="tests/data/cat.png") < 0.05   # seconds`},
+'data/images.dvc':{tags:['📊'],lang:'yaml',what:'<b>Data version pointer.</b> The pictures live in cloud storage; git stores only this small file with their fingerprint (hash), for example with DVC.',code:
+`# Stored in git instead of 170 MB of pictures
+outs:
+  - md5: 3f9a1c0e7b2d...        # fingerprint of this exact data version
+    size: 178120395
+    path: images`},
+'Dockerfile':{tags:['📦'],lang:'docker',what:'<b>The environment.</b> The same container is used for training in CI and for serving, so "works on my laptop" problems disappear.',code:
+`# 📦 One environment for CI and production
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt      # pinned versions
+COPY src/ src/
+COPY artifacts/model.onnx artifacts/
+CMD ["uvicorn", "src.serve.app:app", "--host", "0.0.0.0", "--port", "8000"]`}
+};
+const TREE=[['d','ml-project/',0],['d','.github/workflows/',1],['f','ci.yml',2,'.github/workflows/ci.yml'],['f','cd.yml',2,'.github/workflows/cd.yml'],['f','retrain.yml',2,'.github/workflows/retrain.yml'],
+  ['d','data/',1],['f','images.dvc',2,'data/images.dvc'],['d','src/',1],['f','data/validate.py',2,'src/data/validate.py'],['f','train.py',2,'src/train.py'],['f','evaluate.py',2,'src/evaluate.py'],['f','serve/app.py',2,'src/serve/app.py'],
+  ['d','tests/',1],['f','test_preprocess.py',2,'tests/test_preprocess.py'],['f','smoke/test_api.py',2,'tests/smoke/test_api.py'],['f','params.yaml',1,'params.yaml'],['f','Dockerfile',1,'Dockerfile'],['f','requirements.txt',1,null]];
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function hl(code,lang){const KW=/\b(import|from|def|return|if|else|for|in|and|or|not|assert|FROM|WORKDIR|COPY|RUN|CMD)\b/g;
+  return code.split('\n').map(line=>{let i=-1,q=null;
+    for(let k=0;k<line.length;k++){const ch=line[k];if(q){if(ch===q)q=null;}else if(ch==='"'||ch==="'")q=ch;else if(ch==='#'){i=k;break;}}
+    let body=esc(i>=0?line.slice(0,i):line);const cm=i>=0?line.slice(i):'';
+    const strs=[];body=body.replace(/("[^"]*"|'[^']*')/g,m=>{strs.push(m);return '\u0001'+String.fromCharCode(65+strs.length-1)+'\u0002';});   // a letter, so the number colouring can't touch it
+    body=lang==='yaml'?body.replace(/^(\s*-?\s*)([\w.-]+)(:)/,'$1<span class="k">$2</span>$3'):body.replace(KW,'<span class="k">$1</span>');
+    body=body.replace(/\b(\d+(\.\d+)?)\b/g,'<span class="n">$1</span>').replace(/\u0001([A-Z])\u0002/g,(m,n)=>`<span class="s">${strs[n.charCodeAt(0)-65]}</span>`);
+    return body+(cm?`<span class="c">${esc(cm)}</span>`:'');}).join('\n');}
+function openFile(p){$$('#tree a').forEach(a=>a.classList.toggle('on',a.dataset.p===p));const f=FILES[p];
+  put($('#finfo'),`<code>${p}</code> · steps: ${f.tags.map(t=>`<span class="stagetag">${t}</span>`).join('')}<br>${f.what}`);put($('#fcode'),hl(f.code,f.lang));}
+put($('#tree'),TREE.map(([t,n,d,p])=>t==='d'?`<div class="dir i${d}">📁 ${n}</div>`:p?`<a class="i${d}" data-p="${p}">📄 ${n}</a>`:`<div class="dir i${d}">📄 ${n}</div>`).join(''));
+$$('#tree a').forEach(a=>a.onclick=()=>openFile(a.dataset.p));openFile('.github/workflows/ci.yml');
+
+// ================= simple / detailed =================
+(function(){const b=$('#modeBtn');let m='simple';try{m=localStorage.getItem('cicd-mode')||'simple';}catch(e){}
+  const set=s=>{document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';};
+  set(m==='simple');b.onclick=()=>{const s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('cicd-mode',s?'simple':'detailed');}catch(e){}};})();
+</script>
+</body>
+</html>
