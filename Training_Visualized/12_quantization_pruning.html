@@ -259,8 +259,67 @@
   </div>
 </section>
 
+<section class="card" id="pm">
+  <h2>⑤ Pruning methods: which ones <i>really</i> make the model smaller?</h2>
+  <p>Set half of a model's weights to 0 and you'd expect half the file and half the time. Usually you get <b>neither</b>: same file size, same speed. Why?
+  A layer is a <b>table of numbers</b> (8 neurons × 12 inputs below). Pick a method and watch two things: <b>what the computer still has to store</b>, and <b>how many multiplications it still does</b>.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>How to prune</h3>
+      <div class="scen" id="pmScen">
+        <button class="btn on" data-m="mag" type="button">✂️ Smallest weights → 0 <span class="small muted">(unstructured, Day 2)</span></button>
+        <button class="btn" data-m="rand" type="button">🎲 Random weights → 0</button>
+        <button class="btn" data-m="struct" type="button">🧱 Remove whole neurons / channels <span class="small muted">(structured)</span></button>
+        <button class="btn" data-m="24" type="button">🔢 2 out of every 4 <span class="small muted">(2:4, NVIDIA GPUs)</span></button>
+        <button class="btn" data-m="csr" type="button">📇 Smallest → 0, saved as a "sparse list"</button>
+      </div>
+      <div class="ctl"><label>Remove <output id="pmOut"></output></label><input type="range" id="pmF" min="0" max="90" step="10" value="50"></div>
+      <p class="small muted" id="pmHint"></p>
+    </aside>
+    <div class="stage">
+      <div class="stats">
+        <div class="stat blue"><b id="pmBytes">–</b><span>📦 Bytes stored</span></div>
+        <div class="stat orange"><b id="pmMul">–</b><span>⚡ Multiplications per answer</span></div>
+        <div class="stat bad"><b id="pmWaste">–</b><span>🗑️ Of those, "× 0" (wasted)</span></div>
+        <div class="stat good"><b id="pmKeep">–</b><span>💪 Weight strength kept</span></div>
+      </div>
+      <div class="canvas-box"><div class="canvas-title">One layer: left = original, right = after pruning (blue/orange = + / − weight, stronger colour = bigger weight)</div>
+        <canvas id="pmGrid" style="height:230px"></canvas>
+        <div class="look">👀 A white cell with a red dot is a weight that is now 0 but <b>still stored and still multiplied</b>. A removed neuron is gone: nothing to store, nothing to multiply.</div></div>
+      <div class="canvas-box" style="margin-top:.6rem"><div class="canvas-title">What is written in the file (bar length = bytes)</div>
+        <div id="pmStore"></div></div>
+      <div id="pmV" class="banner info" style="margin-top:.6rem">–</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:1.2rem">📋 What to expect from each method</h3>
+  <div class="tbl-wrap"><table class="plain">
+    <tr><th>Method</th><th>📦 File size</th><th>🗜️ After zipping</th><th>⚡ Speed on a normal CPU</th><th>⚡ Speed on special hardware</th><th>🎯 Accuracy before retraining</th></tr>
+    <tr><td>✂️ Smallest weights → 0</td><td>same</td><td>smaller</td><td>same</td><td>same</td><td style="color:#2f9e44">small drop</td></tr>
+    <tr><td>🎲 Random weights → 0</td><td>same</td><td>smaller</td><td>same</td><td>same</td><td style="color:#e03131">big drop</td></tr>
+    <tr><td>🧱 Whole neurons / channels</td><td style="color:#2f9e44"><b>smaller</b></td><td>smaller</td><td style="color:#2f9e44"><b>faster</b></td><td style="color:#2f9e44"><b>faster</b></td><td style="color:#f08c00">bigger drop → retrain</td></tr>
+    <tr><td>🔢 2 out of every 4</td><td>≈ half (special format)</td><td>smaller</td><td>same</td><td style="color:#2f9e44">≈ 2× faster (NVIDIA sparse cores)</td><td style="color:#f08c00">medium drop</td></tr>
+    <tr><td>📇 Sparse list</td><td style="color:#e03131">bigger at 50%</td><td>smaller</td><td style="color:#e03131">slower, faster only at ≈ 95%+ zeros</td><td>depends on the engine</td><td>same as ✂️</td></tr>
+  </table></div>
+  <h3>Why only structured pruning pays off everywhere</h3>
+  <ul><li><b>Zeros are still numbers.</b> In float32 a 0 takes 4 bytes, like any other weight. Zipping squeezes long runs of zeros, but that only helps the <b>download</b>. After unzipping, the model is its full size again in memory.</li>
+    <li><b>× 0 costs as much as × 0.37.</b> The CPU multiplies whole blocks of numbers at once and never checks for zeros, so the time stays the same.</li>
+    <li><b>A "sparse list" backfires at medium sparsity.</b> For every kept weight it must also store <i>where</i> it is, and that position is often as big as the weight itself. Jumping around memory to find each weight is also slower than reading one neat block.</li>
+    <li><b>Removing whole neurons / channels makes every table smaller.</b> A smaller, normal table is faster on <i>any</i> hardware. The catch: accuracy drops more at first, so you must retrain.</li></ul>
+  <div class="explain adv" style="margin-top:.8rem">
+    <b>Detailed: more choices when pruning</b>
+    <ul style="margin:.3rem 0 0">
+      <li><b>Global vs per-layer.</b> Global (Day 2: <code>prune.global_unstructured</code>) ranks all weights together, so small layers can be emptied almost completely. Per-layer removes the same % from every layer, which is safer but less clever.</li>
+      <li><b>Which channel is weakest?</b> Either the sum of its weights (L1 norm), or its BatchNorm "volume knob" γ: a channel with γ ≈ 0 barely contributes (the idea behind "network slimming").</li>
+      <li><b>Channels are chained.</b> Removing an output channel of one layer also removes an input of the next layer and one BatchNorm entry. Residual connections (<code>x + block(x)</code>) force both sides to stay the same size, which is why the notebook only prunes the <i>inner</i> channels of each block. Libraries such as <code>torch-pruning</code> track these chains automatically.</li>
+      <li><b>Iterative.</b> Prune a little → retrain → prune a little more. This beats removing everything at once.</li>
+      <li><b>2:4 sparsity</b> needs special hardware: sparse tensor cores on NVIDIA A100 / RTX 30-series and newer (up to ≈ 2× faster matrix maths). A normal CPU gains nothing.</li>
+    </ul>
+  </div>
+</section>
+
 <section class="card">
-  <h2>⑤ A third way: teach a small student (knowledge distillation)</h2>
+  <h2>⑥ A third way: teach a small student (knowledge distillation)</h2>
   <p>Rounding and deleting squeeze a <b>given</b> network. Distillation trains a <b>much smaller</b> network, the <b>student</b>, to copy the answers of the big trained <b>teacher</b>.
   The trick: the teacher can label as many <b>unlabelled</b> examples as we like, and its answers are <b>soft</b> ("80% blue") instead of just "blue", so they carry more information.</p>
   <div class="lab">
@@ -285,9 +344,9 @@
     </div>
   </div>
 </section>
-
+<!-- 
 <section class="card">
-  <h2>⑥ Which method when? A quick guide</h2>
+  <h2>⑦ Which method when? A quick guide</h2>
   <div class="grid2">
     <div>
       <div class="ctl"><label>Where will the model run?</label><select id="wzHw"><option value="cpu" selected>Server or laptop CPU</option><option value="gpu">NVIDIA GPU</option><option value="phone">Phone / Raspberry Pi (ARM)</option><option value="mcu">Microcontroller (tiny memory)</option></select></div>
@@ -297,7 +356,7 @@
     </div>
     <div class="explain" id="wzOut"></div>
   </div>
-</section>
+</section> -->
 
 <section class="callout try">
   <h3>🧪 Try this (guess first, then check!)</h3>
@@ -329,11 +388,18 @@
       <details class="answer"><summary>Answer</summary>50% of the neurons: 93% accuracy, and the layers really shrink (32 → 16 neurons), so the file drops from 4.63 KB to 1.32 KB and the model needs only 304 multiplications instead of 1,120.
       75%: the model breaks (67%, layers 8-8), but after retraining it is back at 98%, with 88 multiplications: <b>13× less work</b> per answer. That's structured pruning: it can lose more accuracy at first,
       but unlike deleting single weights it makes the model genuinely smaller <i>and</i> faster on any hardware.</details></li>
+    <li><b>Zeros vs removed rows.</b> In ⑤, set Remove to 50%. Compare ✂️ Smallest weights with 🧱 Whole neurons. Which one saves bytes and multiplications? Which one keeps more strength?
+      <details class="answer"><summary>Answer</summary>✂️ keeps <b>87%</b> of the strength but still stores 384 B and does all 96 multiplications (48 of them are "× 0").
+      🧱 stores only <b>192 B</b> and does <b>48</b> multiplications, but keeps only 74%, because some useful weights sit in the removed rows.
+      That's the trade: unstructured = gentle but no gain; structured = real gain, so plan to retrain.</details></li>
+    <li><b>When does a sparse list pay off?</b> Pick 📇 Sparse list and move Remove from 30% upwards. At which % does the file become smaller than the original 384 B?
+      <details class="answer"><summary>Answer</summary>30%: 572 B, 50%: 420 B, both <b>bigger</b> than the original, because every kept weight needs a 4-byte position.
+      From 60% (340 B) it's smaller, and at 90% it's only 116 B. For speed the break-even is much later (≈ 95%+ zeros), because finding each weight by its position is slow.</details></li>
     <li><b>Calibration matters.</b> In ③, try ❌ Only 3 calibration examples, then ❌ Wrong preprocessing. Then keep the wrong preprocessing but go back to 8 bits.
       <details class="answer"><summary>Answer</summary>3 examples: the measured ranges are too narrow, 1.5% of all activations get clipped, and accuracy falls from 97% to 75.5%. With 100 examples: 97%, nothing lost.
       Wrong preprocessing at 4 bits: the ruler is 6× too long, so the real inputs only use a few of its 16 ticks → 87%. At 8 bits the same mistake is hidden (97.5%): 256 ticks are enough to survive it.
       A hidden bug is still a bug. On Day 2 (Lab Ex. 3) a forgotten <code>Normalize</code> in calibration dropped the int8 model from ≈ 90% to ≈ 30%.</details></li>
-    <li><b>A student with 70× fewer weights.</b> In ⑤, train the 4-neuron students. Then try the 2-neuron student.
+    <li><b>A student with 70× fewer weights.</b> In ⑥, train the 4-neuron students. Then try the 2-neuron student.
       <details class="answer"><summary>Answer</summary>4 neurons (17 weights): trained on the 20 labels only, 74.5%; trained on the teacher's answers for 1,000 unlabelled dots, <b>98%</b>, as good as the 1,185-weight teacher (97%).
       The teacher turns cheap unlabelled data into lessons. 2 neurons: 77.5% vs 82%, both far below the teacher. A student that is too small can't learn the border, however good the teacher.</details></li>
     <li><b>Read the real numbers.</b> In ④, which technique is fastest? Which one shrinks the file most? Which one is slowest, and why?
@@ -362,7 +428,7 @@
     <tr><td><b>QAT</b> (quantization-aware training)</td><td>Simulates rounding during training so the weights adapt to the coarse ruler.</td><td>"Retrain a little" after squeezing</td></tr>
     <tr><td><b>Pruning</b> <code>torch.nn.utils.prune</code></td><td>Zeroes the smallest weights (L1 unstructured) or whole channels (structured; Lab Ex. 4, <code>torch-pruning</code>).</td><td>"Remove weights" slider, "Whole neurons" option</td></tr>
     <tr><td><b>Calibration</b> (static PTQ, <code>quantize_static</code>)</td><td>Runs representative inputs through the model to set every activation's range.</td><td>③ Rounding the numbers between the layers</td></tr>
-    <tr><td><b>Knowledge distillation</b> (homework 1)</td><td>A small student learns from a big teacher's soft outputs (softmax with temperature, Lesson 5).</td><td>⑤ Teach a small student</td></tr>
+    <tr><td><b>Knowledge distillation</b> (homework 1)</td><td>A small student learns from a big teacher's soft outputs (softmax with temperature, Lesson 5).</td><td>⑥ Teach a small student</td></tr>
     <tr><td><b>FP16 / BF16</b></td><td>Halves the size. Fast on GPUs; on most CPUs it's <i>slower</i> (no native half-precision math).</td><td>The size table at the top</td></tr>
   </table></div>
   <pre class="code"><span class="k">import</span> torch, torch.nn.utils.prune <span class="k">as</span> prune
@@ -711,7 +777,7 @@ function drawD2(){
   $('#d2t').innerHTML='<tr><th>Technique</th><th>File size</th><th>Time per picture</th><th>Accuracy</th></tr>'+D2.map(([name,mb,ms,acc])=>{const d=0.9-acc,col=d<=0.01?'#2f9e44':d<=0.03?'#f08c00':'#e03131';
     return `<tr><td>${name}</td><td style="width:30%">${bar(mb/9.19,'#2f6fed',mb.toFixed(2)+' MB')}</td><td style="width:30%">${bar(lg(ms),ms>20?'#e03131':'#7048e8',ms+' ms')}</td><td style="color:${col};font-weight:700">${(acc*100).toFixed(1)}%</td></tr>`;}).join('');
 }
-// ---------- ⑤ knowledge distillation ----------
+// ---------- ⑥ knowledge distillation ----------
 const KD={run:null};
 function studentData(mode){const rl=mulberry32(101);const lab=[...C.tr].sort(()=>rl()-0.5).slice(0,20);
   if(mode==='hard')return lab;const r0=mulberry32(56);return Array.from({length:1000},()=>{const v=new Float64Array([(-6+12*r0())/6,(-6+12*r0())/6]);return {v,l:C.net.predict(v)};});}
@@ -731,8 +797,8 @@ async function runKD(){if(!C.net)return;$('#kdGo').disabled=true;const h=+$('#kd
   else if(a2<t-0.05){v.className='banner bad';v.innerHTML=`❌ <b>The student is too small:</b> ${h} neurons can't draw the teacher's border, however good the lessons (${pct(a2)} vs teacher ${pct(t)}). Distillation can't add capacity.`;}
   else{v.className='banner info';v.innerHTML=`➖ Both students: ${pct(a1)} vs ${pct(a2)}.`;}
   $('#kdGo').disabled=false;KD.last={a1,a2,t};return KD.last;}
-// ---------- ⑥ which method when? ----------
-function wizard(){
+// ---------- ⑦ which method when? ----------
+function wizard(){if(!$('#wzOut'))return;
   const hw=$('#wzHw').value,m=$('#wzM').value,strict=$('#wzAcc').value==='0',cal=$('#wzCal').value==='y',out=[];
   if(hw==='gpu'){out.push('<b>FP16 or BF16</b>: half the size and much faster on GPU tensor cores, with practically no accuracy loss.','For even more speed: TensorRT with <b>int8</b> (needs calibration data).');}
   else{
@@ -740,25 +806,74 @@ function wizard(){
     else if(cal)out.push(`<b>Static int8</b> with calibration and <b>per-channel</b> weights, run with ONNX Runtime (Day 2 → 3.5× smaller, fastest).${hw==='phone'?' Use the ARM backend (qnnpack / XNNPACK) or the phone vendor\'s runtime.':''}`);
     else out.push('Static int8 needs calibration inputs, but they don\'t need labels: collect a few hundred real inputs first. Dynamic int8 barely helps a CNN (Day 2: 9.19 → 9.15 MB).');
     out.push('Export to <b>ONNX Runtime</b> first: on Day 2 it was 8× faster with the same weights.');}
-  if(hw==='mcu')out.push('Memory is the limit: <b>distil</b> into a much smaller student (⑤), use <b>structured pruning</b> (②, whole neurons/channels), then int8. Unstructured pruning won\'t save RAM.');
+  if(hw==='mcu')out.push('Memory is the limit: <b>distil</b> into a much smaller student (⑥), use <b>structured pruning</b> (②, whole neurons/channels), then int8. Unstructured pruning won\'t save RAM.');
   if(strict)out.push('Check <b>per-class</b> recall and FP32/int8 agreement, not just accuracy (Lesson 9). If static int8 loses too much: <b>QAT</b> (quantization-aware training).');
   out.push('❌ Don\'t expect speed from unstructured pruning or from BF16/FP16 on a CPU without hardware support. ✅ Always <b>measure</b> size, latency and accuracy on the target device.');
   $('#wzOut').innerHTML='<b>Suggested plan</b><ol style="margin:.4rem 0 0;padding-left:1.2rem">'+out.map(s=>`<li>${s}</li>`).join('')+'</ol>';
 }
+// ---------- ⑤ pruning methods: one 8 × 12 layer ----------
+const PM={R:8,K:12,m:'mag'};
+(function(){const r=mulberry32(12),rowScale=[1.0,0.9,0.25,0.8,0.12,0.6,0.2,1.1];     // some neurons are weak overall
+  PM.W=Array.from({length:PM.R},(_,i)=>Array.from({length:PM.K},()=>gauss(r)*0.5*rowScale[i]));
+  const rr=mulberry32(5);PM.randOrder=[...Array(PM.R*PM.K).keys()].sort(()=>rr()-0.5);})();
+function pmPrune(){const {R,K,W}=PM,f=+$('#pmF').value/100,m=PM.m,keep=W.map(row=>row.map(()=>1)),rows=[...Array(R).keys()];
+  if(m==='mag'||m==='csr'){const idx=[...Array(R*K).keys()].sort((a,b)=>Math.abs(W[a/K|0][a%K])-Math.abs(W[b/K|0][b%K]));idx.slice(0,Math.round(R*K*f)).forEach(i=>keep[i/K|0][i%K]=0);}
+  else if(m==='rand')PM.randOrder.slice(0,Math.round(R*K*f)).forEach(i=>keep[i/K|0][i%K]=0);
+  else if(m==='24')W.forEach((row,i)=>{for(let g=0;g<K;g+=4){const o=[g,g+1,g+2,g+3].sort((a,b)=>Math.abs(row[a])-Math.abs(row[b]));keep[i][o[0]]=keep[i][o[1]]=0;}});
+  const gone=new Set(m==='struct'?rows.sort((a,b)=>W[a].reduce((s,v)=>s+Math.abs(v),0)-W[b].reduce((s,v)=>s+Math.abs(v),0)).slice(0,Math.round(R*f)):[]);
+  return {keep,gone};}
+function pmDraw(){
+  const {R,K,W,m}=PM,{keep,gone}=pmPrune(),is24=m==='24';$('#pmF').disabled=is24;$('#pmOut').textContent=is24?'50% (fixed)':$('#pmF').value+'%';
+  const {ctx,w:Wd,h:H}=setupCanvas($('#pmGrid')),gap=Wd*0.08,c=Math.min((Wd-gap)/2/K,(H-26)/R),gw=c*K,x0=(Wd-2*gw-gap)/2,y0=20,mx=Math.max(...W.flat().map(Math.abs));
+  ctx.clearRect(0,0,Wd,H);ctx.font='12px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillStyle='#868e96';
+  const after=m==='struct'?`After: ${R-gone.size} neurons left`:'After';ctx.fillText('Original',x0+gw/2,13);ctx.fillText(after,x0+gw+gap+gw/2,13);
+  const cell=(x,y,v,on)=>{ctx.fillStyle='#fff';ctx.fillRect(x,y,c,c);if(on){ctx.fillStyle=`rgba(${v>0?'47,111,237':'240,140,0'},${(0.15+0.85*Math.abs(v)/mx).toFixed(2)})`;ctx.fillRect(x,y,c,c);}
+    else{ctx.fillStyle='#e03131';ctx.beginPath();ctx.arc(x+c/2,y+c/2,Math.max(1.5,c*0.12),0,7);ctx.fill();}ctx.strokeStyle='#dee2e6';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,c-1,c-1);};
+  for(let i=0;i<R;i++)for(let k=0;k<K;k++)cell(x0+k*c,y0+i*c,W[i][k],true);
+  let row=0;const xa=x0+gw+gap;
+  for(let i=0;i<R;i++){if(gone.has(i))continue;for(let k=0;k<K;k++)cell(xa+k*c,y0+row*c,W[i][k],keep[i][k]);row++;}
+  if(gone.size){ctx.setLineDash([4,3]);ctx.strokeStyle='#adb5bd';ctx.strokeRect(xa+.5,y0+row*c+.5,gw-1,gone.size*c-1);ctx.setLineDash([]);
+    ctx.fillStyle='#868e96';ctx.fillText(`${gone.size} neuron${gone.size>1?'s':''} removed`,xa+gw/2,y0+(row+gone.size/2)*c+4);}
+  if(is24){ctx.strokeStyle='#1c2230';ctx.lineWidth=1.5;for(let g=0;g<=K;g+=4){ctx.beginPath();ctx.moveTo(xa+g*c,y0);ctx.lineTo(xa+g*c,y0+R*c);ctx.stroke();}}
+  // ---- counting: stored bytes, multiplications, strength
+  let nz=0,tot=0,kept=0;for(let i=0;i<R;i++)for(let k=0;k<K;k++){const a=Math.abs(W[i][k]);tot+=a;if(!gone.has(i)&&keep[i][k]){nz++;kept+=a;}}
+  const cells=(R-gone.size)*K,dense=R*K*4,parts=[];let bytes,mul,waste,note;
+  if(m==='struct'){bytes=cells*4;mul=cells;waste=0;parts.push(['weights',bytes,'#2f6fed']);}
+  else if(m==='csr'){bytes=nz*8+(R+1)*4;mul=nz;waste=0;parts.push(['kept weights',nz*4,'#2f6fed'],['their positions',nz*4+(R+1)*4,'#f08c00']);}
+  else if(is24){bytes=nz*4+nz/4;mul=R*K;waste=R*K-nz;parts.push(['kept weights',nz*4,'#2f6fed'],['2-bit positions',nz/4,'#f08c00']);}
+  else{bytes=dense;mul=R*K;waste=R*K-nz;parts.push(['non-zero weights',nz*4,'#2f6fed'],['zeros (still 4 bytes each!)',(R*K-nz)*4,'#adb5bd']);}
+  $('#pmBytes').textContent=bytes+' B';$('#pmMul').textContent=is24?`${nz} GPU / ${R*K} CPU`:mul;$('#pmWaste').textContent=waste;$('#pmKeep').textContent=Math.round(100*kept/tot)+'%';
+  const scale=Math.max(dense,bytes)*1.02,bar=(label,list)=>`<div style="margin:.35rem 0"><div class="small" style="margin-bottom:.15rem">${label}</div><div style="display:flex;height:1.1rem;border-radius:4px;overflow:hidden;background:var(--soft)">${list.map(([n,b,col])=>`<span title="${n}: ${Math.round(b)} B" style="width:${(100*b/scale).toFixed(1)}%;background:${col}"></span>`).join('')}</div>
+    <div class="small muted">${list.map(([n,b,col])=>`<span style="color:${col};font-weight:700">■</span> ${n} ${Math.round(b)} B`).join(' · ')}</div></div>`;
+  $('#pmStore').innerHTML=bar('Original: 96 weights × 4 bytes',[['weights',dense,'#2f6fed']])+bar('After pruning',parts);
+  const f=+$('#pmF').value,H1={mag:'The Day-2 method: the smallest weights become 0.',rand:'Careless: important weights are hit as often as tiny ones.',
+    struct:'Whole rows (neurons) with the smallest total weight are deleted. The table really gets shorter.',
+    '24':'In every group of 4 neighbours, the 2 smallest become 0. Always exactly 50%.',csr:'Same zeros as ✂️, but the file lists only the kept weights, each with its position.'};
+  $('#pmHint').textContent=H1[m];
+  const V={mag:['info',`📦 <b>Same size</b> (${dense} B, zeros still stored) · ⚡ <b>Same speed</b> (${waste} of ${R*K} multiplications are × 0, but they're still done) · 💪 keeps the most strength of any method.`],
+    rand:['bad',`📦 Same size · ⚡ same speed · 💪 only ${Math.round(100*kept/tot)}% strength kept, much worse than ✂️ at the same % (big, important weights are hit too). No reason to use it except as a comparison.`],
+    struct:['good',`📦 <b>Smaller</b> (${bytes} B instead of ${dense} B) · ⚡ <b>faster</b> (${mul} instead of ${R*K} multiplications) on <b>any</b> hardware · 💪 loses more strength than ✂️, so <b>retrain</b> afterwards.`],
+    '24':['info',`📦 About half the size (${Math.round(bytes)} B) if stored in the special 2:4 format · ⚡ ≈ 2× faster <b>only</b> on NVIDIA GPUs with sparse tensor cores (A100, RTX 30xx+). On a CPU it's the same as ✂️: no speed-up.`],
+    csr:[bytes>dense?'bad':f>=80?'good':'info',bytes>dense?`📦 <b>Bigger!</b> ${bytes} B vs ${dense} B: every kept weight needs a position as well. ⚡ Slower too (jumping around memory).`
+      :`📦 Smaller now (${bytes} B vs ${dense} B), because very few weights are left. ⚡ Still not faster unless almost everything is 0 (≈ 95%+): finding each weight by its position costs extra time. Keeping accuracy at that level needs a lot of retraining.`]};
+  const [cls,txt]=V[m];$('#pmV').className='banner '+cls;$('#pmV').innerHTML=txt;
+}
+document.querySelectorAll('#pmScen .btn').forEach(b=>b.onclick=()=>{PM.m=b.dataset.m;document.querySelectorAll('#pmScen .btn').forEach(x=>x.classList.toggle('on',x===b));pmDraw();});
+$('#pmF').addEventListener('input',pmDraw);
 
 ['#bits','#scheme','#clip','#outlier','#zoom','#xval'].forEach(id=>$(id).addEventListener('input',partA));
 ['#aqBits','#aqN','#aqWrong'].forEach(id=>$(id).addEventListener('input',()=>{document.querySelectorAll('#aqScen .btn').forEach(b=>b.classList.remove('on'));partAQ();}));
 document.querySelectorAll('#aqScen .btn').forEach(b=>b.onclick=()=>{const c=AQ_SCEN[b.dataset.s];$('#aqBits').value=c.bits;$('#aqN').value=c.n;$('#aqWrong').checked=c.wrong;
   document.querySelectorAll('#aqScen .btn').forEach(x=>x.classList.toggle('on',x===b));partAQ();});
 $('#kdGo').onclick=runKD;
-['#wzHw','#wzM','#wzAcc','#wzCal'].forEach(id=>$(id).addEventListener('input',wizard));
+if($('#wzOut'))['#wzHw','#wzM','#wzAcc','#wzCal'].forEach(id=>$(id).addEventListener('input',wizard));   // section ⑦ may be hidden
 $('#bits2').addEventListener('input',partB);
 ['#nbits','#sp','#method','#perch'].forEach(id=>$(id).addEventListener('input',()=>partC()));
 $('#ft').onclick=fineTune;
 $('#undo').onclick=()=>{C.tuned=null;$('#nbits').value=9;$('#sp').value=0;$('#method').value='mag';$('#perch').checked=false;partC();};
 $('#gb').addEventListener('input',drawGame);
-window.addEventListener('resize',()=>{drawGame();partA();partB();partC();partAQ();drawD2();});
-drawGame();partA();partB();drawD2();wizard();trainTiny();
+window.addEventListener('resize',()=>{drawGame();partA();partB();partC();partAQ();drawD2();pmDraw();});
+drawGame();partA();partB();drawD2();pmDraw();wizard();trainTiny();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
