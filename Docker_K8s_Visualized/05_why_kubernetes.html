@@ -13,6 +13,18 @@
   .cp{display:flex;flex-wrap:wrap;gap:.4rem}
   .loopstep{display:inline-block;padding:.2rem .6rem;border-radius:999px;background:var(--soft);font-weight:700;font-size:.82rem;color:var(--muted)}
   .loopstep.on{background:var(--blue);color:#fff}
+  .ladder{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:.6rem;margin:.4rem 0 .8rem}
+  .rung{border:2px solid var(--line);border-radius:14px;background:#fff;padding:.6rem .75rem;transition:all .2s}
+  .rung .big{font-size:1.8rem;line-height:1.1}
+  .rung h3{margin:.2rem 0 .15rem;font-size:1rem}
+  .rung p{margin:0 0 .3rem;font-size:.86rem;color:var(--muted)}
+  .rung code{font-size:.78rem}
+  .rung.on{border-color:var(--orange);background:#fff9db;box-shadow:0 0 0 4px #ffe8a1}
+  table.cmp td,table.cmp th{font-size:.86rem;vertical-align:top}
+  table.cmp .c1,table.cmp .c2,table.cmp .c3,table.cmp .c4{transition:background .2s}
+  table.cmp.hi-1 .c1,table.cmp.hi-2 .c2,table.cmp.hi-3 .c3,table.cmp.hi-4 .c4{background:#fff9db}
+  .why{display:none}.why.on{display:block}
+  #scen .btn.primary{font-weight:700}
 </style>
 </head>
 <body>
@@ -24,7 +36,7 @@
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Step 5 of 12 · ≈ 20 min</div>
+  <div class="kicker">Step 5 of 12 · ≈ 30 min</div>
   <h1>Why Kubernetes? From one machine to a fleet</h1>
   <p class="one-liner">Docker Compose runs containers on <b>one</b> machine, and <b>you</b> are the one who fixes things at 3 am. <b>Kubernetes</b> (k8s) runs containers on <b>many</b> machines and
   fixes things itself. You write down <b>what you want</b> ("2 copies of the API, always") and Kubernetes keeps checking and correcting until reality matches.</p>
@@ -34,7 +46,7 @@
   <div class="row">
     <div class="box story"><h3>🧸 Think of it like this</h3><p>A thermostat: you set <b>21 °C</b> (what you want). It keeps measuring the room (what is) and switches the heating on or off to close the gap.
       You never tell it <i>how</i>. Kubernetes is a thermostat for containers.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, click each problem and compare "Docker only" with "Kubernetes".</li><li>In ②, click the parts of the cluster.</li><li>In ③, crash pods and watch the loop fix it.</li></ol></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, click each problem and compare "Docker only" with "Kubernetes".</li><li>In ②, click the parts of the cluster.</li><li>In ③, crash pods and watch the loop fix it.</li><li>In ④, compare Local, Docker, Kubernetes and Cloud, and pick one for each situation.</li></ol></div>
     <div class="box"><h3>👀 Notice this</h3><p>You never say "start a container". You say "I want 3". Kubernetes does whatever is needed: start, stop, move.</p></div>
   </div>
   <div class="words">📖 <b>Words, made easy:</b><br><span><b>Cluster</b> = a group of machines Kubernetes manages</span><span><b>Node</b> = one machine in it</span>
@@ -96,11 +108,64 @@ docker-desktop   <span class="ok">Ready</span>    control-plane   v1.36.1   192.
   </div>
 </section>
 
+<section class="card" id="cmp">
+  <h2>④ Local vs Docker vs Kubernetes vs Cloud: which one, when?</h2>
+  <p>These are <b>not</b> four competitors. Think of them as a <b>ladder</b>: each rung solves a problem of the rung below it, and costs more effort.
+  Our course app climbs all of it: Day 3 runs it <b>locally</b>, Day 4 puts it in <b>Docker</b>, then on <b>Kubernetes</b>, then in the <b>cloud</b>.</p>
+  <div class="ladder">
+    <div class="rung" id="r1"><div class="big">💻</div><h3>1 · Local</h3><p>Run the Python files directly on your laptop.</p><code>python app.py</code><br><code>streamlit run ui.py</code></div>
+    <div class="rung" id="r2"><div class="big">🐳</div><h3>2 · Docker</h3><p>App + Python + libraries packed in a container, on <b>one</b> machine.</p><code>docker compose up</code></div>
+    <div class="rung" id="r3"><div class="big">☸️</div><h3>3 · Kubernetes</h3><p>Containers on <b>many</b> machines that heal and scale themselves.</p><code>kubectl apply -f k8s/</code></div>
+    <div class="rung" id="r4"><div class="big">☁️</div><h3>4 · Cloud</h3><p><b>Someone else's</b> machines, with a public URL. They can run your container, or even Kubernetes.</p><code>git push</code> → Render / Streamlit Cloud / Cloud Run</div>
+  </div>
+
+  <div class="tbl-wrap"><table class="plain cmp" id="cmpT">
+    <tr><th></th><th class="c1">💻 Local</th><th class="c2">🐳 Docker (Compose)</th><th class="c3">☸️ Kubernetes</th><th class="c4">☁️ Cloud</th></tr>
+    <tr><td><b>Where it runs</b></td><td class="c1">your laptop</td><td class="c2">one machine (laptop or server)</td><td class="c3">a cluster of machines</td><td class="c4">a provider's data centre</td></tr>
+    <tr><td><b>"Works on my laptop" problem</b></td><td class="c1">❌ yes: other Python / library versions elsewhere</td><td class="c2">✅ solved: same image everywhere</td><td class="c3">✅ solved (uses the same images)</td><td class="c4">✅ if you deploy a container</td></tr>
+    <tr><td><b>If the app crashes</b></td><td class="c1">❌ stays down until you restart it</td><td class="c2">➖ <code>restart:</code> brings it back, on the same machine only</td><td class="c3">✅ self-healing, even if a whole machine dies</td><td class="c4">✅ the provider restarts it</td></tr>
+    <tr><td><b>More users (scaling)</b></td><td class="c1">❌ one process</td><td class="c2">➖ by hand, limited to one machine</td><td class="c3">✅ automatic (HPA), over many machines</td><td class="c4">✅ usually one slider or automatic (PaaS / serverless)</td></tr>
+    <tr><td><b>New version without downtime</b></td><td class="c1">❌</td><td class="c2">❌ stop old, start new: a short gap</td><td class="c3">✅ rolling update + <code>rollout undo</code></td><td class="c4">✅ most platforms do it for you</td></tr>
+    <tr><td><b>Public URL for others</b></td><td class="c1">❌ only <code>localhost</code></td><td class="c2">➖ only if the machine is public</td><td class="c3">➖ needs a LoadBalancer / Ingress</td><td class="c4">✅ built in (https://…)</td></tr>
+    <tr><td><b>Effort to set up</b></td><td class="c1">⭐ minutes</td><td class="c2">⭐⭐ a Dockerfile</td><td class="c3">⭐⭐⭐⭐ YAML files + a cluster to run</td><td class="c4">⭐⭐ (PaaS) to ⭐⭐⭐⭐ (own VMs / managed K8s)</td></tr>
+    <tr><td><b>Cost</b></td><td class="c1">free</td><td class="c2">free</td><td class="c3">free locally (Docker Desktop, kind); paid machines in production</td><td class="c4">free tiers exist; you pay for time, RAM and traffic</td></tr>
+    <tr><td><b>Best for</b></td><td class="c1">developing and trying things</td><td class="c2">sharing a reproducible app, small servers, CI</td><td class="c3">big apps that must never go down</td><td class="c4">public demos and production without owning hardware</td></tr>
+  </table></div>
+
+  <h3 style="margin-top:1rem">🤔 Which one fits? Pick a situation</h3>
+  <div class="btn-row" id="scen">
+    <button class="btn" data-c="1" type="button">🧪 Try the new model today</button>
+    <button class="btn" data-c="2" type="button">👥 Teammate: "it doesn't run on my PC"</button>
+    <button class="btn" data-c="3" type="button">📈 10,000 users, must never go down</button>
+    <button class="btn" data-c="4" type="button">🌍 Free public demo link for the class</button>
+    <button class="btn" data-c="2" data-w="w5" type="button">🏥 One small office server, 400 requests a day</button>
+  </div>
+  <div class="explain" style="margin-top:.5rem">
+    <div class="why" id="w1">💻 <b>Local.</b> You change code every minute: <code>python app.py</code> starts in a second. A container or a cluster would only slow you down now.</div>
+    <div class="why" id="w2">🐳 <b>Docker.</b> Send the image, not instructions: the same Python, libraries and model file run on every PC. No cluster needed for this.</div>
+    <div class="why" id="w3">☸️ <b>Kubernetes</b> (often a managed one in the cloud: GKE, EKS, AKS). Many copies on many machines, autoscaling, rolling updates, self-healing.</div>
+    <div class="why" id="w4">☁️ <b>Cloud platform (PaaS)</b>: Render, Streamlit Community Cloud or Google Cloud Run. Push the code or image, get an <code>https://</code> link. No server to look after. (Free tiers sleep when idle.)</div>
+    <div class="why" id="w5">🐳 <b>Docker Compose on that one server.</b> 400 requests a day is tiny. Kubernetes would be more work than the problem. Use <code>restart: unless-stopped</code> and a health check.</div>
+  </div>
+
+  <div class="adv" style="margin-top:.8rem"><b>Detailed: the kinds of "cloud"</b>
+    <div class="tbl-wrap"><table class="plain small" style="margin-top:.3rem">
+      <tr><th>Kind</th><th>You manage</th><th>Examples</th></tr>
+      <tr><td>Platform (PaaS)</td><td>only your code or container</td><td>Render, Streamlit Community Cloud, AWS Elastic Beanstalk, Heroku</td></tr>
+      <tr><td>Serverless containers</td><td>only the container; scales to zero, pay per request</td><td>Google Cloud Run, Azure Container Apps, AWS App Runner</td></tr>
+      <tr><td>Virtual machine (IaaS)</td><td>the whole server: OS, Docker, updates, firewall</td><td>AWS EC2, Google Compute Engine, Azure VM, Oracle Cloud</td></tr>
+      <tr><td>Managed Kubernetes</td><td>your YAML and nodes; the provider runs the control plane</td><td>GKE, EKS, AKS, OKE</td></tr>
+    </table></div>
+    <p class="small muted" style="margin:.3rem 0 0">The rule of thumb: use the <b>simplest rung</b> that solves today's problem. Move up only when a real problem (crashes, traffic, many services) pushes you.</p>
+  </div>
+</section>
+
 <section class="say">
   <h3>🗣️ Explain it like this</h3>
   <ol><li>"Compose runs on one machine and needs you to fix problems. Kubernetes runs on many machines and fixes them itself."</li>
     <li>"We don't give orders like 'start a container'. We write down what we want, and controllers keep comparing wanted vs actual and fix the difference, forever."</li>
-    <li>"The brain (control plane) decides; the kubelet on each node does the work. Docker Desktop is a one-node cluster for learning."</li></ol>
+    <li>"The brain (control plane) decides; the kubelet on each node does the work. Docker Desktop is a one-node cluster for learning."</li>
+    <li>"Local, Docker, Kubernetes and Cloud are a ladder, not rivals. Local is for developing, Docker makes it run the same everywhere, Kubernetes keeps many copies alive, the cloud gives you machines and a public URL. Use the lowest rung that solves your problem."</li></ol>
 </section>
 
 <section class="callout try">
@@ -112,6 +177,8 @@ docker-desktop   <span class="ok">Ready</span>    control-plane   v1.36.1   192.
       <details class="answer"><summary>Answer</summary>On node 1: the scheduler only places pods on healthy nodes. (In a real cluster, it takes about 5 minutes before pods on an unreachable node are replaced: that's the 300 s toleration you'll see in <code>kubectl describe pod</code>.)</details></li>
     <li>Set replicas to 0.
       <details class="answer"><summary>Answer</summary>All copies are removed: the desired state is "none". Nothing is broken; you asked for it. This is how you pause an app without deleting its configuration.</details></li>
+    <li>In ④: is "Cloud" instead of Docker and Kubernetes, or on top of them?
+      <details class="answer"><summary>Answer</summary>On top. The cloud is <i>where</i> it runs, Docker and Kubernetes are <i>how</i>. Render and Cloud Run run your Docker image; GKE / EKS / AKS are Kubernetes run by the cloud provider. Our Day-4 Render deploy uses the same Docker image we built locally.</details></li>
   </ol>
 </section>
 
@@ -163,6 +230,13 @@ $('#nodeDie').onclick=()=>{if(!node2up)return;node2up=false;pods.filter(p=>p.nod
 $('#nodeBack').onclick=()=>{if(node2up)return;node2up=true;log('🔧 node 2 is back: new pods may be placed there again','ok');draw();};
 $('#desired').addEventListener('input',draw);$('#loopOn').addEventListener('change',()=>log($('#loopOn').checked?'▶ controllers running again':'⏸ controllers stopped: nobody is watching!','hl'));
 draw();log('$ kubectl apply -f api-deployment.yaml   (replicas: 3)','hl');setInterval(tick,1500);
+// ---- ④ which one fits? ----
+$$('#scen .btn').forEach(b=>b.onclick=()=>{const c=b.dataset.c;
+  $$('#scen .btn').forEach(x=>x.classList.toggle('primary',x===b));
+  $('#cmpT').className='plain cmp hi-'+c;
+  [1,2,3,4].forEach(i=>$('#r'+i).classList.toggle('on',String(i)===c));
+  $$('.why').forEach(w=>w.classList.toggle('on',w.id===(b.dataset.w||'w'+c)));});
+$('#scen .btn').click();
 </script>
 </body>
 </html>
