@@ -9,6 +9,7 @@ ML engineers through questions, debugging cases and design exercises.
 ```
 Day 1  PyTorch fundamentals ──► CNN on FashionMNIST (from scratch)
 Day 2  Transfer learning   ──► MobileNetV2 on CIFAR-10 ──► quantize / prune / ONNX ──► models/*.onnx
+       + extras            ──► augmentation · segmentation (U-Net) · RNN/LSTM text
 Day 3  Serving             ──► Flask API (ONNX Runtime) + Streamlit UI      (uses models/ from Day 2)
 Day 4  Shipping            ──► Docker ──► docker-compose ──► Kubernetes ──► free cloud
 Day 5  Thinking            ──► question bank, debugging scenarios, system design, Fermi estimates, quiz
@@ -20,12 +21,12 @@ Extra  Live demos          ──► object detection (Faster R-CNN) + GAN (DCGA
 | Folder | What's inside | Start with |
 |---|---|---|
 | [`Day1_PyTorch_Fundamentals/`](Day1_PyTorch_Fundamentals/) | tensors & autograd, training loop, CNN on FashionMNIST, lab | `README.md` |
-| [`Day2_Transfer_Learning_and_Optimization/`](Day2_Transfer_Learning_and_Optimization/) | MobileNetV2 fine-tuning, dynamic/static/QAT quantization, pruning, FP16, ONNX + ONNX Runtime INT8, lab, one-command `scripts/train_and_export.py` | `README.md` |
+| [`Day2_Transfer_Learning_and_Optimization/`](Day2_Transfer_Learning_and_Optimization/) | MobileNetV2 fine-tuning, dynamic/static/QAT quantization, pruning, FP16, ONNX + ONNX Runtime INT8, lab, one-command `scripts/train_and_export.py`; extra notebooks: data augmentation, image segmentation (Penn-Fudan, U-Net vs pretrained LR-ASPP), RNN/LSTM text classification (SMS spam) | `README.md` |
 | [`Day3_Serving_Flask_Streamlit/`](Day3_Serving_Flask_Streamlit/) | Flask API, Streamlit UI, tests, API notebooks, server-side LAB | `README.md` |
 | [`Day4_Docker_Kubernetes_Cloud/`](Day4_Docker_Kubernetes_Cloud/) | Dockerfiles (good vs naive), compose, Kubernetes manifests + load test, free-cloud guides, LAB | `README.md` |
 | [`Day5_Thinking_Like_an_ML_Engineer/`](Day5_Thinking_Like_an_ML_Engineer/) | 106 questions with answers, 15 debugging scenarios, 5 design cases, 10 Fermi problems, 30-question quiz | `README.md` |
 | [`Live_Demos/`](Live_Demos/) | detection (Penn-Fudan) + optimization, DCGAN + optimization, cached checkpoints as a safety net | `README.md` |
-| [`Training_Visualized/`](Training_Visualized/) | 12 interactive, offline HTML lessons (model → gradient descent → backprop → training loop → activations & softmax → NN playground → overfitting → dropout & BatchNorm → metrics → CNN → transfer learning → quantization/pruning/distillation), Simple/Detailed view | `index.html` |
+| [`Training_Visualized/`](Training_Visualized/) | 14 interactive, offline HTML lessons (model → gradient descent → backprop → training loop → activations & softmax → NN playground → overfitting → dropout & BatchNorm → metrics → CNN → transfer learning → quantization/pruning/distillation → data augmentation → image segmentation), Simple/Detailed view | `index.html` |
 | [`Docker_K8s_Visualized/`](Docker_K8s_Visualized/) | 13 interactive, offline HTML pages for Day 4 (install Docker Desktop → why containers → images & layers → running containers → compose → why Kubernetes → Pod → Deployment → Service → ConfigMap/Secret → probes & resources → autoscaling → hands-on lab with real command output) | `index.html` |
 | [`CICD_ML_Visualized/`](CICD_ML_Visualized/) | One offline HTML page, theory only: CI/CD for ML as a visual pipeline (6 step-by-step stories: good change, code bug, bad data, worse model, canary failure, drift → retraining) plus a clickable skeleton of a typical ML repo | `index.html` |
 | [`References/`](References/) | 150+ verified links (docs, papers, tutorials, videos) by topic + free cloud comparison | `README.md` |

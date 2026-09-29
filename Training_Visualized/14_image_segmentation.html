@@ -179,7 +179,7 @@ P = predicted mask (soft), T = true mask</span></div>
       <div class="small muted adv" id="sCounts"></div>
       <div class="banner info" id="iouVerdict">–</div>
       <div class="explain"><b>How the scores work</b>
-        <span class="formula">IoU  = green ÷ (green + red + blue)      overlap ÷ union
+        <span class="formula">IoU  = green ÷ (green + red + blue)
 Dice = 2·green ÷ (2·green + red + blue)
 Pixel accuracy = correct pixels ÷ all pixels</span>
         ⚠️ Pixel accuracy counts the faded background too. People are only about 5% of this picture, so a model that says <b>"no person anywhere"</b> still gets ≈ 95%. IoU ignores the easy background and asks: <b>did you find the person?</b></div>
@@ -202,7 +202,7 @@ Pixel accuracy = correct pixels ÷ all pixels</span>
     <div>
       <ol class="steps">
         <li><b>📦 The data: Penn-Fudan pedestrians</b>An open-source dataset: 170 street photos, and for each one a mask with the people drawn in. That is <b>very few</b> pictures for deep learning.</li>
-        <li><b>🔄 Augment picture and mask together</b>If you flip the photo, you <b>must</b> flip the mask the same way (try it on the right). Same for crops and rotations. Colour changes only touch the photo.</li>
+        <li><b>🔄 Augment picture and mask together</b>If you flip the photo, you <b>must</b> flip the mask the same way (try it in the flip demo). Same for crops and rotations. Colour changes only touch the photo.</li>
         <li><b>🎁 Pretrained model, out of the box</b>Load a torchvision model (LR-ASPP MobileNetV3 or DeepLabV3) that was trained on COCO with the 21 VOC classes. It already knows "person": expect good masks with no training at all.</li>
         <li><b>🧱 Our own small U-Net, from scratch</b>Random weights, 170 pictures. Expect it to find roughly where people are, but with <b>blobby</b> edges and a clearly lower IoU. It has too few examples to learn good features (Lesson 11).</li>
         <li><b>🔧 Fine-tune the pretrained model</b>Replace its last layer with a 2-class head (person vs background) and train gently. Expect the <b>best</b> result: pretrained features + our exact task.</li>
@@ -252,7 +252,7 @@ Pixel accuracy = correct pixels ÷ all pixels</span>
 
 weights = LRASPP_MobileNet_V3_Large_Weights.DEFAULT                 <span class="c"># pretrained on COCO, 21 VOC classes</span>
 model = lraspp_mobilenet_v3_large(weights=weights)
-model.train(<span class="k">False</span>)                        <span class="c"># inference mode</span>
+model.eval()                              <span class="c"># inference mode</span>
 out = model(x)[<span class="s">'out'</span>]                  <span class="c"># [B, 21, H, W]: a score per class, per pixel</span>
 mask = out.argmax(dim=<span class="n">1</span>)               <span class="c"># [B, H, W]: class id per pixel (15 = person)</span>
 
@@ -260,7 +260,7 @@ mask = out.argmax(dim=<span class="n">1</span>)               <span class="c"># 
 model.classifier.low_classifier  = nn.Conv2d(<span class="n">40</span>,  <span class="n">2</span>, kernel_size=<span class="n">1</span>)
 model.classifier.high_classifier = nn.Conv2d(<span class="n">128</span>, <span class="n">2</span>, kernel_size=<span class="n">1</span>)
 loss_fn = nn.CrossEntropyLoss()           <span class="c"># works per pixel: logits [B,2,H,W], target [B,H,W] (long)</span>
-opt = torch.optim.Adam(model.parameters(), lr=<span class="n">1e-4</span>)   <span class="c"># small learning rate (Lesson 11)</span>
+opt = torch.optim.Adam(model.parameters(), lr=<span class="n">3e-4</span>)   <span class="c"># small learning rate (Lesson 11)</span>
 
 <span class="k">def</span> iou(pred, true, cls=<span class="n">1</span>):
     p, t = pred == cls, true == cls
