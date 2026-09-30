@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 · RNN &amp; LSTM — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .smp{background:#fff;border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:10px;padding:.55rem .8rem;font-size:.93rem}
+  body:not(.simple) .smp{display:none}
+  .seg{margin:.2rem 0 .5rem}
+  svg.dia{display:block;width:100%;height:auto}
+  p code,li code{overflow-wrap:anywhere}
+  svg.dia text{font-family:var(--sans)}
+  .dia-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.5rem;min-width:0}
+  .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .scrollx svg.dia.wide1{min-width:440px}
+  .scrollx svg.dia.wide2{min-width:540px}
+  .swipe{display:none;font-size:.78rem;color:var(--muted);text-align:center}
+  @media (max-width:560px){.swipe{display:block}}
+  @media (max-width:500px){.bars{grid-template-columns:minmax(0,6.3rem) minmax(0,1fr) 3rem;font-size:.8rem}}
+  .dia-cap{font-size:.85rem;color:var(--muted);text-align:center;margin:.2rem 0 0}
+  .dia2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.3fr);gap:.8rem;align-items:center}
+  @media (max-width:700px){.dia2{grid-template-columns:1fr}}
+  /* ① bag vs order */
+  .sent{display:flex;flex-wrap:wrap;gap:.3rem;margin:.3rem 0}
+  .w{display:inline-block;padding:.12rem .5rem;border-radius:8px;background:var(--soft);border:1px solid var(--line);font-family:var(--mono);font-size:.9rem;transition:background .2s,border-color .2s}
+  .w.read{background:#e7f0ff;border-color:#a5c4ff}
+  .w.now{background:#ffd43b;border-color:#f0b400;font-weight:700}
+  .bag{display:flex;flex-wrap:wrap;gap:.3rem;margin:.3rem 0}
+  .bag .w b{color:var(--blue);margin-left:.25rem}
+  .sbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.6rem .8rem;margin:.4rem 0;min-width:0}
+  .sbox h3{font-size:.95rem;margin:0 0 .2rem}
+  .note{font-size:.9rem;min-height:1.6rem;color:#5c4813}
+  .verdict{font-weight:700;font-size:.95rem;margin-top:.2rem}
+  /* ② toy RNN */
+  .seqgrid{display:grid;gap:.3rem;margin:.4rem 0}
+  .scol{text-align:center;min-width:0;border-radius:10px;padding:.25rem .1rem;border:2px solid transparent;transition:opacity .2s}
+  .scol.now{border-color:#f0b400;background:#fff9db}
+  .scol.future{opacity:.28}
+  .scol .tk{font-family:var(--mono);font-size:.78rem;font-weight:700;overflow-wrap:anywhere;line-height:1.2;min-height:1.9rem;display:flex;align-items:center;justify-content:center}
+  .scol .ar{color:var(--muted);font-size:.75rem;line-height:1}
+  .hv{display:grid;gap:2px;margin:.15rem auto 0;max-width:2.6rem}
+  .hv i{display:block;height:1.05rem;border-radius:3px;border:1px solid rgba(0,0,0,.08);font-style:normal;font-size:.58rem;line-height:1.05rem;font-family:var(--mono);color:#1c2230;overflow:hidden}
+  .scol .hl{font-size:.7rem;color:var(--muted);font-family:var(--mono)}
+  .hleg{display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+  .hleg .grad{display:inline-block;width:7rem;height:.7rem;border-radius:4px;background:linear-gradient(90deg,#2f6fed,#fff,#f08c00);border:1px solid var(--line)}
+  .vec{font-family:var(--mono);font-size:.8rem;overflow-wrap:anywhere}
+  /* ④ LSTM diagram */
+  .lstm .gp{cursor:pointer;transition:opacity .2s}
+  .lstm.focus .gp{opacity:.18}
+  .lstm.focus .gp.on{opacity:1}
+  .lstm .gp.on rect,.lstm .gp.on circle{stroke-width:4}
+  .lstmgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1rem;align-items:start}
+  @media (max-width:860px){.lstmgrid{grid-template-columns:1fr}}
+  .gatebtns .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .bars{display:grid;grid-template-columns:minmax(0,8.5rem) minmax(0,1fr) 3.4rem;gap:.35rem .5rem;align-items:center;margin:.4rem 0;font-size:.88rem}
+  .bars .lb{font-weight:600;line-height:1.25}
+  .bars .tr{position:relative;height:1.1rem;background:var(--soft);border-radius:6px;border:1px solid var(--line)}
+  .bars .tr::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;border-left:2px solid #adb5bd}
+  .bars .fl{position:absolute;top:0;bottom:0;border-radius:5px;transition:left .2s,width .2s}
+  .bars .v{font-family:var(--mono);font-weight:700;text-align:right}
+  .bars .sep{grid-column:1/-1;border-top:1px dashed var(--line);height:0}
+  .presets{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0 .4rem}
+  .presets .btn{font-size:.84rem;padding:.35rem .6rem}
+  .presets .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .gru{background:var(--think);border:1px solid #d0bfff;border-radius:12px;padding:.7rem .9rem;margin-top:.8rem}
+  .gru h3{margin:0 0 .3rem;font-size:1rem}
+  /* ③ cases */
+  .cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.6rem;margin:.6rem 0}
+  .cases > div{border:2px solid var(--line);border-radius:12px;padding:.55rem .75rem;background:#fff;font-size:.9rem}
+  .cases > div > b:first-child{display:block;font-size:.97rem}
+  .cases .good{border-color:#8ce99a;background:var(--good-bg)}
+  .cases .bad{border-color:#ffa8a8;background:var(--bad-bg)}
+  .cases .meh{border-color:#a5d8ff;background:var(--info)}
+  /* ⑤ case study */
+  .pipe{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;margin:.5rem 0}
+  .pipe span{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:.3rem .55rem;font-size:.86rem;line-height:1.3}
+  .pipe span small{display:block;color:var(--muted);font-size:.74rem}
+  .pipe i{font-style:normal;color:var(--muted)}
+  .hbars{margin:.4rem 0}
+  .hbars h4{margin:.6rem 0 .2rem;font-size:.92rem}
+  .hb{display:grid;grid-template-columns:minmax(0,6.6rem) minmax(0,1fr) 3.6rem;gap:.4rem;align-items:center;margin:.18rem 0;font-size:.85rem}
+  .hb .t{height:1rem;background:var(--soft);border-radius:5px;position:relative;overflow:hidden}
+  .hb .t b{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:width .3s}
+  .hb .n{font-family:var(--mono);font-weight:700;text-align:right;font-size:.82rem}
+  /* ⑥ timeline */
+  .tl{list-style:none;padding:0;margin:.6rem 0 .6rem .5rem;border-left:3px solid var(--line)}
+  .tl li{position:relative;padding:.2rem 0 .65rem 1.1rem;font-size:.93rem;line-height:1.45}
+  .tl li::before{content:"";position:absolute;left:-.58rem;top:.5rem;width:.85rem;height:.85rem;border-radius:50%;background:var(--orange);border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+  .tl li.att::before{background:var(--purple)} .tl li.tf::before{background:var(--blue)} .tl li.llm::before{background:var(--green)}
+  .tl .yr{font-family:var(--mono);font-weight:700;color:var(--ink);margin-right:.35rem}
+  .tl .t{font-weight:700}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
+    <a href="13_data_augmentation.html" title="Data augmentation">13</a>
+    <a href="14_image_segmentation.html" title="Image segmentation">14</a>
+    <a href="15_rnn_lstm.html" class="on" title="RNN &amp; LSTM">15</a>
+    <!-- <a href="16_reinforcement_learning.html" title="Reinforcement learning">16</a> -->
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 15 of 15 · ≈ 35 min</div>
+  <h1>RNN &amp; LSTM: models that read in order</h1>
+  <p class="one-liner">A picture arrives all at once. <b>Text</b> does not: it is a <b>sequence</b>, and the order matters. "Dog bites man" is not news. "Man bites dog" is.
+  An <b>RNN</b> (recurrent neural network) reads <b>one word at a time</b> and keeps a small <b>memory</b> of what it has read so far.
+  An <b>LSTM</b> is an RNN with a <b>better memory</b>: little "gates" decide what to keep, what to write and what to forget.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>You read a story with a tiny <b>whiteboard</b> next to you. After every word you update your notes: "the hero is Anna, she is angry".
+      A plain RNN rewrites the whole board every word, so old notes slowly get smudged. An LSTM has an <b>eraser</b>, a <b>pen</b> and a <b>cover</b>: it chooses what to wipe, what to add, and what to show.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ②, press <b>Next ▶</b> to feed a sentence word by word and watch the memory change.</li>
+      <li>In ③, move the <b>sentence length</b> slider and see how fast a plain RNN forgets word 1.</li>
+      <li>In ④, click each gate in the picture, then try the <b>presets</b> under the sliders.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>The <b>same</b> small network is used at every word. The memory is just a list of numbers. In a plain RNN the start of a long text <b>fades away</b>.
+      The LSTM's "conveyor belt" (cell state) can carry it much further, but it costs about <b>4× the weights</b>.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Sequence</b> = things in an order: words, sounds, daily prices</span><span><b>Token</b> = one piece of the text, here one word</span>
+    <span><b>Hidden state h</b> = the RNN's memory: a list of numbers, updated after every word</span><span><b>Time step t</b> = position in the sequence (word 1, word 2…)</span>
+    <span><b>Embedding</b> = a lookup table: word → a list of numbers</span><span><b>Vanishing gradient</b> = the signal from early words fades to almost zero</span>
+    <span><b>Gate</b> = a switch between 0 (closed) and 1 (open), learned by the network</span><span><b>Cell state c</b> = the LSTM's long-term memory line</span>
+    <span><b>σ (sigmoid)</b> = squashes any number to 0…1</span><span><b>tanh</b> = squashes any number to −1…+1</span></div>
+</section>
+
+<section class="card">
+  <h2>① Why order matters</h2>
+  <p>The simplest way to turn text into numbers is a <b>bag of words</b>: throw all the words in a bag and <b>count</b> them. The order is lost.
+  Pick a pair below. Both sentences use <b>exactly the same words</b>. Then press <b>Next word ▶</b> to read them the way a person (or an RNN) does: left to right.</p>
+  <div class="seg" id="pairSeg"><button data-p="movie" class="on">🎬 good / bad</button><button data-p="dog">🐕 dog / man</button><button data-p="food">🍝 food / service</button></div>
+  <div class="grid2">
+    <div>
+      <div class="sbox"><h3>🅰️ Sentence A</h3><div class="sent" id="sentA"></div><div class="note" id="noteA"></div><div class="verdict" id="verA"></div></div>
+      <div class="sbox"><h3>🅱️ Sentence B</h3><div class="sent" id="sentB"></div><div class="note" id="noteB"></div><div class="verdict" id="verB"></div></div>
+      <div class="btn-row"><button class="btn primary" id="oNext">Next word ▶</button><button class="btn ghost" id="oReset">⟲ Start over</button></div>
+    </div>
+    <div>
+      <div class="sbox"><h3>🛍️ The bag of words (same for A and B)</h3><div class="bag" id="bag"></div>
+        <div class="banner bad" style="margin-bottom:0">🤷 Same bag → a bag-of-words model <b>must</b> give A and B the same answer.</div></div>
+      <div class="look">👀 The words are identical, only the <b>order</b> is different, and the meaning flips. To tell A from B, a model has to read in order and <b>remember</b> what came before.
+        That memory is exactly what an RNN adds.</div>
+      <p class="small muted adv">Bag of words is not useless: for "is this SMS spam?" words like <i>free</i>, <i>win</i>, <i>£</i> already say a lot. A bag model (e.g. logistic regression on word counts) is a strong, cheap baseline. It fails when the <b>order</b> carries the meaning: negation ("not"), who did what to whom, and long-range references.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② The RNN: one small network, used again and again</h2>
+  <p>An RNN has one small cell. At every word it takes <b>two</b> inputs: the <b>new word</b> x<sub>t</sub> and its <b>old memory</b> h<sub>t−1</sub>. It mixes them and writes a <b>new memory</b> h<sub>t</sub>.
+  The arrow that goes back into the cell is the "recurrent" part. If you draw one copy per word, you get the <b>unrolled</b> picture on the right.</p>
+  <div class="dia2">
+    <div class="dia-wrap">
+      <svg class="dia" viewBox="0 0 220 260" role="img" aria-label="Folded RNN cell with a loop">
+        <defs><marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#495057"/></marker>
+          <marker id="ar1o" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f08c00"/></marker></defs>
+        <rect x="60" y="14" width="100" height="36" rx="8" fill="#ebfbee" stroke="#2f9e44" stroke-width="2"/><text x="110" y="37" text-anchor="middle" font-size="15" font-weight="700">h<tspan font-size="11" dy="4">t</tspan></text>
+        <line x1="110" y1="102" x2="110" y2="54" stroke="#495057" stroke-width="2.5" marker-end="url(#ar1)"/>
+        <rect x="55" y="102" width="110" height="60" rx="12" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/>
+        <text x="110" y="128" text-anchor="middle" font-size="17" font-weight="700" fill="#2f6fed">RNN</text><text x="110" y="148" text-anchor="middle" font-size="12" fill="#5d6678">tanh(W·x + U·h + b)</text>
+        <path d="M165 118 C 212 112, 212 160, 170 152" fill="none" stroke="#f08c00" stroke-width="3" marker-end="url(#ar1o)"/>
+        <text x="196" y="100" text-anchor="middle" font-size="12" fill="#d9480f" font-weight="700">loop:</text><text x="196" y="182" text-anchor="middle" font-size="12" fill="#d9480f">h<tspan font-size="9" dy="3">t−1</tspan></text>
+        <line x1="110" y1="212" x2="110" y2="166" stroke="#495057" stroke-width="2.5" marker-end="url(#ar1)"/>
+        <rect x="60" y="212" width="100" height="36" rx="8" fill="#fff9db" stroke="#f0b400" stroke-width="2"/><text x="110" y="235" text-anchor="middle" font-size="15" font-weight="700">x<tspan font-size="11" dy="4">t</tspan> (word)</text>
+      </svg>
+      <p class="dia-cap">Folded: one cell + a loop</p>
+    </div>
+    <div class="dia-wrap">
+      <div class="scrollx"><svg class="dia wide1" viewBox="0 0 520 260" role="img" aria-label="RNN unrolled over four time steps">
+        <defs><marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#495057"/></marker>
+          <marker id="ar2o" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f08c00"/></marker></defs>
+        <text x="4" y="120" font-size="12" fill="#d9480f" font-weight="700">h<tspan font-size="9" dy="3">0</tspan><tspan dy="-3"> = 0</tspan></text>
+        <line x1="6" y1="132" x2="50" y2="132" stroke="#f08c00" stroke-width="3" marker-end="url(#ar2o)"/>
+        <g font-size="15">
+          <rect x="55" y="104" width="80" height="56" rx="10" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/><text x="95" y="138" text-anchor="middle" font-weight="700" fill="#2f6fed">RNN</text>
+          <rect x="165" y="104" width="80" height="56" rx="10" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/><text x="205" y="138" text-anchor="middle" font-weight="700" fill="#2f6fed">RNN</text>
+          <rect x="275" y="104" width="80" height="56" rx="10" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/><text x="315" y="138" text-anchor="middle" font-weight="700" fill="#2f6fed">RNN</text>
+          <rect x="385" y="104" width="80" height="56" rx="10" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/><text x="425" y="138" text-anchor="middle" font-weight="700" fill="#2f6fed">RNN</text>
+        </g>
+        <g stroke="#f08c00" stroke-width="3" marker-end="url(#ar2o)"><line x1="135" y1="132" x2="161" y2="132"/><line x1="245" y1="132" x2="271" y2="132"/><line x1="355" y1="132" x2="381" y2="132"/></g>
+        <g font-size="13" fill="#d9480f" font-weight="700" text-anchor="middle"><text x="150" y="122">h<tspan font-size="9" dy="3">1</tspan></text><text x="260" y="122">h<tspan font-size="9" dy="3">2</tspan></text><text x="370" y="122">h<tspan font-size="9" dy="3">3</tspan></text></g>
+        <g stroke="#495057" stroke-width="2.5" marker-end="url(#ar2)"><line x1="95" y1="200" x2="95" y2="164"/><line x1="205" y1="200" x2="205" y2="164"/><line x1="315" y1="200" x2="315" y2="164"/><line x1="425" y1="200" x2="425" y2="164"/></g>
+        <g font-size="14" text-anchor="middle">
+          <rect x="60" y="200" width="70" height="32" rx="8" fill="#fff9db" stroke="#f0b400" stroke-width="2"/><text x="95" y="221">this</text>
+          <rect x="170" y="200" width="70" height="32" rx="8" fill="#fff9db" stroke="#f0b400" stroke-width="2"/><text x="205" y="221">is</text>
+          <rect x="280" y="200" width="70" height="32" rx="8" fill="#fff9db" stroke="#f0b400" stroke-width="2"/><text x="315" y="221">not</text>
+          <rect x="390" y="200" width="70" height="32" rx="8" fill="#fff9db" stroke="#f0b400" stroke-width="2"/><text x="425" y="221">bad</text>
+        </g>
+        <g font-size="12" fill="#5d6678" text-anchor="middle"><text x="95" y="250">x<tspan font-size="9" dy="3">1</tspan></text><text x="205" y="250">x<tspan font-size="9" dy="3">2</tspan></text><text x="315" y="250">x<tspan font-size="9" dy="3">3</tspan></text><text x="425" y="250">x<tspan font-size="9" dy="3">4</tspan></text></g>
+        <g stroke="#ced4da" stroke-width="2" stroke-dasharray="4 4"><line x1="95" y1="104" x2="95" y2="72"/><line x1="205" y1="104" x2="205" y2="72"/><line x1="315" y1="104" x2="315" y2="72"/></g>
+        <g font-size="11" fill="#868e96" text-anchor="middle"><text x="95" y="66">(h<tspan font-size="8" dy="2">1</tspan><tspan dy="-2">)</tspan></text><text x="205" y="66">(h<tspan font-size="8" dy="2">2</tspan><tspan dy="-2">)</tspan></text><text x="315" y="66">(h<tspan font-size="8" dy="2">3</tspan><tspan dy="-2">)</tspan></text></g>
+        <line x1="425" y1="104" x2="425" y2="56" stroke="#2f9e44" stroke-width="3" marker-end="url(#ar2)"/><text x="436" y="86" font-size="12" fill="#2f9e44" font-weight="700">h<tspan font-size="9" dy="3">4</tspan></text>
+        <rect x="355" y="12" width="140" height="40" rx="8" fill="#ebfbee" stroke="#2f9e44" stroke-width="2"/><text x="425" y="30" text-anchor="middle" font-size="12">Linear → output</text><text x="425" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#2f9e44">😀 positive</text>
+        <text x="20" y="30" font-size="12" fill="#5d6678">same weights W, U, b</text><text x="20" y="46" font-size="12" fill="#5d6678">in every copy</text>
+      </svg></div>
+      <p class="swipe">↔ swipe to see the whole picture</p>
+      <p class="dia-cap">Unrolled over 4 time steps: memory flows left → right; only the last memory h<sub>4</sub> is used for the answer</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:1rem">▶ Feed a sentence, word by word</h3>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Sentence</h3>
+      <div class="ctl"><select id="rSent">
+        <option>this is not bad</option><option>it was good , not bad</option><option>it was bad , not good</option><option>win a free prize now</option><option>see you at lunch</option></select></div>
+      <div class="ctl"><label for="rOwn">…or type your own (max 8 words)</label><input type="text" id="rOwn" placeholder="e.g. call me when you land" maxlength="80"></div>
+      <div class="btn-row"><button class="btn ghost" id="rBack">◀ Back</button><button class="btn primary" id="rNext">Next ▶</button><button class="btn ghost" id="rReset">⟲</button></div>
+      <div class="small muted" id="rStepNo"></div>
+      <h3>What you see</h3>
+      <p class="small">Each column is one time step. The coloured cells are the memory <b>h</b>: 6 numbers between −1 and +1.
+        <span class="hleg"><span>−1</span><span class="grad"></span><span>+1</span></span></p>
+      <p class="small muted">⚠️ A tiny toy RNN with <b>random</b> weights, not trained. The colours carry no meaning yet; the point is <b>how</b> the memory is updated. Training (Lesson 4) would tune W, U and b.</p>
+    </aside>
+    <div class="stage">
+      <div class="canvas-box"><div class="canvas-title">Memory h after every word</div><div class="seqgrid" id="rGrid"></div></div>
+      <div class="explain" id="rExplain" style="margin-top:.5rem"></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:1rem">
+    <div>
+      <h3>🧩 The one rule, in words</h3>
+      <p><b>new memory = squash( a bit of the new word + a bit of the old memory )</b></p>
+      <ul class="small">
+        <li><b>W · x<sub>t</sub></b>: what does this <b>word</b> add?</li>
+        <li><b>U · h<sub>t−1</sub></b>: what do we <b>carry over</b> from before?</li>
+        <li><b>tanh</b>: squash the result to −1…+1 so it can't blow up.</li>
+        <li>The <b>same</b> W, U, b at every word. So an RNN can read a 3-word or a 300-word text with the same small set of weights.</li>
+      </ul>
+    </div>
+    <div class="adv">
+      <h3>🎓 Detailed: the formula</h3>
+      <div class="explain" style="min-height:0"><span class="formula">h_t = tanh( W · x_t + U · h_(t−1) + b )
+h_0 = 0 (a vector of zeros)
+answer = Linear( h_T )   ← only the last step</span>
+      <p class="small" style="margin:.2rem 0 0">Sizes in Notebook 07: x<sub>t</sub> has 32 numbers (embedding), h<sub>t</sub> has 64. So W is 64 × 32, U is 64 × 64, b is 64: about <b>6,300 weights</b> (PyTorch keeps two bias vectors), used at all 40 steps.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ The problem: the memory fades</h2>
+  <p>"The <b>keys</b> to the old wooden cabinet in my grandmother's kitchen <b>are</b> on the table." To choose <b>are</b> (not <i>is</i>), you must still remember <b>keys</b> (plural) from many words back.</p>
+  <p>In a plain RNN, the memory is <b>multiplied</b> by U and squashed by tanh at <b>every</b> word. That usually shrinks it a little each time, like a photocopy of a photocopy.
+  The same happens backwards during training: the learning signal for word 1 is multiplied again and again and <b>vanishes</b>. The LSTM (④) adds a separate memory line where the old value is multiplied only by the <b>forget gate f</b>. If the network learns f ≈ 1, the memory passes almost untouched.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Quick picks</h3>
+      <div class="presets" id="vPre"><button class="btn" data-n="5">📱 Short (5 words)</button><button class="btn" data-n="30">📝 Long (30 words)</button><button class="btn" data-n="180">📚 Very long (180)</button></div>
+      <div class="ctl"><label>Sentence length <output id="vNOut">10</output></label><input type="range" id="vN" min="1" max="200" value="10"></div>
+      <div class="ctl"><label>Plain RNN keeps per step <output id="vROut">0.85</output></label><input type="range" id="vR" min="0.5" max="0.95" step="0.01" value="0.85"></div>
+      <div class="ctl"><label>LSTM forget gate f <output id="vFOut">0.98</output></label><input type="range" id="vF" min="0.8" max="1" step="0.005" value="0.98"></div>
+      <p class="small muted">Toy numbers. In a real RNN the shrink factor depends on the weights and on tanh, and it changes from step to step. The idea stays: it is <b>multiplied</b> at every step.</p>
+    </aside>
+    <div class="stage">
+      <div class="canvas-box"><div class="canvas-title">How much of word 1 is still in the memory after each word</div><canvas id="vc" style="height:250px"></canvas>
+        <div class="legend"><span><i style="background:#f08c00"></i>plain RNN</span><span><i style="background:#2f6fed"></i>LSTM (cell state)</span><span><i style="background:#e03131;height:2px"></i>10%: too faint to use</span></div></div>
+      <div class="stats">
+        <div class="stat orange"><b id="vRLeft">–</b><span>RNN: word 1 left</span></div>
+        <div class="stat blue"><b id="vLLeft">–</b><span>LSTM: word 1 left</span></div>
+        <div class="stat"><b id="vRHalf">–</b><span>RNN forgets after</span></div>
+      </div>
+      <div class="banner info" id="vVerdict">–</div>
+    </div>
+  </div>
+  <h3 style="margin-top:.8rem">⚖️ So is LSTM always better? No. Both sides:</h3>
+  <div class="cases">
+    <div class="meh"><b>➖ Short sequences: plain RNN is fine</b>A few words, like short SMS messages or 5 sensor readings: enough of word 1 is left. In our notebook the plain RNN already reaches 97.0% (LSTM 98.2%).</div>
+    <div class="good"><b>✅ Long dependencies: LSTM wins</b>Reviews, emails, sentences where word 30 depends on word 2. The plain RNN has forgotten; the LSTM's cell state still carries it.</div>
+    <div class="bad"><b>❌ The price: ≈ 4× the weights</b>An LSTM is like 4 RNN layers in one (3 gates + 1 candidate). Same sizes as the notebook (32 in, 64 memory): RNN <b>6,272</b> weights, LSTM <b>25,088</b>. About 4× more maths per word, so slower, and more to overfit on tiny data.</div>
+  </div>
+  <p class="small muted">On our small SMS dataset both models trained in ≈ 6 s on a CPU, so the extra cost was not visible. On large datasets and long texts it is.</p>
+  <div class="adv explain" style="min-height:0"><b>🎓 Detailed: why "vanishing gradient"?</b> Backprop through time multiplies one Jacobian per step:
+    <span class="formula">∂h_T / ∂h_1 = ∏ (t = 2 … T)  diag(1 − h_t²) · U</span>
+    If these factors are mostly below 1, the product shrinks like 0.85<sup>T</sup> → the weights hardly learn anything from early words. If they are above 1, it <b>explodes</b> (fix: gradient clipping, <code>torch.nn.utils.clip_grad_norm_</code>).
+    In the LSTM, the path along the cell state is ∂c<sub>t</sub>/∂c<sub>t−1</sub> = f<sub>t</sub>, with no U and no tanh in between. That is why its memory can last.</div>
+</section>
+
+<section class="card">
+  <h2>④ Inside the LSTM cell: a memory with gates</h2>
+  <p>The LSTM keeps <b>two</b> memories: the <b>cell state c</b> (long-term notes, the orange line at the top) and <b>h</b> (what it shows right now).
+  Four small layers look at the old h and the new word x and produce <b>gates</b>. <b>Click a gate</b> in the picture (or a button) to see what it does.</p>
+  <div class="btn-row gatebtns" id="gBtns">
+    <button class="btn" data-g="all">👁️ Whole cell</button><button class="btn" data-g="f">🧽 Forget gate</button><button class="btn" data-g="i">✍️ Input gate</button><button class="btn" data-g="g">💡 Candidate</button><button class="btn" data-g="c">🛤️ Cell state</button><button class="btn" data-g="o">📢 Output gate</button>
+  </div>
+  <div class="lstmgrid">
+    <div class="dia-wrap">
+      <div class="scrollx"><svg class="dia lstm wide2" id="lstmSvg" viewBox="0 0 660 390" role="img" aria-label="LSTM cell with forget, input and output gates">
+        <defs>
+          <marker id="m3k" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#495057"/></marker>
+          <marker id="m3o" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f08c00"/></marker>
+          <marker id="m3r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#e03131"/></marker>
+          <marker id="m3g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2f9e44"/></marker>
+          <marker id="m3t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0c8599"/></marker>
+          <marker id="m3b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2f6fed"/></marker>
+        </defs>
+        <rect x="46" y="40" width="540" height="296" rx="18" fill="#f8f9fb" stroke="#adb5bd" stroke-width="2"/>
+        <text x="570" y="326" text-anchor="end" font-size="13" fill="#868e96">one LSTM cell (one time step)</text>
+        <!-- inputs: h(t-1) and x(t) bus -->
+        <g>
+          <line x1="0" y1="292" x2="450" y2="292" stroke="#495057" stroke-width="3"/>
+          <line x1="110" y1="390" x2="110" y2="296" stroke="#495057" stroke-width="3" marker-end="url(#m3k)"/>
+          <text x="4" y="282" font-size="16" font-weight="700">h<tspan font-size="11" dy="4">t−1</tspan></text>
+          <text x="120" y="380" font-size="16" font-weight="700">x<tspan font-size="11" dy="4">t</tspan><tspan dy="-4" font-size="13" font-weight="400" fill="#5d6678"> (new word)</tspan></text>
+          <g stroke="#495057" stroke-width="2.5" marker-end="url(#m3k)"><line x1="160" y1="292" x2="160" y2="252"/><line x1="250" y1="292" x2="250" y2="252"/><line x1="340" y1="292" x2="340" y2="252"/><line x1="450" y1="292" x2="450" y2="252"/></g>
+        </g>
+        <!-- cell state -->
+        <g class="gp" data-g="c">
+          <line x1="0" y1="90" x2="652" y2="90" stroke="#f08c00" stroke-width="6" marker-end="url(#m3o)"/>
+          <text x="4" y="78" font-size="16" font-weight="700" fill="#d9480f">c<tspan font-size="11" dy="4">t−1</tspan></text>
+          <text x="610" y="78" font-size="16" font-weight="700" fill="#d9480f">c<tspan font-size="11" dy="4">t</tspan></text>
+          <text x="250" y="66" text-anchor="middle" font-size="13" fill="#d9480f">cell state: the long-term memory ("conveyor belt")</text>
+          <circle cx="340" cy="90" r="15" fill="#fff" stroke="#f08c00" stroke-width="3"/><text x="340" y="97" text-anchor="middle" font-size="22" font-weight="700" fill="#d9480f">+</text>
+        </g>
+        <!-- forget gate -->
+        <g class="gp" data-g="f">
+          <rect x="124" y="204" width="72" height="48" rx="9" fill="#fff5f5" stroke="#e03131" stroke-width="2.5"/>
+          <text x="160" y="226" text-anchor="middle" font-size="19" font-weight="700" fill="#e03131">σ</text><text x="160" y="244" text-anchor="middle" font-size="12" fill="#c92a2a">forget</text>
+          <line x1="160" y1="204" x2="160" y2="109" stroke="#e03131" stroke-width="2.5" marker-end="url(#m3r)"/>
+          <text x="168" y="160" font-size="15" font-style="italic" font-weight="700" fill="#e03131">f</text>
+          <circle cx="160" cy="90" r="15" fill="#fff" stroke="#e03131" stroke-width="3"/><text x="160" y="96" text-anchor="middle" font-size="18" font-weight="700" fill="#e03131">×</text>
+        </g>
+        <!-- candidate -->
+        <g class="gp" data-g="g">
+          <rect x="304" y="204" width="72" height="48" rx="9" fill="#e3fafc" stroke="#0c8599" stroke-width="2.5"/>
+          <text x="340" y="225" text-anchor="middle" font-size="16" font-weight="700" fill="#0c8599">tanh</text><text x="340" y="244" text-anchor="middle" font-size="12" fill="#0b7285">new info</text>
+          <line x1="340" y1="204" x2="340" y2="179" stroke="#0c8599" stroke-width="2.5" marker-end="url(#m3t)"/>
+          <text x="348" y="197" font-size="15" font-style="italic" font-weight="700" fill="#0c8599">g</text>
+        </g>
+        <!-- input gate -->
+        <g class="gp" data-g="i">
+          <rect x="214" y="204" width="72" height="48" rx="9" fill="#ebfbee" stroke="#2f9e44" stroke-width="2.5"/>
+          <text x="250" y="226" text-anchor="middle" font-size="19" font-weight="700" fill="#2f9e44">σ</text><text x="250" y="244" text-anchor="middle" font-size="12" fill="#2b8a3e">input</text>
+          <polyline points="250,204 250,162 321,162" fill="none" stroke="#2f9e44" stroke-width="2.5" marker-end="url(#m3g)"/>
+          <text x="258" y="190" font-size="15" font-style="italic" font-weight="700" fill="#2f9e44">i</text>
+          <circle cx="340" cy="162" r="15" fill="#fff" stroke="#2f9e44" stroke-width="3"/><text x="340" y="168" text-anchor="middle" font-size="18" font-weight="700" fill="#2f9e44">×</text>
+          <line x1="340" y1="147" x2="340" y2="109" stroke="#2f9e44" stroke-width="2.5" marker-end="url(#m3g)"/>
+          <text x="348" y="134" font-size="13" font-weight="700" fill="#2f9e44">i·g</text>
+        </g>
+        <!-- output gate + tanh(c) + h -->
+        <g class="gp" data-g="o">
+          <rect x="414" y="204" width="72" height="48" rx="9" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/>
+          <text x="450" y="226" text-anchor="middle" font-size="19" font-weight="700" fill="#2f6fed">σ</text><text x="450" y="244" text-anchor="middle" font-size="12" fill="#1c4fbf">output</text>
+          <line x1="486" y1="228" x2="502" y2="228" stroke="#2f6fed" stroke-width="2.5" marker-end="url(#m3b)"/>
+          <text x="488" y="220" font-size="15" font-style="italic" font-weight="700" fill="#2f6fed">o</text>
+          <line x1="520" y1="90" x2="520" y2="122" stroke="#2f6fed" stroke-width="2.5" marker-end="url(#m3b)"/>
+          <rect x="490" y="124" width="60" height="32" rx="8" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="520" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6fed">tanh</text>
+          <line x1="520" y1="156" x2="520" y2="209" stroke="#2f6fed" stroke-width="2.5" marker-end="url(#m3b)"/>
+          <circle cx="520" cy="228" r="15" fill="#fff" stroke="#2f6fed" stroke-width="3"/><text x="520" y="234" text-anchor="middle" font-size="18" font-weight="700" fill="#2f6fed">×</text>
+          <polyline points="535,228 562,228 562,312 648,312" fill="none" stroke="#2f9e44" stroke-width="3" marker-end="url(#m3g)"/>
+          <line x1="562" y1="228" x2="562" y2="14" stroke="#2f9e44" stroke-width="3" marker-end="url(#m3g)"/>
+          <text x="554" y="24" text-anchor="end" font-size="14" font-weight="700" fill="#2f9e44">output h<tspan font-size="10" dy="4">t</tspan></text>
+          <text x="600" y="304" font-size="16" font-weight="700" fill="#2f9e44">h<tspan font-size="11" dy="4">t</tspan></text>
+        </g>
+      </svg></div>
+      <p class="swipe">↔ swipe to see the whole cell</p>
+      <p class="dia-cap">σ boxes give numbers 0…1 (how open), tanh gives −1…+1 (a value). × = multiply, + = add.</p>
+    </div>
+    <div class="explain" id="gExplain"></div>
+  </div>
+
+  <h3 style="margin-top:1.1rem">🎚️ Play with the gates (one memory number)</h3>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Presets</h3>
+      <div class="presets" id="gPre"><button class="btn" data-p="remember">🧠 Remember</button><button class="btn" data-p="overwrite">✍️ Overwrite</button><button class="btn" data-p="hide">🙈 Keep but hide</button><button class="btn" data-p="add">➕ Add to it</button></div>
+      <div class="ctl"><label><span>Old memory c<sub>t−1</sub></span> <output id="gcOut"></output></label><input type="range" id="gc" min="-1" max="1" step="0.05" value="0.8"></div>
+      <div class="ctl"><label>🧽 Forget gate f <output id="gfOut"></output></label><input type="range" id="gf" min="0" max="1" step="0.05" value="1"></div>
+      <div class="ctl"><label>✍️ Input gate i <output id="giOut"></output></label><input type="range" id="gi" min="0" max="1" step="0.05" value="0"></div>
+      <div class="ctl"><label>💡 Candidate g <output id="ggOut"></output></label><input type="range" id="gg" min="-1" max="1" step="0.05" value="-0.9"></div>
+      <div class="ctl"><label>📢 Output gate o <output id="goOut"></output></label><input type="range" id="go" min="0" max="1" step="0.05" value="1"></div>
+      <p class="small muted">Story: the memory number means "the subject is <b>plural</b>" (+) or "<b>singular</b>" (−). Old memory +0.8 = "keys" (plural). A new subject would be g = −0.9 (singular).</p>
+    </aside>
+    <div class="stage">
+      <div class="canvas-box"><div class="canvas-title">One step of the LSTM, number by number (bars from −2 to +2, centre = 0)</div>
+        <div class="bars" id="gBars"></div></div>
+      <div class="explain" style="min-height:0"><span class="formula" id="gFormula"></span></div>
+      <div class="banner info" id="gVerdict">–</div>
+    </div>
+  </div>
+  <div class="adv explain" style="min-height:0;margin-top:.7rem"><b>🎓 Detailed: the full LSTM equations</b> ([h, x] = the two vectors glued together; ⊙ = multiply element by element)
+    <span class="formula">f_t = σ( W_f · [h_(t−1), x_t] + b_f )     forget gate
+i_t = σ( W_i · [h_(t−1), x_t] + b_i )     input gate
+g_t = tanh( W_g · [h_(t−1), x_t] + b_g )  candidate
+o_t = σ( W_o · [h_(t−1), x_t] + b_o )     output gate
+c_t = f_t ⊙ c_(t−1) + i_t ⊙ g_t
+h_t = o_t ⊙ tanh( c_t )</span>
+    Four weight matrices instead of one: that is the "4× the parameters". In PyTorch they are stored stacked in <code>weight_ih_l0</code> (shape 4·H × E) and <code>weight_hh_l0</code> (4·H × H). A common trick: start the forget-gate bias at +1, so the cell remembers by default.</div>
+  <div class="gru">
+    <h3>🪶 The lighter cousin: GRU (2014)</h3>
+    <p class="small" style="margin:0">A <b>GRU</b> (gated recurrent unit) has only <b>2 gates</b>: an <b>update</b> gate (how much old memory to keep vs. replace: forget and input in one) and a <b>reset</b> gate (how much of the old memory to use when making the new candidate).
+    No separate cell state. About <b>3×</b> an RNN's weights instead of 4× (18,816 vs 25,088 at our sizes), often just as good. In PyTorch it is one word: <code>nn.GRU</code>.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑤ The case study: is this SMS spam? (Notebook 07)</h2>
+  <p>Notebook <code>Day2_Transfer_Learning_and_Optimization/07_rnn_lstm_text.ipynb</code> trains a plain RNN and an LSTM on the <b>SMS Spam Collection</b>:
+  <b>5,574</b> real text messages, each labelled <b>spam</b> or <b>ham</b> (normal). Most are ham, so we don't trust accuracy alone (Lesson 9).</p>
+  <div class="pipe">
+    <span>📱 "WIN a FREE prize!"<small>raw text</small></span><i>→</i>
+    <span>win · a · free · prize · !<small>split into words</small></span><i>→</i>
+    <span>[0, 0, … 412, 7, 58, 331, 44]<small>vocabulary ids, pad at the <b>front</b> to 40</small></span><i>→</i>
+    <span>Embedding<small>each id → 32 numbers</small></span><i>→</i>
+    <span>RNN / LSTM<small>reads 40 steps, memory = 64</small></span><i>→</i>
+    <span>Linear on the <b>last</b> step<small>2 scores: ham, spam</small></span>
+  </div>
+  <p class="small muted">Why pad at the front? The model only uses the memory after the <b>last</b> step. With zeros at the front, the last thing it reads is the real end of the message, not 20 empty slots that would make it forget.</p>
+  <div class="grid2">
+    <div>
+      <div class="seg" id="scaleSeg"><button data-s="0" class="on">Scale 0–100%</button><button data-s="80">🔍 Zoom 80–100%</button></div>
+      <div class="canvas-box"><div class="canvas-title">Measured on the 1,115 test messages (6 epochs each)</div>
+        <div class="hbars" id="hbars"></div>
+        <div class="legend"><span><i style="background:#adb5bd"></i>😴 always "ham"</span><span><i style="background:#f08c00"></i>plain RNN</span><span><i style="background:#2f6fed"></i>LSTM</span></div></div>
+      <div class="look">👀 Accuracy hardly separates the models (the lazy one already has 86.1%!). <b>Spam recall</b> does: the LSTM catches 91.6% of the spam, the plain RNN 84.5%, the lazy one 0%.</div>
+    </div>
+    <div>
+      <div class="tbl-wrap"><table class="plain">
+        <tr><th>Model</th><th>Accuracy</th><th>Spam recall</th><th>Spam precision</th></tr>
+        <tr><td>😴 always "ham"</td><td>86.1%</td><td>0%</td><td>– (never says spam)</td></tr>
+        <tr><td>Plain RNN</td><td>97.0%</td><td>84.5%</td><td>93.6%</td></tr>
+        <tr><td><b>LSTM</b></td><td><b>98.2%</b></td><td><b>91.6%</b></td><td><b>95.3%</b></td></tr>
+      </table></div>
+      <ul class="small">
+        <li>📊 Data: 5,574 SMS, 747 spam (13.4%). Test split: 1,115 messages, 13.9% spam.</li>
+        <li>⏱️ ≈ 6 s training per model on a CPU, 6 epochs, same data, same sizes. The <b>only</b> difference is <code>nn.RNN</code> vs <code>nn.LSTM</code>.</li>
+        <li>✅ LSTM wins on all three numbers, most clearly on <b>recall</b>.</li>
+        <li>➖ But the gap is <b>modest</b>: SMS messages are short, so the plain RNN's memory fades less (see ③). On long texts the gap grows.</li>
+      </ul>
+      <p class="small adv">LSTM confusion matrix on the test set: 953 ham → ham, 7 ham → spam (lost messages!), 13 spam → ham (got through), 142 spam → spam. Vocabulary: 3,913 words (seen ≥ 2 times; others → <code>&lt;unk&gt;</code>). Adam, lr 3e-3, batch 64.</p>
+    </div>
+  </div>
+  <div class="adv">
+    <h3 style="margin-top:.8rem">🐍 The model in PyTorch</h3>
+    <pre class="code"><span class="k">import</span> torch.nn <span class="k">as</span> nn
+
+<span class="k">class</span> TextClassifier(nn.Module):
+    <span class="k">def</span> __init__(self, vocab_size, emb_dim=<span class="n">32</span>, hidden=<span class="n">64</span>):
+        super().__init__()
+        self.emb  = nn.Embedding(vocab_size, emb_dim, padding_idx=<span class="n">0</span>)  <span class="c"># word id → 32 numbers</span>
+        self.lstm = nn.LSTM(emb_dim, hidden, batch_first=<span class="k">True</span>)        <span class="c"># nn.RNN / nn.GRU: same call</span>
+        self.out  = nn.Linear(hidden, <span class="n">2</span>)                              <span class="c"># 2 scores: ham, spam</span>
+
+    <span class="k">def</span> forward(self, x):                                             <span class="c"># x: (batch, 40) word ids</span>
+        output, (h_n, c_n) = self.lstm(self.emb(x))                   <span class="c"># output: (batch, 40, 64)</span>
+        <span class="k">return</span> self.out(output[:, -<span class="n">1</span>])                                <span class="c"># memory after the LAST word</span></pre>
+    <p class="small muted"><code>batch_first=True</code> means tensors are (batch, time, features). For <code>nn.RNN</code> and <code>nn.GRU</code> the second output is just <code>h_n</code>, not a pair, so write <code>output, _ = ...</code> to cover all three.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑥ From RNN to Transformers to today's LLMs</h2>
+  <div class="grid2">
+    <div>
+      <ol class="tl">
+        <li><span class="yr">1986</span><span class="t">RNN, backprop through time</span> (Rumelhart, Hinton &amp; Williams): a network with a memory loop.</li>
+        <li><span class="yr">1997</span><span class="t">LSTM</span> (Hochreiter &amp; Schmidhuber): gates + cell state fix the fading memory.</li>
+        <li><span class="yr">2014</span><span class="t">GRU &amp; seq2seq</span>: one RNN reads a sentence, a second RNN writes the translation.</li>
+        <li class="att"><span class="yr">2014–15</span><span class="t">Attention</span> (Bahdanau et al.): while writing each word, the translator may <b>look back</b> at any input word instead of one squeezed memory.</li>
+        <li class="tf"><span class="yr">2017</span><span class="t">Transformer</span>, "Attention Is All You Need" (Vaswani et al.): <b>no recurrence at all</b>. It reads all words <b>at once</b>, in parallel, and attention lets every word look at every other word.</li>
+        <li class="tf"><span class="yr">2018</span><span class="t">BERT &amp; GPT</span>: big Transformers pretrained on huge amounts of text, then fine-tuned (transfer learning, Lesson 11, for text).</li>
+        <li class="llm"><span class="yr">2020</span><span class="t">GPT-3</span>: 175 billion weights; can do new tasks from a few examples in the prompt.</li>
+        <li class="llm"><span class="yr">2022</span><span class="t">ChatGPT</span>: a Transformer tuned to follow instructions and chat.</li>
+        <li class="llm"><span class="yr">today</span><span class="t">LLMs</span> such as Claude, GPT, Gemini and Llama: all Transformers at heart.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="dia-wrap">
+        <svg class="dia" viewBox="0 0 440 250" role="img" aria-label="RNN reads words one after another; Transformer connects all words at once">
+          <defs><marker id="ar6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f08c00"/></marker></defs>
+          <text x="8" y="22" font-size="14" font-weight="700" fill="#d9480f">RNN: one word after another</text>
+          <g font-size="13" text-anchor="middle">
+            <rect x="10" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="45" y="56">the</text>
+            <rect x="115" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="150" y="56">keys</text>
+            <rect x="220" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="255" y="56">…</text>
+            <rect x="325" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="360" y="56">are</text>
+          </g>
+          <g stroke="#f08c00" stroke-width="2.5" marker-end="url(#ar6)"><line x1="80" y1="51" x2="111" y2="51"/><line x1="185" y1="51" x2="216" y2="51"/><line x1="290" y1="51" x2="321" y2="51"/></g>
+          <text x="8" y="90" font-size="12" fill="#5d6678">step 2 must wait for step 1 · the memory of "keys" fades</text>
+          <text x="8" y="128" font-size="14" font-weight="700" fill="#2f6fed">Transformer: all words at once</text>
+          <g fill="none" stroke="#7048e8" stroke-width="1.6" opacity=".7">
+            <path d="M45 190 Q97 150 150 190"/><path d="M45 190 Q150 120 255 190"/><path d="M45 190 Q202 100 360 190"/>
+            <path d="M150 190 Q202 150 255 190"/><path d="M150 190 Q255 120 360 190"/><path d="M255 190 Q307 150 360 190"/>
+          </g>
+          <path d="M150 190 Q255 120 360 190" fill="none" stroke="#7048e8" stroke-width="3.5"/>
+          <g font-size="13" text-anchor="middle">
+            <rect x="10" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="45" y="210">the</text>
+            <rect x="115" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="150" y="210">keys</text>
+            <rect x="220" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="255" y="210">…</text>
+            <rect x="325" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="360" y="210">are</text>
+          </g>
+          <text x="8" y="242" font-size="12" fill="#5d6678">every word looks at every word directly: "are" → "keys"</text>
+        </svg>
+      </div>
+      <h3 style="margin-top:.7rem">🚀 Why Transformers replaced RNNs</h3>
+      <ul class="small">
+        <li><b>Parallel training.</b> An RNN must finish word 1 before word 2. A Transformer handles all words at the same time, which is exactly what GPUs are good at. So it can be trained on far more text.</li>
+        <li><b>No fading memory.</b> Word 500 can look straight at word 2. No long chain of multiplications in between.</li>
+      </ul>
+      <h3>🔋 Where RNNs are still useful</h3>
+      <ul class="small">
+        <li><b>Small data and small devices:</b> a few thousand weights, runs on a phone or a microcontroller.</li>
+        <li><b>Streaming:</b> sensor data, audio, live keyboards. An RNN keeps a fixed-size memory and does the same small work per new sample, forever. A Transformer's cost grows with the length of the text.</li>
+      </ul>
+      <p class="small muted adv">Attention cost grows with (length)², so very long inputs are expensive. That's why newer "state-space" and linear-attention models (e.g. Mamba, RWKV) bring some RNN ideas back.</p>
+    </div>
+  </div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first, then check!)</h3>
+  <ol class="challenges">
+    <li><b>Same words, different memory.</b> In ②, feed <i>it was good , not bad</i> to the end and remember the last column. Now pick <i>it was bad , not good</i>. Is the final memory the same?
+      <details class="answer"><summary>Answer</summary>No. The words are the same, but the order is different, so each step starts from a different old memory. The final h is different. That is exactly what a bag of words cannot do (①).
+      The weights here are random, so the difference has no meaning yet; training would make it mean "positive" vs "negative".</details></li>
+    <li><b>When is a plain RNN enough?</b> In ③, keep the RNN at 0.85. Move the length slider until the verdict changes from ➖ to ✅. Where is the switch?
+      <details class="answer"><summary>Answer</summary>At about 16 words: 0.85<sup>15</sup> ≈ 8.7% is left, below the 10% line. Up to ≈ 15 words the plain RNN still remembers word 1 well enough, and it is 4× smaller.
+      After that, the LSTM (f = 0.98 still keeps ≈ 74%) clearly wins. At 180 words even the LSTM falls below 10%: that's where attention helps.</details></li>
+    <li><b>Keep but hide.</b> In ④, press 🙈 Keep but hide. The output h<sub>t</sub> is 0. Is the memory lost?
+      <details class="answer"><summary>Answer</summary>No! c<sub>t</sub> is still 0.8. The output gate only decides what to <b>show</b> right now. The memory rides on the conveyor belt to the next step and can be shown later (e.g. only when the verb comes).</details></li>
+  </ol>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>An RNN reads a 40-word message. How many sets of weights (W, U, b) does it have: 1 or 40?
+      <details class="answer"><summary>Answer</summary>One. The same cell is reused at every step. That's why it can read texts of any length.</details></li>
+    <li>What does the forget gate do when its value is 0? And when it is 1?
+      <details class="answer"><summary>Answer</summary>0 = erase the old cell state completely. 1 = keep it exactly as it was. Values in between keep a part of it.</details></li>
+    <li>Why does the notebook pad messages with zeros at the <b>front</b>, not at the end?
+      <details class="answer"><summary>Answer</summary>The Linear layer only uses the memory after the <b>last</b> step. With padding at the end, the model would read 20 empty slots after the real words, and the real words would fade from its memory.</details></li>
+    <li>The lazy "always ham" model has 86.1% accuracy. Why is it useless, and which number shows it?
+      <details class="answer"><summary>Answer</summary>It never catches any spam: spam recall = 0%. Because most messages are ham, accuracy looks high anyway (Lesson 9: imbalanced data).</details></li>
+    <li>Give two reasons why Transformers replaced RNNs for large language models, and one case where an RNN is still a good choice.
+      <details class="answer"><summary>Answer</summary>(1) All words are processed in parallel, so training on GPUs is much faster. (2) Attention links any two words directly, so nothing fades over long texts.
+      RNNs are still good for small models on small devices and for streaming data (sensors, audio), where they do a fixed small amount of work per new sample.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="14_image_segmentation.html"><small>← Previous</small>14 · Image segmentation</a>
+  <a class="next" href="16_reinforcement_learning.html"><small>Next →</small>16 · Reinforcement learning</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const put=(el,html)=>el.replaceChildren(document.createRange().createContextualFragment(html));
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const pct=v=>(v*100).toFixed(1)+'%';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const f2=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2);
+
+// ================= ① bag of words vs reading in order =================
+const PAIRS={
+  movie:{a:'it was good , not bad',b:'it was bad , not good',
+    na:['start: mood 0','nothing yet','nothing yet','"good" → mood +1 😀','comma','"not" → I will flip the next word','"not bad" = good → mood +2'],
+    nb:['start: mood 0','nothing yet','nothing yet','"bad" → mood −1 😞','comma','"not" → I will flip the next word','"not good" = bad → mood −2'],
+    va:'😀 Positive review',vb:'😞 Negative review'},
+  dog:{a:'dog bites man',b:'man bites dog',
+    na:['start','"dog": this is who acts','"bites": the dog bites…','"man": …the man. A normal day.'],
+    nb:['start','"man": this is who acts','"bites": the man bites…','"dog": …the dog?! That is news!'],
+    va:'🐕 → 🧍 not news',vb:'🧍 → 🐕 headline news!'},
+  food:{a:'the food was not good but the service was great',b:'the service was not good but the food was great',
+    na:['start','topic…','topic = food','…','"not"…','food is bad 😞','"but": change of mind coming','topic…','topic = service','…','service is great 😀'],
+    nb:['start','topic…','topic = service','…','"not"…','service is bad 😞','"but": change of mind coming','topic…','topic = food','…','food is great 😀'],
+    va:'Go for the staff, not the food',vb:'Go for the food, not the staff'}};
+const O={p:'movie',k:0};
+function drawOrder(){const P=PAIRS[O.p],A=P.a.split(' '),B=P.b.split(' '),n=A.length,k=O.k;
+  const chips=ws=>ws.map((w,j)=>`<span class="w ${j<k-1?'read':j===k-1?'now':''}">${esc(w)}</span>`).join('');
+  put($('#sentA'),chips(A));put($('#sentB'),chips(B));
+  $('#noteA').textContent='💭 '+P.na[k];$('#noteB').textContent='💭 '+P.nb[k];
+  const done=k>=n;$('#verA').textContent=done?'→ '+P.va:'';$('#verB').textContent=done?'→ '+P.vb:'';
+  const cnt={};A.forEach(w=>cnt[w]=(cnt[w]||0)+1);
+  put($('#bag'),Object.keys(cnt).sort().map(w=>`<span class="w">${esc(w)}<b>×${cnt[w]}</b></span>`).join(''));
+  $('#oNext').disabled=done;}
+$$('#pairSeg button').forEach(b=>b.onclick=()=>{O.p=b.dataset.p;O.k=0;$$('#pairSeg button').forEach(x=>x.classList.toggle('on',x===b));drawOrder();});
+$('#oNext').onclick=()=>{O.k++;drawOrder();};$('#oReset').onclick=()=>{O.k=0;drawOrder();};
+
+// ================= ② toy RNN =================
+function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function strSeed(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+const EDIM=4,HDIM=6;
+const R0=rng(7),uni=a=>(R0()*2-1)*a;
+const Wm=[...Array(HDIM)].map(()=>[...Array(EDIM)].map(()=>uni(1.1)));
+const Um=[...Array(HDIM)].map(()=>[...Array(HDIM)].map(()=>uni(0.65)));
+const bv=[...Array(HDIM)].map(()=>uni(0.2));
+const embed=w=>{const r=rng(strSeed(w));return [...Array(EDIM)].map(()=>r()*2-1);};
+const mv=(M,v)=>M.map(row=>row.reduce((s,x,j)=>s+x*v[j],0));
+const R={tokens:[],hs:[],step:0};
+function rnnRun(){const own=$('#rOwn').value.trim().toLowerCase();
+  R.tokens=(own||$('#rSent').value).split(/\s+/).filter(Boolean).slice(0,8);if(!R.tokens.length)R.tokens=['hello'];
+  const hs=[Array(HDIM).fill(0)],parts=[];
+  for(const w of R.tokens){const x=embed(w),wx=mv(Wm,x),uh=mv(Um,hs[hs.length-1]);
+    const h=wx.map((v,k)=>Math.tanh(v+uh[k]+bv[k]));parts.push({x,wx,uh});hs.push(h);}
+  R.hs=hs;R.parts=parts;R.step=clamp(R.step,0,R.tokens.length);}
+function hcol(v){const a=Math.abs(v),c=v>=0?[240,140,0]:[47,111,237];
+  return `rgb(${Math.round(255+(c[0]-255)*a)},${Math.round(255+(c[1]-255)*a)},${Math.round(255+(c[2]-255)*a)})`;}
+function drawRNN(){const n=R.tokens.length,s=R.step,g=$('#rGrid');g.style.gridTemplateColumns=`repeat(${n+1},minmax(0,1fr))`;
+  const adv=!document.body.classList.contains('simple');
+  const cell=v=>`<i style="background:${hcol(v)}">${adv?(Math.abs(v)<.05?'0':(v>=0?'':'−')+Math.abs(v).toFixed(1).replace(/^0/,'')):''}</i>`;
+  let out='';
+  for(let t=0;t<=n;t++){const cls=t===s?'now':t>s?'future':'';
+    const tk=t===0?'<span style="color:var(--muted)">start</span>':esc(R.tokens[t-1]);
+    const h=t<=s?R.hs[t]:Array(HDIM).fill(0);
+    out+=`<div class="scol ${cls}"><div class="tk">${tk}</div><div class="ar">${t===0?'&nbsp;':'↓'}</div><div class="hv">${h.map(cell).join('')}</div><div class="hl">h${t}</div></div>`;}
+  put(g,out);
+  let ex;
+  if(s===0)ex=`🟦 <b>Before reading:</b> the memory h<sub>0</sub> is all zeros (white). Press <b>Next ▶</b> to read the first word.`;
+  else{const w=esc(R.tokens[s-1]),p=R.parts[s-1],h=R.hs[s],hp=R.hs[s-1];
+    const change=Math.sqrt(h.reduce((a,v,k)=>a+(v-hp[k])**2,0)/HDIM);
+    ex=`📖 <b>Step ${s}: read "${w}".</b> The cell mixes the word "${w}" (through W) with the old memory h<sub>${s-1}</sub> (through U), adds b, and squashes with tanh.
+      The result is the new memory h<sub>${s}</sub>: the whole column changes, not just one cell. Average change this step: <b>${change.toFixed(2)}</b>.
+      ${s===n?'<br>✅ <b>Last word.</b> Only this final memory h<sub>'+n+'</sub> goes to the Linear layer that makes the decision (e.g. spam or ham).':''}
+      <div class="adv vec" style="margin-top:.4rem">x = embed("${w}") = [${p.x.map(f2).join(', ')}]<br>W·x = [${p.wx.map(f2).join(', ')}]<br>U·h<sub>${s-1}</sub> = [${p.uh.map(f2).join(', ')}]<br>h<sub>${s}</sub> = tanh(W·x + U·h + b) = [${h.map(f2).join(', ')}]</div>`;}
+  put($('#rExplain'),ex);$('#rStepNo').textContent=`Word ${s} of ${n}`;$('#rBack').disabled=s===0;$('#rNext').disabled=s===n;}
+$('#rNext').onclick=()=>{R.step++;drawRNN();};$('#rBack').onclick=()=>{R.step--;drawRNN();};$('#rReset').onclick=()=>{R.step=0;drawRNN();};
+$('#rSent').addEventListener('input',()=>{$('#rOwn').value='';R.step=0;rnnRun();drawRNN();});
+$('#rOwn').addEventListener('input',()=>{R.step=0;rnnRun();drawRNN();});
+
+// ================= ③ fading memory =================
+function drawFade(){const N=+$('#vN').value,r=+$('#vR').value,f=+$('#vF').value;
+  $('#vNOut').textContent=N+(N===1?' word':' words');$('#vROut').textContent=r.toFixed(2);$('#vFOut').textContent=f.toFixed(3);
+  const RL=r**(N-1),LL=f**(N-1),thr=.1;
+  const {ctx,w,h}=setupCanvas($('#vc')),L=40,Rr=12,T=12,B=30,pw=w-L-Rr,ph=h-T-B,xmax=Math.max(N,10);
+  const X=k=>L+(k-1)/(xmax-1)*pw,Y=v=>T+(1-v)*ph;
+  ctx.clearRect(0,0,w,h);ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#5d6678';ctx.strokeStyle='#e2e4e9';ctx.lineWidth=1;
+  for(const v of [0,.25,.5,.75,1]){ctx.beginPath();ctx.moveTo(L,Y(v));ctx.lineTo(w-Rr,Y(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(Math.round(v*100)+'%',L-5,Y(v)+4);}
+  const tick=xmax<=12?1:xmax<=40?5:xmax<=100?10:25;ctx.textAlign='center';
+  for(let k=1;k<=xmax;k++)if(k===1||k%tick===0)ctx.fillText(k,X(k),h-B+15);
+  ctx.fillText('word number',L+pw/2,h-3);
+  ctx.strokeStyle='#e03131';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,Y(thr));ctx.lineTo(w-Rr,Y(thr));ctx.stroke();ctx.setLineDash([]);
+  const curve=(fac,col)=>{ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();const steps=Math.min(400,Math.max(60,xmax*3));
+    for(let q=0;q<=steps;q++){const k=1+q/steps*(xmax-1);const y=Y(fac**(k-1));q?ctx.lineTo(X(k),y):ctx.moveTo(X(k),y);}ctx.stroke();};
+  ctx.fillStyle='rgba(47,111,237,.06)';ctx.fillRect(L,T,X(N)-L,ph);
+  curve(r,'#f08c00');curve(f,'#2f6fed');
+  ctx.strokeStyle='#1c2230';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(N),T);ctx.lineTo(X(N),T+ph);ctx.stroke();
+  for(const [v,c] of [[RL,'#f08c00'],[LL,'#2f6fed']]){ctx.fillStyle=c;ctx.beginPath();ctx.arc(X(N),Y(v),5,0,7);ctx.fill();}
+  ctx.fillStyle='#1c2230';ctx.textAlign=X(N)>w-70?'right':'left';ctx.fillText('word '+N,X(N)+(X(N)>w-70?-5:5),T+11);
+  $('#vRLeft').textContent=pct(RL);$('#vLLeft').textContent=pct(LL);
+  const forget=Math.ceil(Math.log(thr)/Math.log(r))+1;$('#vRHalf').textContent='≈ '+forget+' words';
+  const v=$('#vVerdict');
+  if(RL>=thr){v.className='banner info';v.textContent=`➖ Short enough: the plain RNN still has ${pct(RL)} of word 1 (LSTM ${pct(LL)}). A plain RNN is fine here, and it is 4× smaller and faster.`;}
+  else if(LL>=thr){v.className='banner good';v.textContent=`✅ LSTM wins: the plain RNN kept only ${pct(RL)} of word 1, too faint to use. The LSTM's cell state still carries ${pct(LL)}.`;}
+  else{v.className='banner bad';v.textContent=`❌ Too long even for the LSTM: only ${pct(LL)} left (RNN ${pct(RL)}). For very long texts, attention (Transformers, ⑥) looks back directly instead.`;}
+  $$('#vPre .btn').forEach(b=>b.classList.toggle('on',+b.dataset.n===N));}
+['#vN','#vR','#vF'].forEach(id=>$(id).addEventListener('input',drawFade));
+$$('#vPre .btn').forEach(b=>b.onclick=()=>{$('#vN').value=b.dataset.n;drawFade();});
+
+// ================= ④ LSTM gates =================
+const GATES={
+ all:{h:`<b>👁️ The whole cell, in one breath</b><p>Think of a <b>notebook</b> you carry from word to word (the cell state c, orange line).</p>
+   <ol class="small"><li>🧽 <b>Forget gate</b>: which old notes to rub out.</li><li>✍️ <b>Input gate</b> + 💡 <b>candidate</b>: what new note to write, and how strongly.</li>
+   <li>🛤️ The notebook moves on: kept notes + new notes.</li><li>📢 <b>Output gate</b>: which part of the notes to read out loud now (h).</li></ol>
+   <p class="small">All four gates look at the same two things: the <b>old h</b> and the <b>new word x</b>. Each has its own weights, learned by training. Click one in the picture.</p>`},
+ f:{h:`<b style="color:#e03131">🧽 Forget gate: f = σ(…)</b><p><b>What to erase</b> from the long-term memory. σ gives a number between 0 and 1 for every memory cell, and the old memory is <b>multiplied</b> by it.</p>
+   <p>🟥 <b>0</b> = rub it out completely · <b>1</b> = keep it exactly · 0.5 = keep half.</p>
+   <p>✏️ <b>Example:</b> "<i>The <b>boy</b> is tall. The <b>girls</b>…</i>". A new subject arrives, so the gate wipes "subject = one boy, singular" and makes room for "girls, plural".</p>
+   <p class="adv small"><code>f = σ(W_f·[h_(t−1), x_t] + b_f)</code>, then <code>c_(t−1) × f</code> at the red × node.</p>`},
+ i:{h:`<b style="color:#2f9e44">✍️ Input gate: i = σ(…)</b><p><b>How much</b> of the new information to write into the memory. 0 = write nothing, 1 = write it at full strength.</p>
+   <p>It works together with the 💡 <b>candidate</b> g: g is <b>what</b> could be written, i is <b>how much</b> of it actually goes in. The green × node multiplies them: <b>i · g</b>.</p>
+   <p>✏️ <b>Example:</b> at "<i>girls</i>" the input gate opens (i ≈ 1) to write "plural". At "<i>the</i>" it stays nearly shut: nothing worth noting.</p>
+   <p class="adv small"><code>i = σ(W_i·[h_(t−1), x_t] + b_i)</code></p>`},
+ g:{h:`<b style="color:#0c8599">💡 Candidate: g = tanh(…)</b><p>A <b>draft note</b>: the new information this word could add. tanh gives −1…+1, so it can push a memory cell up or down.</p>
+   <p>It is not written on its own: the input gate decides how much of the draft really goes in (i · g).</p>
+   <p>✏️ <b>Example:</b> the word "<i>girls</i>" proposes "subject is plural" (g ≈ +0.9 in a "plural" cell).</p>
+   <p class="adv small"><code>g = tanh(W_g·[h_(t−1), x_t] + b_g)</code>: this is the same formula as a plain RNN step.</p>`},
+ c:{h:`<b style="color:#d9480f">🛤️ Cell state update: c<sub>t</sub> = f · c<sub>t−1</sub> + i · g</b><p>The <b>long-term memory</b>, a conveyor belt through time. At each word only two small things happen to it: a <b>multiply</b> (forget) and an <b>add</b> (new note).</p>
+   <p>No squashing, no big weight matrix on this line. So if f ≈ 1 and i ≈ 0, a note from word 2 can ride along to word 50 almost unchanged. That's the fix for the fading memory in ③.</p>
+   <p class="adv small">Also for training: ∂c<sub>t</sub>/∂c<sub>t−1</sub> = f, so gradients flow back along the belt without vanishing.</p>`},
+ o:{h:`<b style="color:#2f6fed">📢 Output gate: o = σ(…), h<sub>t</sub> = o · tanh(c<sub>t</sub>)</b><p><b>What part of the memory to show now.</b> The memory is squashed with tanh, then multiplied by o. The result h<sub>t</sub> goes to the output and to the next step.</p>
+   <p>0 = keep it secret for now · 1 = show it all.</p>
+   <p>✏️ <b>Example:</b> the model remembers "plural" all the time, but it only needs to <b>use</b> it when the verb comes ("<i>…girls <b>are</b></i>"). Before that, the gate can keep it hidden without forgetting it.</p>
+   <p class="adv small"><code>o = σ(W_o·[h_(t−1), x_t] + b_o)</code>. c<sub>t</sub> goes on to the next step unchanged; only h<sub>t</sub> is filtered.</p>`}};
+const GS={cur:'all'};
+function setGate(g){GS.cur=g;const svg=$('#lstmSvg');svg.classList.toggle('focus',g!=='all');
+  svg.querySelectorAll('.gp').forEach(e=>e.classList.toggle('on',e.dataset.g===g));
+  $$('#gBtns .btn').forEach(b=>b.classList.toggle('on',b.dataset.g===g));put($('#gExplain'),GATES[g].h);}
+$$('#gBtns .btn').forEach(b=>b.onclick=()=>setGate(b.dataset.g));
+$('#lstmSvg').querySelectorAll('.gp').forEach(e=>{e.addEventListener('click',()=>setGate(e.dataset.g));e.addEventListener('mouseenter',()=>setGate(e.dataset.g));});
+
+const GPRE={remember:{c:.8,f:1,i:0,g:-.9,o:1},overwrite:{c:.8,f:0,i:1,g:-.9,o:1},hide:{c:.8,f:1,i:0,g:-.9,o:0},add:{c:.4,f:1,i:1,g:.6,o:1}};
+function bar(lb,v,col,range=2){const x=clamp(v/range,-1,1),l=50+Math.min(0,x)*50,wd=Math.abs(x)*50;
+  return `<div class="lb">${lb}</div><div class="tr"><div class="fl" style="left:${l}%;width:${wd}%;background:${col}"></div></div><div class="v">${f2(v)}</div>`;}
+function drawGates(){const c0=+$('#gc').value,f=+$('#gf').value,i=+$('#gi').value,g=+$('#gg').value,o=+$('#go').value;
+  $('#gcOut').textContent=f2(c0);$('#gfOut').textContent=f.toFixed(2);$('#giOut').textContent=i.toFixed(2);$('#ggOut').textContent=f2(g);$('#goOut').textContent=o.toFixed(2);
+  const kept=f*c0,wr=i*g,c=kept+wr,tc=Math.tanh(c),h=o*tc;
+  put($('#gBars'),bar('Old memory c<sub>t−1</sub>',c0,'#f08c00')+bar('🧽 kept: f · c<sub>t−1</sub>',kept,'#e03131')+bar('✍️ written: i · g',wr,'#2f9e44')+'<div class="sep"></div>'
+    +bar('🛤️ New memory c<sub>t</sub>',c,'#d9480f')+bar('tanh(c<sub>t</sub>)',tc,'#74c0fc')+bar('📢 Output h<sub>t</sub> = o · tanh(c<sub>t</sub>)',h,'#2f6fed'));
+  $('#gFormula').textContent=`c_t = f·c_(t−1) + i·g = ${f.toFixed(2)}·${c0.toFixed(2)} + ${i.toFixed(2)}·${g.toFixed(2)} = ${c.toFixed(2)}\nh_t = o·tanh(c_t)    = ${o.toFixed(2)}·${tc.toFixed(2)} = ${h.toFixed(2)}`;
+  let t,cls='info';
+  if(f>=.9&&i<=.1&&o>=.9){cls='good';t=`🧠 Remember: the old memory (${f2(c0)}) passes almost untouched and is shown. Nothing new is written. This is how the LSTM carries a fact across many words.`;}
+  else if(f>=.9&&i<=.1&&o<=.1){cls='good';t=`🙈 Keep but hide: the memory is kept (c_t = ${f2(c)}) but the output is ${f2(h)}. It is not forgotten, just not shown yet.`;}
+  else if(f<=.1&&i>=.9){cls='bad';t=`✍️ Overwrite: the old memory is wiped (kept ${f2(kept)}) and replaced by the new value ${f2(wr)}. "keys" (plural) → new subject (singular).`;}
+  else if(f>=.9&&i>=.5){t=`➕ Add: keep the old memory and add the new note on top: ${f2(kept)} + ${f2(wr)} = ${f2(c)}.`;}
+  else t=`A mix: ${Math.round(f*100)}% of the old memory is kept, ${Math.round(i*100)}% of the candidate is written, and ${Math.round(o*100)}% is shown.`;
+  const v=$('#gVerdict');v.className='banner '+cls;v.textContent=t;
+  const cur=Object.keys(GPRE).find(k=>{const p=GPRE[k];return Math.abs(p.c-c0)<.01&&Math.abs(p.f-f)<.01&&Math.abs(p.i-i)<.01&&Math.abs(p.g-g)<.01&&Math.abs(p.o-o)<.01;});
+  $$('#gPre .btn').forEach(b=>b.classList.toggle('on',b.dataset.p===cur));}
+['#gc','#gf','#gi','#gg','#go'].forEach(id=>$(id).addEventListener('input',drawGates));
+$$('#gPre .btn').forEach(b=>b.onclick=()=>{const p=GPRE[b.dataset.p];$('#gc').value=p.c;$('#gf').value=p.f;$('#gi').value=p.i;$('#gg').value=p.g;$('#go').value=p.o;drawGates();});
+
+// ================= ⑤ results chart =================
+const RES=[{m:'Accuracy',v:[86.1,97.0,98.2]},{m:'Spam recall',v:[0,84.5,91.6]},{m:'Spam precision',v:[null,93.6,95.3]}];
+const MODELS=[['😴 always ham','#adb5bd'],['plain RNN','#f08c00'],['LSTM','#2f6fed']];
+const SC={lo:0};
+function drawBars(){const lo=SC.lo;
+  put($('#hbars'),RES.map(r=>`<h4>${r.m}</h4>`+r.v.map((v,k)=>{const wd=v===null?0:clamp((v-lo)/(100-lo),0,1)*100;
+    return `<div class="hb"><span>${MODELS[k][0]}</span><div class="t"><b style="width:${wd}%;background:${MODELS[k][1]}"></b></div><span class="n">${v===null?'n/a':v.toFixed(1)+'%'}</span></div>`;}).join('')).join('')
+    +(lo?`<p class="small muted" style="margin:.4rem 0 0">🔍 Zoomed: bars start at ${lo}%, so values below it show as empty. Zooming makes small gaps look big: always check the axis!</p>`:''));
+  $$('#scaleSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.s===lo));}
+$$('#scaleSeg button').forEach(b=>b.onclick=()=>{SC.lo=+b.dataset.s;drawBars();});
+
+function drawAll(){drawFade();drawRNN();}
+window.addEventListener('resize',drawAll);
+drawOrder();rnnRun();drawRNN();drawFade();setGate('all');drawGates();drawBars();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
+</script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>16 · Reinforcement learning — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .loop svg{width:100%;height:auto;display:block}
+  .loop text{font-family:var(--sans)}
+  #banditc{height:250px}
+  .chart{height:190px}
+  .gridwrap{max-width:540px;margin:0 auto}
+  #gridc{aspect-ratio:1;cursor:pointer;touch-action:manipulation}
+  .epmsg{font-size:.92rem;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.4rem .7rem;margin:.4rem 0;min-height:2.3rem}
+  .qcross{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.25rem;max-width:280px;margin:.3rem auto;text-align:center;font-family:var(--mono);font-size:.9rem}
+  .qcross div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:.25rem .2rem}
+  .qcross .best{border-color:var(--green);background:var(--good-bg);font-weight:700}
+  .qcross .mid{background:var(--soft);font-family:var(--sans);font-size:.8rem}
+  .qcross .e{border:0;background:transparent}
+  .presets .btn{font-size:.85rem;padding:.35rem .6rem}
+  .presets .btn.on{outline:3px solid #ffd43b}
+  .runbar{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:.3rem .8rem;margin:.3rem 0 .7rem}
+  .runbar .checks{display:flex;flex-wrap:wrap;gap:0 1.2rem}
+  .uses{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:.6rem;margin:.5rem 0}
+  .uses div{background:var(--soft);border-radius:12px;padding:.6rem .8rem;font-size:.9rem}
+  .uses > div > b:first-child{display:block;font-size:1rem}
+  .work{min-height:9rem}
+  .work table.tbl td{font-size:.85rem}
+  .work table.tbl td:first-child{font-family:var(--sans);white-space:nowrap}
+  .fsmall .formula{font-size:.8rem}
+  .ctl2{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .ctl2 input[type=number]{width:5.5rem}
+  td.num{font-family:var(--mono);white-space:nowrap}
+  .racetbl td,.racetbl th{font-size:.88rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
+    <a href="13_data_augmentation.html" title="Data augmentation">13</a>
+    <a href="14_image_segmentation.html" title="Image segmentation">14</a>
+    <a href="15_rnn_lstm.html" title="RNN &amp; LSTM">15</a>
+    <a href="16_reinforcement_learning.html" class="on" title="Reinforcement learning">16</a>
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 16 of 16 · ≈ 35 min</div>
+  <h1>Reinforcement learning: learning by trial and error</h1>
+  <p class="one-liner">In all the other lessons, we gave the model the <b>right answers</b> (labels). In reinforcement learning (RL) there are <b>no answers</b>.
+  An <b>agent</b> tries things in a world, gets a <b>reward</b> (a treat or a punishment), and slowly learns which actions pay off.
+  On this page a little mouse 🐭 learns to find the cheese 🧀, live, in your browser.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>Training a dog. You can't <b>tell</b> the dog what "sit" means. It tries things; when it sits, it gets a <b>treat</b> 🦴.
+      After many tries it sits more often. Or think of a new video game: nobody explains the rules, you just play, lose, and get better.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ②, try the slot machines with ε = 0, then 0.1, then 1. Press <b>🏁 Race</b>.</li>
+      <li>In ③, press <b>▶ Play</b> and watch the mouse. Then press <b>⏩ Train 100</b> a few times and tick <b>🗺️ Show learned path</b>.</li>
+      <li>In ⑤, load the ❌ presets and see how RL goes wrong.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>At first the mouse walks <b>at random</b> and often dies in the fire. The green colour (value) starts at the cheese and <b>spreads backwards</b>,
+      one cell at a time. The arrows then point the way, and the reward curve goes <b>up</b>.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Agent</b> = the learner (our mouse)</span><span><b>Environment</b> = the world it lives in (the grid)</span>
+    <span><b>State</b> = where the agent is now (which cell)</span><span><b>Action</b> = a move (↑ → ↓ ←)</span>
+    <span><b>Reward</b> = a number after each move: + good, − bad</span><span><b>Episode</b> = one try, from start until it ends</span>
+    <span><b>Policy</b> = the agent's rule "in this cell, do this"</span><span><b>Q-value</b> = "how good is this move, here, in the long run?"</span>
+    <span><b>Explore</b> = try something new</span><span><b>Exploit</b> = do what worked before</span></div>
+</section>
+
+<section class="card">
+  <h2>① What is reinforcement learning?</h2>
+  <div class="grid2">
+    <div>
+      <p>🔁 RL is a <b>loop</b>. The agent looks at the <b>state</b> ("I am here"), picks an <b>action</b> ("go right"), and the environment answers with a
+      <b>new state</b> and a <b>reward</b>. Then again, and again.</p>
+      <p>🎯 The goal is not to get the biggest reward <b>now</b>, but the biggest <b>total</b> reward over the whole episode. Sometimes you must walk
+      past small bad things (−0.1 per step) to reach the big good thing (+10 cheese).</p>
+      <p>🧠 Nobody tells the agent the right move. It only finds out <b>afterwards</b> if a move was good, and often much later: the cheese comes 12 moves after the first step.
+      Working out which of those 12 moves deserves the credit is the hard part.</p>
+    </div>
+    <div class="canvas-box loop"><div class="canvas-title">The RL loop</div>
+      <svg viewBox="0 0 560 292" role="img" aria-label="Agent sends an action to the environment; the environment sends back a new state and a reward">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1c2230"/></marker></defs>
+        <rect x="20" y="85" width="160" height="90" rx="16" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2.5"/>
+        <text x="100" y="125" text-anchor="middle" font-size="22" font-weight="700" fill="#1c2230">🐭 Agent</text>
+        <text x="100" y="152" text-anchor="middle" font-size="15" fill="#5d6678">the learner</text>
+        <rect x="380" y="85" width="160" height="90" rx="16" fill="#ebfbee" stroke="#2f9e44" stroke-width="2.5"/>
+        <text x="460" y="125" text-anchor="middle" font-size="22" font-weight="700" fill="#1c2230">🌍 World</text>
+        <text x="460" y="152" text-anchor="middle" font-size="15" fill="#5d6678">the environment</text>
+        <path d="M100,83 C100,25 460,25 460,78" fill="none" stroke="#2f6fed" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="280" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#2f6fed">① action: a move ↑ → ↓ ←</text>
+        <path d="M460,177 C460,232 100,232 100,182" fill="none" stroke="#2f9e44" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="280" y="258" text-anchor="middle" font-size="16" font-weight="700" fill="#2f9e44">② new state: "you are here now"</text>
+        <text x="280" y="282" text-anchor="middle" font-size="16" font-weight="700" fill="#e03131">③ reward: +10 🧀 · −10 🔥 · −0.1 per step</text>
+        <text x="280" y="130" text-anchor="middle" font-size="14" fill="#5d6678">repeat thousands</text>
+        <text x="280" y="148" text-anchor="middle" font-size="14" fill="#5d6678">of times 🔁</text>
+      </svg>
+    </div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:.8rem"><table class="plain">
+    <tr><th></th><th>📚 Supervised learning (Lessons 1–15)</th><th>🎮 Reinforcement learning</th></tr>
+    <tr><td><b>What we give it</b></td><td>Examples <b>with the right answer</b>: "this photo = cat"</td><td>A world to act in and a <b>reward</b> number. No right answers.</td></tr>
+    <tr><td><b>Feedback</b></td><td>Right away, for every example</td><td>Often <b>late</b>: you only know at the end if the game was won</td></tr>
+    <tr><td><b>Data</b></td><td>A fixed dataset, collected before training</td><td>The agent <b>makes its own data</b> by acting. Bad moves = bad data.</td></tr>
+    <tr><td><b>Goal</b></td><td>Predict the label</td><td>Pick actions that get the most <b>total</b> reward</td></tr>
+    <tr><td><b>Example</b></td><td>Spam filter, cat vs dog, segmentation</td><td>Game-playing, robot walking, the dog and the treat</td></tr>
+  </table></div>
+</section>
+
+<section class="card">
+  <h2>② Warm-up: the slot machines (explore vs exploit)</h2>
+  <p>The simplest RL problem. There are 4 slot machines 🎰. Each one pays out 🪙 with a <b>secret</b> chance. The agent has 500 pulls. Which machine should it pull?
+  It must <b>try</b> machines to learn which is good (<b>explore</b>), but every pull on a bad machine is a wasted pull. It also wants to pull the best one it knows (<b>exploit</b>).</p>
+  <p>🎲 <b>ε-greedy</b> is a simple rule for this: with a small chance <b>ε</b> (epsilon), pull a <b>random</b> machine. Otherwise, pull the machine with the best average so far.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Exploration ε</h3>
+      <div class="seg" id="bEpsSeg"><button data-e="0">ε = 0 (never explore)</button><button data-e="0.1" class="on">ε = 0.1</button><button data-e="1">ε = 1 (always random)</button></div>
+      <div class="ctl ctl2"><label for="bSeed" style="display:inline">Seed 🎲</label><input type="number" id="bSeed" value="3" min="1" max="9999"></div>
+      <div class="btn-row"><button class="btn" id="bPull">🎰 Pull once</button><button class="btn primary" id="bPlay">▶ Play</button></div>
+      <div class="btn-row"><button class="btn" id="bFast">⏩ 500 pulls</button><button class="btn ghost" id="bReset">⟲ Reset</button></div>
+      <label class="check"><input type="checkbox" id="bReveal"> 👁️ Show the secret win chances</label>
+      <h3>Compare</h3>
+      <div class="btn-row"><button class="btn warn" id="bRace">🏁 Race: ε = 0 vs 0.1 vs 1 (20 seeds)</button></div>
+      <p class="small muted">The seed fixes the "luck", so a run is repeatable. Change it to see another run.</p>
+    </aside>
+    <div class="stage">
+      <div class="canvas-box"><div class="canvas-title">Blue bar = what the agent <b>thinks</b> each machine pays (its average so far)</div><canvas id="banditc"></canvas></div>
+      <div class="stats">
+        <div class="stat"><b id="bT">0</b><span>Pulls</span></div>
+        <div class="stat good"><b id="bTot">0</b><span>Coins won</span></div>
+        <div class="stat blue"><b id="bAvg">–</b><span>Coins per pull</span></div>
+        <div class="stat orange"><b id="bBest">–</b><span>Pulls on the best machine</span></div>
+      </div>
+      <div class="banner info" id="bMsg">Press 🎰 Pull once or ▶ Play.</div>
+      <div class="canvas-box"><div class="canvas-title">Coins per pull so far (higher = better)</div><canvas id="bchart" class="chart"></canvas>
+        <div class="legend" id="bLegend"></div></div>
+      <div id="bRaceOut"></div>
+    </div>
+  </div>
+  <div class="grid3" style="margin-top:.8rem">
+    <div class="banner bad" style="font-weight:400">❌ <b>ε = 0: only exploit.</b> All machines start at 0. The first machine that pays out once looks "best" forever, so the agent keeps pulling it, even if it's a bad one. It never checks the others.</div>
+    <div class="banner good" style="font-weight:400">✅ <b>ε = 0.1: mostly exploit, a little explore.</b> 9 pulls out of 10 go to the best-looking machine. 1 in 10 is a random test, so a wrong first guess gets fixed.</div>
+    <div class="banner bad" style="font-weight:400">❌ <b>ε = 1: only explore.</b> Its estimates become very good, but it <b>never uses</b> them: every pull is random, so it only gets the average of all machines.</div>
+  </div>
+  <p class="small muted" id="bMeasured">📏 Measured on this page (seeds 1–20, 500 pulls each, press 🏁 Race to repeat): ε = 0 spent most pulls on a worse machine in <b>13 of 20</b> runs (0.17–0.72 coins per pull: all or nothing).
+  ε = 0.1 pulled the best machine <b>81%</b> of the time (0.50–0.69 coins per pull). ε = 1 got only 0.37–0.45, the average of all machines.</p>
+</section>
+
+<section class="card">
+  <h2>③ The main demo: a mouse learns to find the cheese (Q-learning)</h2>
+  <p>A 7 × 7 world. The mouse 🐭 starts bottom-left. <b>🧀 Cheese = +10</b> (the episode ends). <b>🔥 Fire = −10</b> (ends). <b>🍪 Cookie = +1</b> (ends: a small, easy prize).
+  <b>🧱 Walls</b> block. Every step costs <b>−0.1</b> (hurry up!). An episode also stops after 100 steps.</p>
+  <p>The mouse keeps a <b>table</b> with one number for every cell and every move: the <b>Q-value</b> = "if I do this move here, how much reward will I get in total from now on?"
+  All numbers start at 0. After <b>every</b> step it corrects one number a little (see ④). The colour of a cell = its best Q-value; the arrow = its best move.</p>
+  <div class="lab">
+    <aside class="controls">
+      <h3>Settings</h3>
+      <div class="ctl"><label>α learning rate <output id="aOut">0.30</output></label><input type="range" id="alpha" min="0.05" max="1" step="0.05" value="0.3"></div>
+      <div class="ctl"><label>γ discount (care about later) <output id="gOut">0.95</output></label><input type="range" id="gamma" min="0" max="1" step="0.05" value="0.95"></div>
+      <div class="ctl"><label>ε exploration at start <output id="eOut">1.00</output></label><input type="range" id="eps" min="0" max="1" step="0.05" value="1"></div>
+      <label class="check"><input type="checkbox" id="decay" checked> 📉 Explore less over time (ε × 0.995 per episode)</label>
+      <h3>Reward design</h3>
+      <label class="check"><input type="checkbox" id="stepPen" checked> ⏱️ −0.1 for every step</label>
+      <label class="check"><input type="checkbox" id="coin"> 🪙 A coin (+1) that comes back every time</label>
+      <div class="ctl ctl2"><label for="gSeed" style="display:inline">Seed 🎲</label><input type="number" id="gSeed" value="1" min="1" max="9999"></div>
+      <p class="small muted">Changing a setting takes effect at once. Press ⟲ Reset to start again with an empty table.</p>
+    </aside>
+    <div class="stage">
+      <div class="small muted" style="font-weight:700">Presets (see ⑤):</div>
+      <div class="presets btn-row" id="presetRow"></div>
+      <div class="runbar">
+        <div class="btn-row"><button class="btn primary" id="gPlay">▶ Play</button><button class="btn" id="gStep">👣 Step</button><button class="btn" id="gFast">⏩ Train 100 episodes</button><button class="btn ghost" id="gReset">⟲ Reset</button></div>
+        <div class="ctl" style="max-width:320px"><label>Speed <output id="spOut">medium</output></label><input type="range" id="speed" min="1" max="8" value="4"></div>
+        <div class="checks"><label class="check"><input type="checkbox" id="gPath"> 🗺️ Show learned path</label>
+        <label class="check"><input type="checkbox" id="gHeat" checked> 🎨 Colour = best Q-value</label>
+        <label class="check"><input type="checkbox" id="gArrows" checked> ➡️ Arrows = best move</label></div>
+      </div>
+      <div class="grid2">
+        <div class="gridwrap"><div class="canvas-box"><div class="canvas-title">The world · tap a cell to see its 4 Q-values</div><canvas id="gridc"></canvas>
+          <div class="legend"><span><i style="background:#2f9e44"></i>good place</span><span><i style="background:#e03131"></i>bad place</span><span><i style="background:#f1f3f7;border:1px solid #ccc"></i>not visited yet</span><span><i style="background:#f08c00"></i>learned path</span></div></div></div>
+        <div>
+          <div class="stats">
+            <div class="stat blue"><b id="sEp">0</b><span>Episodes</span></div>
+            <div class="stat"><b id="sEps">1.00</b><span>ε now</span></div>
+            <div class="stat good"><b id="sWin">–</b><span>🧀 in last 50</span></div>
+            <div class="stat orange"><b id="sAvgR">–</b><span>Avg reward, last 50</span></div>
+          </div>
+          <div class="epmsg" id="epMsg">Press ▶ Play or 👣 Step.</div>
+          <div class="epmsg" id="pathMsg"></div>
+          <h3 style="margin:.6rem 0 .2rem">🔍 Cell inspector</h3>
+          <div id="insp"></div>
+          <div class="adv small muted" id="lastUpd"></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:.6rem">
+        <div class="canvas-box"><div class="canvas-title">📈 Reward per episode (grey dots) and average of the last 20 (blue)</div><canvas id="rchart" class="chart"></canvas></div>
+        <div class="canvas-box"><div class="canvas-title">👣 Steps per episode (average of the last 20)</div><canvas id="schart" class="chart"></canvas></div>
+      </div>
+      <div class="look">👀 <b>How to read the curves:</b> at first the reward is about −10 (fire) and episodes are short (it dies fast) or long (it wanders).
+        When the blue line climbs towards ≈ +9 and the steps settle near <b>12</b> (the shortest way), the mouse has learned. The dots never all reach the top: while ε &gt; 0 it still takes some random steps, and some of them walk into fire.</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>④ How does the table learn? The Q-learning update</h2>
+  <div class="grid2">
+    <div>
+      <p>After every single step the mouse knows 4 things: where it was (<b>s</b>), what it did (<b>a</b>), the reward it got (<b>r</b>), and where it landed (<b>s′</b>). Then:</p>
+      <ol class="steps">
+        <li><b>🤔 Old guess</b>"How good did I think this move was?" That's Q(s, a) in the table.</li>
+        <li><b>🎯 Better guess (the target)</b>"The reward I just got, <b>plus</b> the best I can expect from the new cell." The future part is shrunk a bit by γ, because later rewards are less sure.</li>
+        <li><b>📏 The error</b>Target − old guess. Positive = "better than I thought". Negative = "worse".</li>
+        <li><b>🔧 Nudge</b>Move the old guess a small part (α) of the way towards the target. Not all the way: one lucky step shouldn't change everything.</li>
+      </ol>
+      <p>💡 This is how the cheese's value <b>travels backwards</b>: the cell next to the cheese learns "+10 is close", then the cell before it learns "the next cell is good", and so on.
+      It is like gradient descent (Lesson 2): a small step to make the error smaller, many, many times.</p>
+      <div class="adv explain fsmall" style="min-height:0"><b>🎓 Detailed: the formula</b>
+        <span class="formula">Q(s,a) ← Q(s,a) + α·[ r + γ·max Q(s′,·) − Q(s,a) ]
+target = r + γ·max Q(s′,·)
+if s′ ends the episode: target = r</span>
+        <span class="small">max Q(s′,·) = the best of the 4 Q-values in the new cell. Q-learning uses the <b>best</b> next move even if the agent will actually explore next:
+        it learns about the greedy policy while it behaves randomly (it is "off-policy"). That's why ε = 1 can still fill the table (see ⑤).</span></div>
+    </div>
+    <div>
+      <h3>🧮 One update with real numbers</h3>
+      <p class="small">Tap a cell in the world in ③ (now: <b id="wCell">start</b>). Pick a move. The numbers come from the mouse's current table.</p>
+      <div class="seg" id="waSeg"><button data-a="0">↑ up</button><button data-a="1">→ right</button><button data-a="2">↓ down</button><button data-a="3">← left</button></div>
+      <div class="explain work" id="work" style="margin-top:.5rem"></div>
+      <div class="btn-row"><button class="btn" id="wApply">✅ Apply this one update</button></div>
+      <p class="small muted">Press ✅ a few times: the old guess moves closer and closer to the target. That is what training does, millions of times.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑤ When RL works, and when it goes wrong</h2>
+  <p>Each preset changes <b>one thing</b> from the good settings. Load it, press ⏩ Train 100 five times (500 episodes), and look at the curves and the learned path.
+  The numbers below were measured on this page: the same run for seeds 1–10, 500 episodes each. Press 🔬 to measure them again yourself.</p>
+  <div class="tbl-wrap" id="presetTbl"></div>
+  <div class="btn-row"><button class="btn warn" id="measureBtn">🔬 Measure all presets again (10 seeds × 500 episodes)</button><span class="small muted" id="measureMsg" style="align-self:center"></span></div>
+  <div class="grid2" style="margin-top:.6rem">
+    <div class="banner good" style="font-weight:400">✅ <b>Good settings</b> (α = 0.3, γ = 0.95, ε from 1 down to 0.02). It explores a lot at first, then uses what it learned.
+      <span id="txtGood">On all 10 seeds the learned path goes to the cheese in 12 steps (the shortest way).</span></div>
+    <div class="banner bad" style="font-weight:400">❌ <b>ε = 0, no exploring.</b> The first prize it finds becomes its habit. <span id="txtNoexp"></span> It never finds out that the cheese is 2 cells away and worth 10 times more.</div>
+    <div class="banner bad" style="font-weight:400">❌ <b>γ = 0, short-sighted.</b> It only cares about the <b>next</b> reward. Every step costs −0.1, so every normal move looks the same.
+      The value of the cheese never travels back. <span id="txtG0"></span></div>
+    <div class="banner bad" style="font-weight:400">❌ <b>Bad reward design: a coin that comes back.</b> We add +1 for a coin (meant as a "hint"). The mouse finds a loophole: step on the coin, step off, step on again…
+      <span id="txtCoin"></span> This is called <b>reward hacking</b>: it does what we <b>rewarded</b>, not what we <b>wanted</b>.</div>
+    <div class="banner info" style="font-weight:400">➖ <b>ε = 1 always: only exploring.</b> Like the slot machines: it walks at random forever. <span id="txtEps1"></span></div>
+    <div class="banner info adv" style="font-weight:400">🎓 <b>Bonus: no step penalty.</b> Untick ⏱️ −0.1. You'd guess "it just wanders more". The measured effect is different: <span id="txtNostep"></span>
+      With −0.1 per step, every tried move soon looks worse than an untried one (still 0), so the mouse is pushed to try new things. Without it, that push is gone.</div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑥ Where is RL used today?</h2>
+  <div class="uses">
+    <div><b>🎮 Games</b>AlphaGo beat the world champion at Go in 2016. It learned partly by playing millions of games against itself. Later RL agents learned chess, StarCraft and Atari games.</div>
+    <div><b>🤖 Robots</b>Walking, grabbing objects, balancing. Usually trained in a simulator first (crashing a real robot 10,000 times is expensive), then moved to the real robot.</div>
+    <div><b>🛒 Recommendations</b>What video or ad to show next. The "reward" is a click or watch time, and reward hacking (clickbait!) is a real danger.</div>
+    <div><b>💬 Chatbots (RLHF)</b>ChatGPT, Claude and other LLMs are first trained on text (supervised), then fine-tuned with <b>RL from human feedback</b>: people rate answers, a model learns those ratings, and RL pushes the LLM towards better-rated answers.</div>
+  </div>
+  <div class="banner info" style="font-weight:400">ℹ️ <b>What about neural networks?</b> Our table has 49 cells × 4 moves = 196 numbers. A chess board or an Atari screen has far too many states for a table.
+    <b>Deep Q-Networks</b> (DQN, DeepMind, 2013 / 2015, playing Atari games from the pixels) replace the table with a <b>neural network</b>: pixels in, one Q-value per action out.
+    The update idea stays the same: target = r + γ · max Q(s′). This page keeps the table so you can see every number.</div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first, then check!)</h3>
+  <ol class="challenges">
+    <li><b>Watch the value travel.</b> Reset, set speed to the slowest, and press ▶ Play. Wait for the first 🧀. Look at the cell next to the cheese. Keep watching the next episodes.
+      <details class="answer"><summary>Answer</summary>After the first 🧀, only the cell right next to it turns green (only one number was updated). Each later visit pushes the green one cell further back
+      towards the start. Rewards travel backwards one step at a time. That's why RL needs so many episodes.</details></li>
+    <li><b>The cookie trap.</b> Load ❌ ε = 0 and train 500 episodes for seeds 1, 2, 3, 4, 5. How often does the mouse end at the cookie?
+      <details class="answer"><summary>Answer</summary><span id="ansNoexp">Most of the time.</span> With ε = 0 there is no randomness except for breaking ties. Once the 🍪 path has a value above 0, it always looks better than the
+      unknown cells around it, so the mouse never walks the extra steps to the cheese. Exploration is the only way to find out that something better exists.</details></li>
+    <li><b>How short-sighted is too short-sighted?</b> In the good preset, set γ to 0.5 and train 500 episodes. Does it still find the cheese?
+      <details class="answer"><summary>Answer</summary><span id="ansG5">Yes.</span> The cheese is 12 moves away, so with γ = 0.5 its value at the start is tiny (10 × 0.5¹¹ ≈ 0.005), but it's still the best
+      number around, so the arrows still point to it. Only γ = 0 cuts the future off completely. In bigger worlds, a small γ makes far-away rewards vanish in noise.</details></li>
+    <li><b>Reward hacking.</b> Load ❌ coin and press ▶ Play at medium speed after 300 episodes. What does the mouse do? How would you fix the reward?
+      <details class="answer"><summary>Answer</summary>It stands next to the coin and steps on and off it until the 100 steps run out: about +90 per episode, much more than the +10 cheese.
+      Fixes: give the coin only <b>once</b> per episode, make it smaller than the step cost, or remove it. Rule: reward the <b>goal</b>, not your idea of how to get there.</details></li>
+    <li><b>Learning rate.</b> What do you expect with α = 1 and with α = 0.05? Try both on the good preset.
+      <details class="answer"><summary>Answer</summary>α = 0.05: each update is tiny, so the value spreads very slowly and 500 episodes may not be enough. α = 1: each update jumps straight to the target.
+      Here the world is <b>deterministic</b> (a move always does the same thing), so big steps are fine. In a random world (slippery floor), α = 1 would jump around with every lucky or unlucky step.</details></li>
+  </ol>
+</section>
+
+<section class="card adv">
+  <h2>🐍 The same thing in Python</h2>
+  <pre class="code"><span class="k">import</span> numpy <span class="k">as</span> np
+Q = np.zeros((n_states, <span class="n">4</span>))            <span class="c"># the table: one row per cell, one column per move</span>
+alpha, gamma, eps = <span class="n">0.3</span>, <span class="n">0.95</span>, <span class="n">1.0</span>
+
+<span class="k">for</span> episode <span class="k">in</span> range(<span class="n">500</span>):
+    s, done = env.reset(), <span class="k">False</span>
+    <span class="k">while</span> <span class="k">not</span> done:
+        <span class="k">if</span> np.random.rand() &lt; eps:
+            a = np.random.randint(<span class="n">4</span>)        <span class="c"># explore: a random move</span>
+        <span class="k">else</span>:
+            a = Q[s].argmax()               <span class="c"># exploit: the best move so far</span>
+        s2, r, done = env.step(a)
+        target = r <span class="k">if</span> done <span class="k">else</span> r + gamma * Q[s2].max()
+        Q[s, a] += alpha * (target - Q[s, a])   <span class="c"># the Q-learning update</span>
+        s = s2
+    eps = max(<span class="n">0.02</span>, eps * <span class="n">0.995</span>)          <span class="c"># explore a bit less every episode</span></pre>
+  <p class="small muted">Ready-made worlds to practise on: the <code>gymnasium</code> library (<code>gymnasium.make("FrozenLake-v1")</code>, <code>"CliffWalking-v0"</code>, <code>"CartPole-v1"</code>).
+  This page breaks ties between equal Q-values at random, and stops an episode after 100 steps.</p>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Check yourself</h3>
+  <ol class="challenges">
+    <li>What is the biggest difference between supervised learning and reinforcement learning?
+      <details class="answer"><summary>Answer</summary>Supervised learning gets the right answer for every example. RL never gets the right answer: only a reward, often much later,
+      and it has to collect its own data by acting.</details></li>
+    <li>An agent uses ε = 0.1. What does it do on each step?
+      <details class="answer"><summary>Answer</summary>With 10% chance it takes a random action (explore). With 90% chance it takes the action with the highest Q-value (exploit).</details></li>
+    <li>Q(s, →) = 2.0. The mouse moves →, gets r = −0.1, and the best Q-value in the new cell is 4.0. γ = 0.9, α = 0.5. What is the new Q(s, →)?
+      <details class="answer"><summary>Answer</summary>Target = −0.1 + 0.9 × 4.0 = 3.5. Error = 3.5 − 2.0 = 1.5. New Q = 2.0 + 0.5 × 1.5 = <b>2.75</b>.</details></li>
+    <li>A cleaning robot gets +1 for every piece of dirt it picks up. What could go wrong?
+      <details class="answer"><summary>Answer</summary>Reward hacking: it could learn to drop the dirt and pick it up again, forever (like our coin). Better: reward a clean floor, not the act of picking up.</details></li>
+    <li>Why can't we use a Q-table to play Atari games from the screen pixels?
+      <details class="answer"><summary>Answer</summary>There are far too many possible screens: you'd need one row per screen, and you'd almost never see the same one twice.
+      A neural network (DQN) guesses Q-values for screens it has never seen, the same way a CNN recognises cats it has never seen.</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="15_rnn_lstm.html"><small>← Previous</small>15 · RNN &amp; LSTM</a>
+  <a class="next" href="index.html"><small>That was the last lesson 🎉</small>← All lessons</a>
+</nav>
+</main>
+<footer>Training, Visualized · works offline</footer>
+
+<script>
+const $=s=>document.querySelector(s);
+const put=(el,html)=>el.replaceChildren(document.createRange().createContextualFragment(html));
+function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pct=v=>Math.round(v*100)+'%';
+const fmt=(v,d=2)=>(v>=0?'':'−')+Math.abs(v).toFixed(d);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function movAvg(a,k){const o=[];let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=k)s-=a[i-k];o.push(s/Math.min(i+1,k));}return o;}
+
+// ---------- a small line chart ----------
+function drawChart(cv,o){const {ctx,w,h}=setupCanvas(cv),L=38,R=8,T=8,B=22,pw=w-L-R,ph=h-T-B;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  const n=Math.max(2,o.xmax||2),ymin=o.ymin,ymax=o.ymax,X=i=>L+i/(n-1)*pw,Y=v=>T+(1-(v-ymin)/(ymax-ymin))*ph;
+  ctx.strokeStyle='#e2e4e9';ctx.lineWidth=1;ctx.fillStyle='#5d6678';ctx.font='11px Segoe UI, sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';
+  for(const t of o.yticks){ctx.beginPath();ctx.moveTo(L,Y(t));ctx.lineTo(L+pw,Y(t));ctx.stroke();ctx.fillText(t,L-4,Y(t));}
+  ctx.textAlign='center';ctx.textBaseline='top';const st=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000].find(v=>n/v<=(pw<300?4:6))||20000;
+  for(let i=0;i<n-st*.4;i+=st){ctx.fillText(i,X(i),T+ph+5);}
+  if(o.xlabel){ctx.textAlign='right';ctx.fillText(o.xlabel,L+pw,T+ph+5);}
+  for(const hl of (o.hlines||[])){ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=hl.col;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(L,Y(hl.y));ctx.lineTo(L+pw,Y(hl.y));ctx.stroke();ctx.restore();
+    ctx.fillStyle=hl.col;ctx.textAlign='left';ctx.textBaseline='bottom';ctx.fillText(hl.label,L+4,Y(hl.y)-2);}
+  ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+  for(const s of o.series){const d=s.d;if(!d.length)continue;
+    if(s.dots){ctx.fillStyle=s.col;for(let i=0;i<d.length;i++){ctx.fillRect(X(i)-1.2,Y(clamp(d[i],ymin,ymax))-1.2,2.4,2.4);}continue;}
+    ctx.strokeStyle=s.col;ctx.lineWidth=s.lw||2;ctx.beginPath();for(let i=0;i<d.length;i++){const x=X(i),y=Y(clamp(d[i],ymin,ymax));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}
+  ctx.restore();
+  if(o.empty&&!o.series.some(s=>s.d.length)){ctx.fillStyle='#868e96';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='13px Segoe UI, sans-serif';ctx.fillText(o.empty,L+pw/2,T+ph/2);}}
+
+// ================= ② bandit =================
+const BP=[0.2,0.45,0.7,0.3],BNAME=['A','B','C','D'],BBEST=BP.indexOf(Math.max(...BP)),BPULLS=500;
+const B={eps:0.1,timer:null,race:null};
+function banditChoose(Q,eps,rnd){if(rnd()<eps)return [Math.floor(rnd()*Q.length),true];const m=Math.max(...Q),c=[];Q.forEach((v,i)=>{if(v===m)c.push(i);});return [c[Math.floor(rnd()*c.length)],false];}
+function banditRun(eps,pulls,seed){const rnd=mulberry32(seed),Q=[0,0,0,0],N=[0,0,0,0],curve=[];let tot=0,best=0;
+  for(let t=0;t<pulls;t++){const [a]=banditChoose(Q,eps,rnd);const r=rnd()<BP[a]?1:0;N[a]++;Q[a]+=(r-Q[a])/N[a];tot+=r;if(a===BBEST)best++;curve.push(tot/(t+1));}
+  return {avg:tot/pulls,best:best/pulls,Q,N,curve};}
+function bReset(){bStop();B.seed=Math.max(1,+$('#bSeed').value||1);B.rnd=mulberry32(B.seed);B.Q=[0,0,0,0];B.N=[0,0,0,0];B.t=0;B.tot=0;B.best=0;B.last=null;B.curve=[];drawBandit();}
+function bPull(){if(B.t>=BPULLS)return false;const [a,ex]=banditChoose(B.Q,B.eps,B.rnd);const r=B.rnd()<BP[a]?1:0;B.N[a]++;B.Q[a]+=(r-B.Q[a])/B.N[a];B.tot+=r;B.t++;if(a===BBEST)B.best++;
+  B.last={a,r,ex};B.curve.push(B.tot/B.t);return true;}
+function bStop(){if(B.timer){clearInterval(B.timer);B.timer=null;}$('#bPlay').textContent='▶ Play';}
+function drawBandit(){const {ctx,w,h}=setupCanvas($('#banditc')),cw=w/4,rev=$('#bReveal').checked;ctx.clearRect(0,0,w,h);
+  const top=70,bot=h-44,bh=bot-top;
+  for(let i=0;i<4;i++){const cx=(i+.5)*cw,bw=Math.min(52,cw*.42),on=B.last&&B.last.a===i;
+    ctx.fillStyle=on?'#fff3bf':'#f8f9fa';ctx.strokeStyle=on?'#f08c00':'#dee2e6';ctx.lineWidth=on?2.5:1;ctx.beginPath();ctx.roundRect(cx-cw/2+5,4,cw-10,h-8,10);ctx.fill();ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='22px Segoe UI Emoji, Segoe UI, sans-serif';ctx.fillStyle='#1c2230';ctx.fillText('🎰',cx-12,32);
+    ctx.font='700 16px Segoe UI, sans-serif';ctx.fillText(BNAME[i],cx+14,31);
+    if(on){ctx.font='12px Segoe UI, sans-serif';ctx.fillStyle=B.last.r?'#2f9e44':'#e03131';ctx.fillText((B.last.ex?'🎲 ':'')+(B.last.r?'🪙 win':'✗ no'),cx,49);}
+    ctx.fillStyle='#e9ecef';ctx.fillRect(cx-bw/2,top,bw,bh);
+    ctx.fillStyle='#2f6fed';const q=B.Q[i];ctx.fillRect(cx-bw/2,bot-q*bh,bw,q*bh);
+    ctx.fillStyle='#1c2230';ctx.font='600 12px Consolas, monospace';ctx.fillText(B.N[i]?q.toFixed(2):'?',cx,bot-q*bh-4<top+10?top+12:bot-q*bh-4);
+    if(rev){const y=bot-BP[i]*bh;ctx.save();ctx.setLineDash([5,3]);ctx.strokeStyle=i===BBEST?'#2f9e44':'#e03131';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx-bw/2-6,y);ctx.lineTo(cx+bw/2+6,y);ctx.stroke();ctx.restore();
+      ctx.fillStyle=i===BBEST?'#2f9e44':'#e03131';ctx.font='700 11px Segoe UI, sans-serif';ctx.fillText('real '+BP[i].toFixed(2),cx,top-5);}
+    ctx.fillStyle='#5d6678';ctx.font='12px Segoe UI, sans-serif';ctx.fillText('pulled '+B.N[i]+'×',cx,h-26);
+    ctx.fillText(B.N[i]?'avg '+q.toFixed(2):'never tried',cx,h-12);}
+  $('#bT').textContent=B.t;$('#bTot').textContent=B.tot;$('#bAvg').textContent=B.t?(B.tot/B.t).toFixed(2):'–';$('#bBest').textContent=B.t?pct(B.best/B.t):'–';
+  const m=$('#bMsg');
+  if(!B.t){m.className='banner info';m.textContent='Press 🎰 Pull once or ▶ Play. All four machines start with an estimate of 0.';}
+  else if(B.t>=40){const tried=B.N.filter(n=>n>0).length,fav=B.N.indexOf(Math.max(...B.N));
+    if(B.eps===0){m.className=fav===BBEST?'banner good':'banner bad';m.textContent=fav===BBEST?`🍀 Lucky: its first win was on the best machine (${BNAME[fav]}), so being greedy worked this time. Try other seeds!`
+      :`❌ Stuck! It pulls machine ${BNAME[fav]} almost every time and tried only ${tried} of 4 machines. It never finds out that ${rev?'C':'another one'} is better.`;}
+    else if(B.eps===1){m.className='banner bad';m.textContent=`❌ Its estimates are good (compare with the secret chances), but it pulls at random, so it wins only ≈ ${(B.tot/B.t).toFixed(2)} per pull.`;}
+    else {m.className=fav===BBEST?'banner good':'banner info';m.textContent=fav===BBEST?`✅ It found the best machine (${BNAME[fav]}) and pulls it most of the time (${pct(B.N[fav]/B.t)} of pulls). The random 10% keep checking the others.`
+      :B.t<BPULLS?`➖ Not sure yet: it prefers ${BNAME[fav]} for now. Keep pulling, the random 10% will correct a wrong guess.`:`➖ An unlucky run: after ${BPULLS} pulls it still prefers ${BNAME[fav]}. The random 10% help, but not always in time. Try another seed, or 🏁 Race to see the average.`;}}
+  else {m.className='banner info';m.textContent=B.last?`Pull ${B.t}: machine ${BNAME[B.last.a]} ${B.last.ex?'(🎲 a random explore pull)':'(the best-looking one)'} → ${B.last.r?'🪙 win':'no win'}.`:'';}
+  drawBChart();}
+const RACECOL={0:'#e03131',0.1:'#2f9e44',1:'#f08c00'};
+function drawBChart(){const rev=$('#bReveal').checked,series=[];
+  if(B.race)for(const e of [0,0.1,1])series.push({d:B.race[e].curve,col:RACECOL[e],lw:2.5});
+  series.push({d:B.curve,col:'#2f6fed',lw:B.race?1.5:2.5});
+  const hl=rev?[{y:0.7,label:'best machine: 0.70',col:'#2f9e44'},{y:0.4125,label:'random: 0.41',col:'#868e96'}]:[];
+  drawChart($('#bchart'),{series,ymin:0,ymax:1,yticks:[0,0.25,0.5,0.75,1],xmax:BPULLS,xlabel:'pulls',hlines:hl,empty:'no pulls yet'});
+  put($('#bLegend'),`<span><i style="background:#2f6fed"></i>your run (ε = ${B.eps})</span>`+(B.race?`<span><i style="background:#e03131"></i>ε = 0, avg of 20 seeds</span><span><i style="background:#2f9e44"></i>ε = 0.1</span><span><i style="background:#f08c00"></i>ε = 1</span>`:''));}
+function bRace(){const out={};for(const e of [0,0.1,1]){const runs=[];for(let s=1;s<=20;s++)runs.push(banditRun(e,BPULLS,s));
+    const curve=runs[0].curve.map((_,t)=>runs.reduce((a,r)=>a+r.curve[t],0)/runs.length);
+    out[e]={curve,avg:runs.map(r=>r.avg),best:runs.map(r=>r.best),stuck:runs.filter(r=>r.best<0.5).length};}
+  B.race=out;const mn=a=>Math.min(...a).toFixed(2),mx=a=>Math.max(...a).toFixed(2),av=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const row=(e,lab)=>`<tr><td style="white-space:nowrap">${lab}</td><td class="num">${av(out[e].avg).toFixed(2)}<br><span class="muted small">${mn(out[e].avg)}–${mx(out[e].avg)}</span></td><td class="num">${pct(av(out[e].best))}</td><td class="num">${out[e].stuck} / 20</td></tr>`;
+  put($('#bRaceOut'),`<div class="tbl-wrap" style="margin-top:.5rem"><table class="plain racetbl"><tr><th>Rule</th><th>Coins per pull</th><th>On the best machine</th><th>Seeds stuck on a worse one</th></tr>
+    ${row(0,'❌ ε = 0')}${row(0.1,'✅ ε = 0.1')}${row(1,'❌ ε = 1')}</table></div>
+    <div class="look">👀 Measured just now, seeds 1–20, ${BPULLS} pulls each. The best machine pays 0.70, a random pull 0.41 on average. ε = 0 is all-or-nothing: great when its first win happens on machine C, bad otherwise.</div>`);
+  drawBChart();return out;}
+document.querySelectorAll('#bEpsSeg button').forEach(b=>b.onclick=()=>{B.eps=+b.dataset.e;document.querySelectorAll('#bEpsSeg button').forEach(x=>x.classList.toggle('on',x===b));bReset();});
+$('#bPull').onclick=()=>{bStop();bPull();drawBandit();};
+$('#bPlay').onclick=()=>{if(B.timer){bStop();return;}if(B.t>=BPULLS)bReset();$('#bPlay').textContent='⏸ Pause';B.timer=setInterval(()=>{if(!bPull()){bStop();}drawBandit();},45);};
+$('#bFast').onclick=()=>{bStop();while(bPull());drawBandit();};
+$('#bReset').onclick=bReset;$('#bSeed').addEventListener('change',bReset);$('#bReveal').addEventListener('input',drawBandit);
+$('#bRace').onclick=bRace;
+
+// ================= ③ gridworld + Q-learning =================
+const GW=7,GH=7,NA=4,DX=[0,1,0,-1],DY=[-1,0,1,0],ARW=['↑','→','↓','←'],ANAME=['up','right','down','left'];
+const MAP=['......C',
+           '.#.#F#.',
+           '.#.....',
+           '...F#..',
+           'F#.....',
+           '...#.F.',
+           'S......'];
+const cellAt=s=>MAP[(s/GW)|0][s%GW];
+const START=6*GW+0,KPOS=0*GW+4,COIN=6*GW+2,MAXSTEPS=100;
+const xy=s=>`column ${s%GW+1}, row ${((s/GW)|0)+1}`;
+function envStep(s,a,cfg){const x=s%GW,y=(s/GW)|0,nx=x+DX[a],ny=y+DY[a];
+  let s2=s,bump=true;if(nx>=0&&nx<GW&&ny>=0&&ny<GH&&MAP[ny][nx]!=='#'){s2=ny*GW+nx;bump=false;}
+  const c=cellAt(s2);
+  if(c==='C')return {s2,r:10,done:'cheese'};
+  if(c==='F')return {s2,r:-10,done:'fire'};
+  if(s2===KPOS)return {s2,r:1,done:'cookie'};
+  if(cfg.coin&&s2===COIN)return {s2,r:1,done:null,coin:1};
+  return {s2,r:cfg.stepR,done:null,bump};}
+const isTerm=s=>{const c=cellAt(s);return c==='C'||c==='F'||s===KPOS;};
+function maxQ(Q,s){let m=-1e9;for(let a=0;a<NA;a++)m=Math.max(m,Q[s*NA+a]);return m;}
+function argmaxQ(Q,s,rnd){let m=-1e9,best=[];for(let a=0;a<NA;a++){const v=Q[s*NA+a];if(v>m+1e-12){m=v;best=[a];}else if(Math.abs(v-m)<=1e-12)best.push(a);}
+  return best.length===1?best[0]:best[Math.floor(rnd()*best.length)];}
+function makeAgent(cfg,seed){return {cfg:{...cfg},Q:new Float64Array(GW*GH*NA),rnd:mulberry32(seed),eps:cfg.eps,s:START,t:0,epR:0,coins:0,ep:0,hist:[],trail:[START],visits:new Uint32Array(GW*GH)};}
+function agentStep(A){const c=A.cfg,s=A.s;const a=A.rnd()<A.eps?Math.floor(A.rnd()*NA):argmaxQ(A.Q,s,A.rnd);
+  const e=envStep(s,a,c),k=s*NA+a,old=A.Q[k],mq=e.done?0:maxQ(A.Q,e.s2),tgt=e.r+(e.done?0:c.gamma*mq);
+  A.Q[k]=old+c.alpha*(tgt-old);A.last={s,a,r:e.r,s2:e.s2,old,mq,tgt,nw:A.Q[k],done:e.done};
+  A.s=e.s2;A.t++;A.epR+=e.r;if(e.coin)A.coins++;A.visits[e.s2]++;A.trail.push(e.s2);
+  let end=e.done;if(!end&&A.t>=MAXSTEPS)end='timeout';
+  if(end){A.hist.push({r:A.epR,steps:A.t,end,coins:A.coins});A.ep++;A.lastTrail=A.trail;A.s=START;A.t=0;A.epR=0;A.coins=0;A.trail=[START];
+    if(c.decay)A.eps=Math.max(c.epsMin,A.eps*c.decay);}
+  return end;}
+function runEpisode(A){let e;do{e=agentStep(A);}while(!e);return e;}
+function greedyPath(A){let s=START,path=[s],r=0,end='timeout';const seen=new Set([s]);
+  for(let t=0;t<MAXSTEPS;t++){let m=-1e9,a=0;for(let b=0;b<NA;b++)if(A.Q[s*NA+b]>m){m=A.Q[s*NA+b];a=b;}
+    const e=envStep(s,a,A.cfg);r+=e.r;s=e.s2;path.push(s);if(e.done){end=e.done;break;}if(seen.has(s)&&!A.cfg.coin){end='loop';break;}seen.add(s);}
+  return {path,r,steps:path.length-1,end};}
+
+const BASE={alpha:.3,gamma:.95,eps:1,decay:.995,epsMin:.02,stepR:-.1,coin:false};
+const PRESETS={
+  good:{lab:'✅ Good settings',what:'α 0.3 · γ 0.95 · ε 1 → 0.02',cfg:{...BASE}},
+  noexp:{lab:'❌ ε = 0',what:'never explore',cfg:{...BASE,eps:0,decay:0}},
+  g0:{lab:'❌ γ = 0',what:'only the next reward counts',cfg:{...BASE,gamma:0}},
+  coin:{lab:'❌ Coin (+1, comes back)',what:'bad reward design',cfg:{...BASE,coin:true}},
+  eps1:{lab:'➖ ε = 1 always',what:'only explore, never exploit',cfg:{...BASE,decay:0}},
+  nostep:{lab:'🎓 No step penalty',what:'step reward 0 instead of −0.1',cfg:{...BASE,stepR:0},adv:true}};
+function measure(cfg,seed,N=500,over=50){const A=makeAgent(cfg,seed);for(let i=0;i<N;i++)runEpisode(A);
+  const L=A.hist.slice(-over),n=L.length,cnt=k=>L.filter(h=>h.end===k).length/n,g=greedyPath(A);
+  return {cheese:cnt('cheese'),cookie:cnt('cookie'),fire:cnt('fire'),timeout:cnt('timeout'),avgR:L.reduce((a,h)=>a+h.r,0)/n,avgSteps:L.reduce((a,h)=>a+h.steps,0)/n,
+    coins:L.reduce((a,h)=>a+h.coins,0)/n,greedy:g.end,greedySteps:g.steps,firstCheese:A.hist.findIndex(h=>h.end==='cheese')+1};}
+function measurePreset(key,seeds=10,N=500){const rows=[];for(let s=1;s<=seeds;s++)rows.push(measure(PRESETS[key].cfg,s,N));
+  const f=k=>rows.map(r=>r[k]),av=a=>a.reduce((x,y)=>x+y,0)/a.length,ends={};rows.forEach(r=>ends[r.greedy]=(ends[r.greedy]||0)+1);
+  return {key,seeds,cheese:{min:Math.min(...f('cheese')),max:Math.max(...f('cheese')),avg:av(f('cheese'))},cookie:av(f('cookie')),fire:av(f('fire')),timeout:av(f('timeout')),
+    avgR:av(f('avgR')),coins:av(f('coins')),ends,greedySteps:rows.filter(r=>r.greedy==='cheese').map(r=>r.greedySteps),firstCheese:f('firstCheese')};}
+
+let A=null;
+const RUN={on:false,acc:0,lastT:0};
+const UI={sel:START,wa:null,preset:'good'};
+function readCfg(){return {alpha:+$('#alpha').value,gamma:+$('#gamma').value,eps:+$('#eps').value,decay:$('#decay').checked?.995:0,epsMin:.02,
+  stepR:$('#stepPen').checked?-.1:0,coin:$('#coin').checked};}
+function writeCfg(c){$('#alpha').value=c.alpha;$('#gamma').value=c.gamma;$('#eps').value=c.eps;$('#decay').checked=!!c.decay;$('#stepPen').checked=c.stepR!==0;$('#coin').checked=c.coin;}
+function gReset(){gStop();A=makeAgent(readCfg(),Math.max(1,+$('#gSeed').value||1));UI.msg=null;drawLab();}
+function applyPreset(k){UI.preset=k;writeCfg(PRESETS[k].cfg);document.querySelectorAll('#presetRow .btn').forEach(b=>b.classList.toggle('on',b.dataset.k===k));gReset();}
+function onEnd(e){const h=A.hist[A.hist.length-1];
+  UI.msg={cheese:['🧀','ate the cheese!','#2f9e44'],fire:['🔥','ran into the fire.','#e03131'],cookie:['🍪','took the small cookie.','#f08c00'],timeout:['⌛','ran out of time (100 steps).','#5d6678']}[e];
+  UI.msgTxt=`Episode ${A.ep}: ${UI.msg[0]} ${UI.msg[1]} Total reward <b>${fmt(h.r,1)}</b> in ${h.steps} steps${h.coins?` (${h.coins} coins)`:''}.`;}
+function gStop(){RUN.on=false;$('#gPlay').textContent='▶ Play';}
+function frame(t){if(!RUN.on)return;const sp=+$('#speed').value,dt=Math.min(500,t-(RUN.lastT||t));RUN.lastT=t;let n;
+  if(sp<=3){const per=[0,420,160,70][sp];RUN.acc+=dt;n=Math.floor(RUN.acc/per);RUN.acc-=n*per;}else n=[0,0,0,0,1,3,10,40,150][sp];
+  for(let i=0;i<n;i++){const e=agentStep(A);if(e)onEnd(e);}
+  if(n)drawLab();requestAnimationFrame(frame);}
+const SPNAME=['','slowest','slow','medium-slow','medium','fast','faster','very fast','turbo'];
+
+function heatCol(v){const t=clamp(v/10,-1,1),k=Math.pow(Math.abs(t),.55);
+  return t>=0?`rgb(${Math.round(255-(255-64)*k)},${Math.round(255-(255-170)*k)},${Math.round(255-(255-84)*k)})`:`rgb(${Math.round(255-(255-230)*k)},${Math.round(255-(255-70)*k)},${Math.round(255-(255-70)*k)})`;}
+function drawGrid(){const cv=$('#gridc'),{ctx,w}=setupCanvas(cv),c=w/GW,heat=$('#gHeat').checked,arr=$('#gArrows').checked;
+  ctx.clearRect(0,0,w,w);ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let s=0;s<GW*GH;s++){const x=(s%GW)*c,y=((s/GW)|0)*c,ch=cellAt(s);
+    if(ch==='#'){ctx.fillStyle='#495057';ctx.fillRect(x,y,c,c);ctx.fillStyle='#343a40';ctx.fillRect(x+2,y+c*.48,c-4,2);ctx.fillRect(x+c*.5,y+2,2,c*.46);continue;}
+    let fill='#fff';const term=isTerm(s),seen=[0,1,2,3].some(a=>A.Q[s*NA+a]!==0);
+    if(term)fill=ch==='C'?'#d3f9d8':ch==='F'?'#ffe3e3':'#fff4e6';else if(heat)fill=seen?heatCol(maxQ(A.Q,s)):'#f1f3f7';
+    ctx.fillStyle=fill;ctx.fillRect(x,y,c,c);
+    ctx.font=`${Math.round(c*.5)}px Segoe UI Emoji, Segoe UI, sans-serif`;
+    if(ch==='C')ctx.fillText('🧀',x+c/2,y+c/2+1);else if(ch==='F')ctx.fillText('🔥',x+c/2,y+c/2+1);else if(s===KPOS)ctx.fillText('🍪',x+c/2,y+c/2+1);
+    else{if(A.cfg.coin&&s===COIN){ctx.font=`${Math.round(c*.36)}px Segoe UI Emoji, Segoe UI, sans-serif`;ctx.fillText('🪙',x+c*.28,y+c*.28);}
+      if(s===START){ctx.fillStyle='#5d6678';ctx.font=`600 ${Math.max(9,Math.round(c*.18))}px Segoe UI, sans-serif`;ctx.fillText('start',x+c/2,y+c*.86);}
+      if(arr&&seen){let m=-1e9,b=0,ties=0;for(let a=0;a<NA;a++){const v=A.Q[s*NA+a];if(v>m+1e-9){m=v;b=a;ties=1;}else if(Math.abs(v-m)<=1e-9)ties++;}
+        if(ties<4){const L=c*.3,cx=x+c/2,cy=y+c/2,ex=cx+DX[b]*L,ey=cy+DY[b]*L;ctx.strokeStyle='rgba(28,34,48,.75)';ctx.fillStyle='rgba(28,34,48,.75)';ctx.lineWidth=Math.max(2,c*.05);
+          ctx.beginPath();ctx.moveTo(cx-DX[b]*L*.6,cy-DY[b]*L*.6);ctx.lineTo(ex,ey);ctx.stroke();const an=Math.atan2(DY[b],DX[b]),hs=c*.13;
+          ctx.beginPath();ctx.moveTo(ex+Math.cos(an)*hs*.5,ey+Math.sin(an)*hs*.5);ctx.lineTo(ex-Math.cos(an-.6)*hs,ey-Math.sin(an-.6)*hs);ctx.lineTo(ex-Math.cos(an+.6)*hs,ey-Math.sin(an+.6)*hs);ctx.fill();}}
+      if(!document.body.classList.contains('simple')&&seen&&c>=44){ctx.fillStyle='#1c2230';ctx.font=`${Math.round(c*.17)}px Consolas, monospace`;ctx.textAlign='right';ctx.fillText(maxQ(A.Q,s).toFixed(1),x+c-3,y+c*.16);ctx.textAlign='center';}}}
+  ctx.strokeStyle='rgba(0,0,0,.12)';ctx.lineWidth=1;ctx.beginPath();for(let i=1;i<GW;i++){ctx.moveTo(i*c,0);ctx.lineTo(i*c,w);ctx.moveTo(0,i*c);ctx.lineTo(w,i*c);}ctx.stroke();
+  const P=s=>[(s%GW+.5)*c,(((s/GW)|0)+.5)*c],line=(path,col,lw,dash)=>{ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineJoin='round';ctx.setLineDash(dash||[]);ctx.beginPath();path.forEach((s,i)=>{const [px,py]=P(s);i?ctx.lineTo(px,py):ctx.moveTo(px,py);});ctx.stroke();ctx.restore();};
+  if(A.trail.length>1)line(A.trail,'rgba(47,111,237,.45)',Math.max(2,c*.06),[4,4]);
+  if($('#gPath').checked){const g=greedyPath(A);line(g.path,'rgba(240,140,0,.9)',Math.max(3,c*.1));}
+  const [ax,ay]=P(A.s);ctx.font=`${Math.round(c*.58)}px Segoe UI Emoji, Segoe UI, sans-serif`;ctx.fillText('🐭',ax,ay+1);
+  const sx=(UI.sel%GW)*c,sy=((UI.sel/GW)|0)*c;ctx.strokeStyle='#ffd43b';ctx.lineWidth=3.5;ctx.strokeRect(sx+2,sy+2,c-4,c-4);ctx.strokeStyle='#1c2230';ctx.lineWidth=1;ctx.strokeRect(sx,sy,c,c);}
+function drawCurves(){const H=A.hist,R=H.map(h=>h.r),S=H.map(h=>h.steps),n=Math.max(50,H.length);
+  let lo=-12,hi=12;for(const r of R){if(r>hi)hi=Math.ceil(r/10)*10;if(r<lo)lo=Math.floor(r/5)*5;}
+  const yt=hi>20?[0,Math.round(hi/2),hi]:[-10,-5,0,5,10];
+  drawChart($('#rchart'),{series:[{d:R,col:'rgba(134,142,150,.55)',dots:true},{d:movAvg(R,20),col:'#2f6fed',lw:2.5}],ymin:lo,ymax:hi,yticks:yt,xmax:n,xlabel:'episode',
+    hlines:hi>20?[]:[{y:10-1.1,label:'best possible ≈ +8.9',col:'#2f9e44'}],empty:'no finished episodes yet'});
+  drawChart($('#schart'),{series:[{d:S,col:'rgba(134,142,150,.45)',dots:true},{d:movAvg(S,20),col:'#f08c00',lw:2.5}],ymin:0,ymax:100,yticks:[0,12,50,100],xmax:n,xlabel:'episode',
+    hlines:[{y:12,label:'shortest way: 12',col:'#2f9e44'}],empty:'no finished episodes yet'});}
+function drawInspector(){const s=UI.sel,ch=cellAt(s),el=$('#insp');
+  if(ch==='#'){put(el,'<p class="small">🧱 A wall. The mouse can never be here, so it has no Q-values.</p>');return;}
+  if(isTerm(s)){put(el,`<p class="small">${ch==='C'?'🧀 The cheese':ch==='F'?'🔥 A fire':'🍪 The cookie'}: the episode <b>ends</b> here, so no moves (and no Q-values) are needed. Its reward is paid to the move that walks <b>into</b> it.</p>`);return;}
+  const q=[0,1,2,3].map(a=>A.Q[s*NA+a]),m=Math.max(...q),allEq=q.every(v=>v===q[0]);
+  const cellH=a=>`<div class="${!allEq&&q[a]===m?'best':''}">${ARW[a]} ${fmt(q[a])}</div>`;
+  put(el,`<p class="small" style="margin:.1rem 0">Cell <b>${xy(s)}</b>${s===START?' (start)':''}. The 4 numbers = Q(this cell, move). Green = the best move = the arrow.</p>
+    <div class="qcross"><div class="e"></div>${cellH(0)}<div class="e"></div>${cellH(3)}<div class="mid">${allEq?'all equal:<br>no favourite yet':'best: '+ARW[q.indexOf(m)]}</div>${cellH(1)}<div class="e"></div>${cellH(2)}<div class="e"></div></div>
+    <p class="small muted" style="margin:.1rem 0">Visited ${A.visits[s]} times.</p>`);}
+function workNums(){const s=UI.sel;if(cellAt(s)==='#'||isTerm(s))return null;const q=[0,1,2,3].map(a=>A.Q[s*NA+a]);
+  const a=UI.wa==null?q.indexOf(Math.max(...q)):UI.wa,e=envStep(s,a,A.cfg),old=A.Q[s*NA+a],mq=e.done?0:maxQ(A.Q,e.s2),g=A.cfg.gamma,al=A.cfg.alpha,
+    tgt=e.r+(e.done?0:g*mq),err=tgt-old,nw=old+al*err;return {s,a,e,old,mq,g,al,tgt,err,nw};}
+function drawWork(){const w=workNums(),el=$('#work');$('#wCell').textContent=xy(UI.sel);
+  document.querySelectorAll('#waSeg button').forEach(b=>b.classList.toggle('on',w&&+b.dataset.a===w.a));$('#wApply').disabled=!w;
+  if(!w){put(el,'Pick a normal cell (not a wall, cheese, fire or cookie) in the world in ③.');return;}
+  const {s,a,e,old,mq,g,al,tgt,err,nw}=w;
+  const where=e.bump?`bumps into a wall and stays in the same cell`:e.done?`walks into the ${e.done==='cheese'?'🧀 cheese':e.done==='fire'?'🔥 fire':'🍪 cookie'} (the episode ends)`:`lands in ${xy(e.s2)}`;
+  put(el,`<b>1.</b> The mouse is in ${xy(s)} and goes <b>${ARW[a]} ${ANAME[a]}</b>. It ${where}. Reward <b>r = ${fmt(e.r,1)}</b>${e.coin?' (🪙 coin)':''}.
+    <div class="tbl-wrap" style="margin:.4rem 0"><table class="tbl">
+      <tr><td>🤔 old guess Q(s, ${ARW[a]})</td><td>${fmt(old,3)}</td></tr>
+      <tr><td>🔮 best next: max Q(s′)</td><td>${e.done?'none (episode over)':fmt(mq,3)}</td></tr>
+      <tr><td>🎯 target = r${e.done?'':' + γ·max Q(s′)'}</td><td>${e.done?fmt(e.r,1):`${fmt(e.r,1)} + ${g} × ${fmt(mq,3)}`} = <b>${fmt(tgt,3)}</b></td></tr>
+      <tr><td>📏 error = target − old</td><td>${fmt(tgt,3)} − ${fmt(old,3)} = ${fmt(err,3)}</td></tr>
+      <tr class="hl"><td>🔧 new = old + α·error</td><td>${fmt(old,3)} + ${al} × ${fmt(err,3)} = <b>${fmt(nw,3)}</b></td></tr></table></div>
+    ${Math.abs(err)<0.005?'✅ The error is ≈ 0: this number is already "settled".':err>0?'📈 Better than expected, so the guess goes <b>up</b>.':'📉 Worse than expected, so the guess goes <b>down</b>.'}`);}
+function drawStats(){const H=A.hist,L=H.slice(-50);$('#sEp').textContent=A.ep;$('#sEps').textContent=A.eps.toFixed(2);
+  $('#sWin').textContent=L.length?pct(L.filter(h=>h.end==='cheese').length/L.length):'–';$('#sAvgR').textContent=L.length?fmt(L.reduce((a,h)=>a+h.r,0)/L.length,1):'–';
+  put($('#epMsg'),UI.msg?UI.msgTxt:(A.ep?'':'Press ▶ Play or 👣 Step. At first ε = 1: every move is random.'));
+  const g=greedyPath(A),pm=$('#pathMsg');
+  put(pm,A.ep===0?'🗺️ Learned path: nothing learned yet.':g.end==='cheese'?`🗺️ Following the arrows from the start: <b style="color:#2f9e44">reaches the 🧀 in ${g.steps} steps</b>${g.steps===12?' (the shortest way!)':''}.`
+    :g.end==='cookie'?`🗺️ Following the arrows: <b style="color:#f08c00">ends at the 🍪 cookie</b> (${g.steps} steps). Settled for the small prize.`
+    :g.end==='fire'?`🗺️ Following the arrows: <b style="color:#e03131">walks into the 🔥</b>.`
+    :g.end==='loop'?`🗺️ Following the arrows: <b style="color:#e03131">goes round in circles</b>, the arrows don't lead anywhere yet.`
+    :`🗺️ Following the arrows: <b style="color:#e03131">never reaches the cheese</b> in 100 steps${A.cfg.coin?' (it farms the 🪙 coin instead)':''}.`);
+  const l=A.last;put($('#lastUpd'),l?`Last update: Q(${xy(l.s)}, ${ARW[l.a]}) ${fmt(l.old,3)} → ${fmt(l.nw,3)} (r = ${fmt(l.r,1)}, target ${fmt(l.tgt,3)}).`:'');}
+function drawLab(){drawGrid();drawCurves();drawStats();drawInspector();drawWork();}
+function outs(){$('#aOut').textContent=(+$('#alpha').value).toFixed(2);$('#gOut').textContent=(+$('#gamma').value).toFixed(2);$('#eOut').textContent=(+$('#eps').value).toFixed(2);$('#spOut').textContent=SPNAME[+$('#speed').value];}
+
+put($('#presetRow'),Object.entries(PRESETS).map(([k,p])=>`<button class="btn${p.adv?' adv':''}" data-k="${k}" title="${p.what}">${p.lab}</button>`).join(''));
+document.querySelectorAll('#presetRow .btn').forEach(b=>b.onclick=()=>applyPreset(b.dataset.k));
+$('#gPlay').onclick=()=>{if(RUN.on){gStop();return;}RUN.on=true;RUN.lastT=0;RUN.acc=0;$('#gPlay').textContent='⏸ Pause';requestAnimationFrame(frame);};
+$('#gStep').onclick=()=>{gStop();const e=agentStep(A);if(e)onEnd(e);drawLab();};
+$('#gFast').onclick=()=>{let e;for(let i=0;i<100;i++){e=runEpisode(A);}onEnd(e);drawLab();};
+$('#gReset').onclick=gReset;$('#gSeed').addEventListener('change',gReset);
+['#alpha','#gamma','#eps','#speed'].forEach(id=>$(id).addEventListener('input',()=>{outs();const c=readCfg();A.cfg.alpha=c.alpha;A.cfg.gamma=c.gamma;if(id==='#eps'){A.cfg.eps=c.eps;A.eps=c.eps;}drawLab();}));
+['#decay','#stepPen','#coin'].forEach(id=>$(id).addEventListener('input',()=>{const c=readCfg();A.cfg.decay=c.decay;A.cfg.stepR=c.stepR;A.cfg.coin=c.coin;drawLab();}));
+['#gPath','#gHeat','#gArrows'].forEach(id=>$(id).addEventListener('input',drawLab));
+$('#gridc').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect(),i=clamp(Math.floor((e.clientX-r.left)/r.width*GW),0,GW-1),j=clamp(Math.floor((e.clientY-r.top)/r.height*GH),0,GH-1);
+  UI.sel=j*GW+i;UI.wa=null;drawLab();});
+document.querySelectorAll('#waSeg button').forEach(b=>b.onclick=()=>{UI.wa=+b.dataset.a;drawWork();});
+$('#wApply').onclick=()=>{const w=workNums();if(!w)return;UI.wa=w.a;A.Q[w.s*NA+w.a]=w.nw;drawLab();};
+
+// ================= ⑤ presets table =================
+const ENDNAME={cheese:'🧀 cheese',cookie:'🍪 cookie',fire:'🔥 fire',timeout:'⌛ time-out',loop:'🔁 circles'};
+function presetTable(res){const rows=Object.entries(PRESETS).map(([k,p])=>{const r=res&&res[k];
+    const ch=r?`${pct(r.cheese.min)}–${pct(r.cheese.max)} <span class="muted">(avg ${pct(r.cheese.avg)})</span>`:'…';
+    const ends=r?Object.entries(r.ends).sort((a,b)=>b[1]-a[1]).map(([e,n])=>`${ENDNAME[e]} ${n}/${r.seeds}`).join(', '):'…';
+    return `<tr${p.adv?' class="adv"':''}><td><b>${p.lab}</b></td><td class="small">${p.what}</td><td class="num">${ch}</td><td class="small">${ends}</td><td><button class="btn" style="white-space:nowrap" data-load="${k}">Load ▶</button></td></tr>`;}).join('');
+  put($('#presetTbl'),`<table class="plain"><tr><th>Preset</th><th>What changes</th><th>🧀 in the last 50 episodes<br><span class="small muted">(min–max over 10 seeds)</span></th><th>Learned path (follow the arrows) ends at…</th><th></th></tr>`+rows+'</table>');
+  document.querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>{applyPreset(b.dataset.load);document.querySelector('#presetRow').scrollIntoView({behavior:'smooth',block:'start'});});}
+function presetTexts(res){const r=res,n=r.good.seeds,g=r.good;
+  const s=(k,e)=>(r[k].ends[e]||0);
+  put($('#txtGood'),`Measured: on ${s('good','cheese')} of ${n} seeds the learned path goes to the cheese${g.greedySteps.every(v=>v===12)?' in 12 steps, the shortest way':''}. In the last 50 episodes it reached the cheese ${pct(g.cheese.min)}–${pct(g.cheese.max)} of the time (the misses are random ε-steps into fire). First cheese: around episode ${Math.min(...g.firstCheese)}–${Math.max(...g.firstCheese)}.`);
+  put($('#txtNoexp'),`Measured: on ${s('noexp','cookie')} of ${n} seeds it settled for the 🍪 cookie for good (the other ${n-s('noexp','cookie')} were lucky and found the cheese first).`);
+  put($('#txtG0'),`Measured: on ${s('g0','timeout')+s('g0','loop')} of ${n} seeds the arrows lead nowhere, and it reached the cheese in only ${pct(r.g0.cheese.min)}–${pct(r.g0.cheese.max)} of the last 50 episodes (by luck).`);
+  put($('#txtCoin'),`Measured: on all ${n} seeds it farmed about ${Math.round(r.coin.coins)} coins per episode and reached the cheese in ${pct(r.coin.cheese.max)} of the last 50 episodes.`);
+  put($('#txtEps1'),`Measured: cheese in only ${pct(r.eps1.cheese.min)}–${pct(r.eps1.cheese.max)} of the last 50 episodes, and ${pct(r.eps1.fire)} ended in fire. Funny thing: its <b>table</b> still learned something (on ${s('eps1','cheese')} of ${n} seeds the arrows lead to the cheese), it just never uses it.`);
+  put($('#txtNostep'),`on ${s('nostep','cookie')} of ${n} seeds it settled for the 🍪 cookie, like ε = 0.`);
+  put($('#ansNoexp'),`Measured on seeds 1–10: ${s('noexp','cookie')} of 10 end at the cookie.`);}
+function measureAll(seeds=10,N=500){const res={};for(const k in PRESETS)res[k]=measurePreset(k,seeds,N);presetTable(res);presetTexts(res);return res;}
+$('#measureBtn').onclick=()=>{$('#measureMsg').textContent='measuring…';setTimeout(()=>{const t0=performance.now();measureAll();$('#measureMsg').textContent=`done in ${Math.round(performance.now()-t0)} ms`;},30);};
+
+window.RL={measurePreset,measureAll,banditRun,bRace,PRESETS,makeAgent,runEpisode,greedyPath,get agent(){return A;}};
+
+function drawAll(){drawBandit();drawLab();}
+window.addEventListener('resize',drawAll);
+outs();bReset();applyPreset('good');measureAll();
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
+</script>
+</body>
+</html>

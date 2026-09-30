@@ -34,7 +34,7 @@ By the end of the day students can …
 | `04_student_lab.ipynb` | 6 exercises with TODOs + hidden solutions | ~5 min for all solutions |
 | `05_data_augmentation.ipynb` | Every torchvision augmentation on one picture → good vs bad augmentations → the same small CNN trained with **no / good / too strong** augmentation on 5,000 CIFAR-10 pictures (train–test gap ≈ 36 → 4 points). Visual lesson: `Training_Visualized/13_data_augmentation.html` | ~10 min |
 | `06_image_segmentation.ipynb` | Case study on the open-source **Penn-Fudan** pedestrian dataset (downloads 54 MB): masks, IoU vs pixel accuracy, pretrained torchvision **LR-ASPP** out of the box → our own **U-Net** from zero → fine-tuned LR-ASPP. Visual lesson: `Training_Visualized/14_image_segmentation.html` | ~10–15 min |
-| `07_rnn_lstm_text.ipynb` | **RNN & LSTM** text classification: SMS spam (UCI, 200 KB): vocabulary → Embedding → RNN/LSTM → spam recall/precision vs an "always ham" baseline, plain RNN vs LSTM, try your own messages | ~1 min |
+| `07_rnn_lstm_text.ipynb` | **RNN & LSTM** text classification: SMS spam (UCI, 200 KB): vocabulary → Embedding → RNN/LSTM → spam recall/precision vs an "always ham" baseline, plain RNN vs LSTM, try your own messages. Visual lesson: `Training_Visualized/15_rnn_lstm.html` | ~1 min |
 | `scripts/train_and_export.py` | **One-command fallback**: the whole Day-2 pipeline → `models/` | ~6 min |
 | `outputs/` | created by the notebooks (CSV results, temporary ONNX files) | – |
 

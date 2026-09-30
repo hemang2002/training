@@ -60,13 +60,15 @@
     <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
     <a href="13_data_augmentation.html" class="on" title="Data augmentation">13</a>
     <a href="14_image_segmentation.html" title="Image segmentation">14</a>
+    <a href="15_rnn_lstm.html" title="RNN &amp; LSTM">15</a>
+    <!-- <a href="16_reinforcement_learning.html" title="Reinforcement learning">16</a> -->
   </nav>
   <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 13 of 14 · ≈ 30 min</div>
+  <div class="kicker">Lesson 13 of 15 · ≈ 30 min</div>
   <h1>Data augmentation: more pictures for free</h1>
   <p class="one-liner">A model with only a few pictures starts to <b>memorise</b> them, pixel by pixel. Data augmentation shows the <b>same picture in new ways</b>:
   flipped, shifted, zoomed, a bit darker, a bit blurry. Every epoch the model sees a slightly different version, so it has to learn <b>what matters</b>
@@ -77,7 +79,7 @@
   <div class="row">
     <div class="box story"><h3>🧸 Think of it like this</h3><p>If you only ever saw <b>one photo</b> of your new classmate, you might not recognise them in the shade, from the side, or wearing a hat.
       Seeing them on many different days teaches you their <b>face</b>, not that one photo. Augmentation gives the model "many different days" from one photo.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ②, switch transforms on and off and press <b>🎲 New random version</b>.</li>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ②, move <b>one slider</b>: the top row shows that change alone, the bottom row shows it mixed with the others. Press <b>🎲</b> for new random picks.</li>
       <li>In ③, guess ✅ or ❌ for each change, then check.</li>
       <li>In ④, switch between <b>none / good / too strong</b> and watch the two curves.</li></ol></div>
     <div class="box"><h3>👀 Notice this</h3><p>Without augmentation, training accuracy goes to ≈ 100% but new pictures do worse (<b>overfitting</b>).
@@ -110,15 +112,17 @@
 
 <section class="card">
   <h2>② Augmentation playground</h2>
-  <p>Switch transforms on and off. Every press of 🎲 makes <b>one batch</b> of 8 random versions of the same picture, just like the data loader does during training.</p>
+  <p>When you move a slider, you see <b>two rows</b>. <b>Top:</b> only that one change, in 8 steps from its smallest to its biggest value. <b>Bottom:</b> a real training batch, where all switched-on changes are mixed at random, like the data loader does. Press 🎲 for new random picks.</p>
   <div class="lab">
     <aside class="controls" id="controls"></aside>
     <div class="stage">
       <div class="orig"><figure><canvas id="origc" class="pic" width="160" height="160"></canvas><figcaption>Original (on disk)</figcaption></figure>
         <p>This picture never changes on disk. The changes happen <b>on the fly</b>, each time the picture is loaded. Black corners come from rotating or shifting (there are no pixels there).</p></div>
-      <div class="btn-row"><button class="btn primary" id="roll">🎲 New random version</button></div>
-      <div class="canvas-box"><div class="canvas-title">One training batch: 8 random versions</div><div class="batch" id="batch"></div>
-        <div class="look">👀 Under each picture: which random changes it got. Ask yourself for each one: <b>would I still say "cat"?</b> If yes, the augmentation is fine.</div></div>
+      <div class="btn-row"><button class="btn primary" id="roll">🎲 Roll new dice for the real batch</button></div>
+      <div class="canvas-box"><div class="canvas-title" id="batchT">Only one change</div><div class="batch" id="batch"></div>
+        <div class="look" id="look"></div></div>
+      <div class="canvas-box"><div class="canvas-title">🎲 A real training batch: all switched-on changes mixed at random</div><div class="batch" id="batch2"></div>
+        <div class="look">👀 This is what the model really sees: every picture gets a <b>random mix</b> of all switched-on changes (listed under it). While you drag a slider, each picture keeps its own dice roll, so you see the slider's effect <b>inside the mix</b>. Ask yourself: <b>would I still say "cat"?</b></div></div>
       <p class="smp" id="plain"></p>
       <div class="adv"><div class="canvas-title" style="margin-top:.6rem">The matching torchvision code (sizes for 32 × 32 CIFAR-10 pictures)</div><pre class="code" id="code"></pre></div>
     </div>
@@ -244,7 +248,9 @@ const $=s=>document.querySelector(s);
 const put=(el,html)=>el.replaceChildren(document.createRange().createContextualFragment(html));
 const S=160;
 function mk(){const c=document.createElement('canvas');c.width=S;c.height=S;c.className='pic';return c;}
-function gauss(){let u=0;while(u===0)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random());}
+let rnd=Math.random;   // swapped for a seeded one in ②, so a picture keeps its random draws while you drag a slider
+const seeded=a=>()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+function gauss(){let u=0;while(u===0)u=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd());}
 function circle(c,x,y,r){c.beginPath();c.arc(x,y,r,0,2*Math.PI);c.fill();}
 function ell(c,x,y,rx,ry){c.beginPath();c.ellipse(x,y,rx,ry,0,0,2*Math.PI);c.fill();}
 function tri(c,a,b,d,e,f,g){c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.lineTo(f,g);c.closePath();c.fill();}
@@ -329,11 +335,11 @@ function augment(src,out,q){const p={...P0,...q},c=out.getContext('2d'),W=out.wi
     c.putImageData(im,0,0);}
   if(p.erase){c.fillStyle='#808080';c.fillRect(p.erase.x*W,p.erase.y*W,p.erase.w*W,p.erase.h*W);}
 }
-const u=(a,b)=>a+(b-a)*Math.random();
+const u=(a,b)=>a+(b-a)*rnd();
 function sample(g){const p={},tags=[];
   if(g.crop<1){const a=u(g.crop,1),r=Math.exp(u(Math.log(3/4),Math.log(4/3))),w=Math.min(1,Math.sqrt(a*r)),h=Math.min(1,Math.sqrt(a/r));
     p.sx=1/w;p.sy=1/h;p.cx=u(-(1-w)/2,(1-w)/2);p.cy=u(-(1-h)/2,(1-h)/2);tags.push('crop');}
-  if(g.flip&&Math.random()<.5){p.flip=true;tags.push('flip');}
+  if(g.flip&&rnd()<.5){p.flip=true;tags.push('flip');}
   if(g.rot){p.rot=u(-g.rot,g.rot);tags.push(Math.round(p.rot)+'°');}
   if(g.shift){p.tx=u(-g.shift,g.shift);p.ty=u(-g.shift,g.shift);tags.push('shift');}
   if(g.br){p.br=u(Math.max(0,1-g.br),1+g.br);}
@@ -342,7 +348,7 @@ function sample(g){const p={},tags=[];
   if(g.sat||g.hue){if(g.sat)p.sat=u(Math.max(0,1-g.sat),1+g.sat);if(g.hue)p.hue=u(-g.hue,g.hue);tags.push('colour');}
   if(g.blur){p.blur=u(0.1,g.blur);tags.push('blur');}
   if(g.noise){p.noise=g.noise;tags.push('noise');}
-  if(g.erase&&Math.random()<.5){const a=u(.02,Math.max(.03,g.erase)),r=Math.exp(u(Math.log(.3),Math.log(3.3))),w=Math.min(.95,Math.sqrt(a*r)),h=Math.min(.95,Math.sqrt(a/r));
+  if(g.erase&&rnd()<.5){const a=u(.02,Math.max(.03,g.erase)),r=Math.exp(u(Math.log(.3),Math.log(3.3))),w=Math.min(.95,Math.sqrt(a*r)),h=Math.min(.95,Math.sqrt(a/r));
     p.erase={x:u(0,1-w),y:u(0,1-h),w,h};tags.push('cutout');}
   return {p,tags};}
 
@@ -368,7 +374,31 @@ function presetOn(k){document.querySelectorAll('#presets .btn').forEach(b=>b.cla
 
 const batchFigs=[];
 for(let i=0;i<8;i++){const f=document.createElement('figure'),c=mk(),cap=document.createElement('figcaption');f.append(c,cap);$('#batch').append(f);batchFigs.push({c,cap});}
-function roll(){const g=toCfg(readSliders());for(const b of batchFigs){const {p,tags}=sample(g);augment(CAT,b.c,p);b.cap.textContent=tags.length?tags.join(' · '):'unchanged';}}
+const mixFigs=[];
+for(let i=0;i<8;i++){const f=document.createElement('figure'),c=mk(),cap=document.createElement('figcaption');f.append(c,cap);$('#batch2').append(f);mixFigs.push({c,cap});}
+let seeds=mixFigs.map(()=>Math.random()*2**32|0),lastOne='rot';
+function roll(){const g=toCfg(readSliders());mixFigs.forEach((b,i)=>{rnd=seeded(seeds[i]);const {p,tags}=sample(g);augment(CAT,b.c,p);b.cap.textContent=tags.length?tags.join(' · '):'unchanged';});rnd=Math.random;}
+function reroll(){seeds=seeds.map(()=>Math.random()*2**32|0);roll();}
+// one change only, 8 fixed steps from smallest to biggest: no randomness, so nothing flickers while you drag
+const lerp=(a,b,t)=>a+(b-a)*t,sg=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
+const ONE={
+  flip:(g,t,i)=>g.flip?[{flip:i%2===1},i%2?'flipped':'not flipped']:[{},'off'],
+  rot:(g,t)=>{const r=lerp(-g.rot,g.rot,t);return[{rot:r},sg(Math.round(r))+'°'];},
+  crop:(g,t,i)=>{const a=lerp(g.crop,1,t),w=Math.sqrt(a),m=(1-w)/2,d=[[-1,-1],[1,-1],[-1,1],[1,1]][i%4];return[{sx:1/w,sy:1/w,cx:d[0]*m,cy:d[1]*m},'keep '+Math.round(a*100)+'%'];},
+  shift:(g,t,i)=>{const an=i*Math.PI/4,x=g.shift*Math.cos(an),y=g.shift*Math.sin(an);return[{tx:x,ty:y},`x ${sg(Math.round(x*100))}% y ${sg(Math.round(y*100))}%`];},
+  br:(g,t)=>{const v=lerp(Math.max(0,1-g.br),1+g.br,t);return[{br:v},'× '+v.toFixed(2)];},
+  ct:(g,t)=>{const v=lerp(Math.max(0,1-g.ct),1+g.ct,t);return[{ct:v},'× '+v.toFixed(2)];},
+  sat:(g,t)=>{const v=lerp(Math.max(0,1-g.sat),1+g.sat,t);return[{sat:v},'× '+v.toFixed(2)];},
+  hue:(g,t)=>{const v=lerp(-g.hue,g.hue,t);return[{hue:v},sg(+v.toFixed(2))];},
+  blur:(g,t)=>{const v=lerp(0.1,g.blur,t);return[{blur:v},'σ '+v.toFixed(1)];},
+  noise:(g,t)=>{const v=lerp(g.noise/8,g.noise,t);return[{noise:v},'noise '+v.toFixed(2)];},
+  erase:(g,t,i)=>{const a=lerp(.02,Math.max(.03,g.erase),t),w=Math.sqrt(a),d=[[.1,.1],[.55,.15],[.2,.5],[.5,.55]][i%4];return[{erase:{x:Math.min(d[0],1-w),y:Math.min(d[1],1-w),w,h:w}},'box '+Math.round(a*100)+'%'];}};
+function showOne(id){lastOne=id;const g=toCfg(readSliders()),s=SL.find(x=>x.id===id),name=s.name.replace(/^\S+\s/,'').replace(/ \(.*\)$/,'');
+  const on=s.check?g.flip:readSliders()[id]>0;
+  batchFigs.forEach((b,i)=>{const [p,cap]=on?ONE[id](g,i/7,i):[{},'unchanged'];augment(CAT,b.c,p);b.cap.textContent=cap;});
+  $('#batchT').textContent=on?`Only ${name}: 8 steps, from the smallest to the biggest change`:`${name} is off: all 8 pictures are the same`;
+  put($('#look'),on?`👀 You see <b>only ${name.toLowerCase()}</b>, nothing else. Each picture is one step of the allowed range (value under it). In training, each picture would get <b>one random value</b> from this range. The row below shows it <b>mixed</b> with the other switched-on changes.`
+    :`👀 This change is switched off. Move its slider to the right to see what it does.`);}
 const N=v=>`<span class="n">${v}</span>`,CM=t=>`<span class="c"># ${t}</span>`;
 function codeUpdate(){const o=readSliders(),g=toCfg(o),L=[],words=[];const f2=v=>v.toFixed(2);
   if(o.crop){L.push(`transforms.RandomResizedCrop(${N(32)}, scale=(${N(f2(g.crop))}, ${N('1.0')})),`);words.push('crop / zoom');}
@@ -387,10 +417,10 @@ function codeUpdate(){const o=readSliders(),g=toCfg(o),L=[],words=[];const f2=v=
   put($('#plain'),none?'🧾 Nothing is switched on: the model sees the exact same picture every epoch.'
     :`🧾 In PyTorch this is one list of transforms: <b>${words.join('</b>, <b>')}</b>. Each one is applied at random, every time a picture is loaded. (Switch to 🎓 Detailed view to see the code.)`);}
 let pend=false;
-function refresh(){labels();codeUpdate();if(pend)return;pend=true;requestAnimationFrame(()=>{pend=false;roll();});}
-document.querySelectorAll('#controls input').forEach(el=>el.addEventListener('input',()=>{presetOn(null);refresh();}));
+function refresh(one){labels();codeUpdate();if(pend)return;pend=true;requestAnimationFrame(()=>{pend=false;showOne(one||lastOne);roll();});}
+document.querySelectorAll('#controls input').forEach(el=>el.addEventListener('input',()=>{presetOn(null);refresh(el.id.slice(2));}));
 document.querySelectorAll('#presets .btn').forEach(b=>b.onclick=()=>{setSliders(PRE[b.dataset.k]);presetOn(b.dataset.k);refresh();});
-$('#roll').onclick=roll;
+$('#roll').onclick=reroll;
 augment(CAT,$('#origc'),{});
 setSliders(PRE.good);presetOn('good');refresh();
 
