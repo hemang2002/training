@@ -84,6 +84,41 @@
   .hb .t{height:1rem;background:var(--soft);border-radius:5px;position:relative;overflow:hidden}
   .hb .t b{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:width .3s}
   .hb .n{font-family:var(--mono);font-weight:700;text-align:right;font-size:.82rem}
+  /* ⑤b why accuracy fools us */
+  .aw{border-top:1px dashed var(--line);margin-top:1.2rem;padding-top:1rem}
+  .aw h3{font-size:1.25rem;letter-spacing:-.01em}
+  .awctl{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.5rem 0 .7rem}
+  .awctl .lbl{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:.3rem}
+  .awgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:1rem;align-items:start}
+  @media (max-width:900px){.awgrid{grid-template-columns:1fr}}
+  .dots{display:grid;grid-template-columns:repeat(50,minmax(0,1fr));gap:2px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.5rem}
+  .dots i{aspect-ratio:1;border-radius:2px;transition:opacity .35s,background-color .35s}
+  .dots i.off{opacity:.08}
+  .dots i.TN{background:#ced4da}.dots i.FP{background:#f08c00}.dots i.FN{background:#e03131}.dots i.TP{background:#2f6fed}
+  .dlegend{display:flex;flex-wrap:wrap;gap:.25rem .9rem;font-size:.82rem;margin:.45rem .2rem}
+  .dlegend i{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+  .cm{border-collapse:separate;border-spacing:4px;width:100%;font-size:.86rem}
+  .cm th{font-weight:700;color:var(--muted);padding:.1rem .3rem;text-align:center;font-size:.8rem}
+  .cm th.r{text-align:right}
+  .cm td{border-radius:10px;padding:.45rem .3rem;text-align:center;border:2px solid transparent;transition:opacity .3s,border-color .3s}
+  .cm td b{display:block;font:800 1.45rem/1.1 var(--sans);font-variant-numeric:tabular-nums}
+  .cm td small{display:block;font-size:.74rem;line-height:1.25}
+  .cm td.TN{background:#f1f3f5}.cm td.FP{background:#fff4e6;color:#d9480f}.cm td.FN{background:#fff5f5;color:#c92a2a}.cm td.TP{background:#e7f0ff;color:#1c4fd1}
+  .cm td.off{opacity:.18}
+  .cm td.top{border-color:var(--green)}
+  .awbig{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin:.5rem 0 .1rem}
+  .awbig b{font:800 2.6rem/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .awbig span{color:var(--muted);font-weight:600}
+  .awf{font-family:var(--mono);font-size:.86rem;background:var(--soft);border-radius:8px;padding:.4rem .6rem;margin:.3rem 0;overflow-wrap:anywhere}
+  .share{margin:.5rem 0 .2rem;font-size:.86rem}
+  .share .t{height:.8rem;border-radius:99px;background:#ebfbee;overflow:hidden;margin:.2rem 0;border:1px solid var(--line)}
+  .share .t b{display:block;height:100%;background:var(--red);transition:width .4s}
+  .life{background:#fff;border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:10px;padding:.5rem .75rem;font-size:.93rem;margin:.5rem 0}
+  .rule{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:.6rem;margin:.7rem 0 0}
+  .rule > div{border-radius:12px;padding:.6rem .8rem;font-size:.9rem;border:2px solid var(--line);background:#fff}
+  .rule .good{border-color:#8ce99a;background:var(--good-bg)} .rule .bad{border-color:#ffa8a8;background:var(--bad-bg)}
+  .rule > div > b:first-child{display:block}
+  @media (prefers-reduced-motion:reduce){.dots i,.cm td,.share .t b{transition:none}}
   /* ⑥ timeline */
   .tl{list-style:none;padding:0;margin:.6rem 0 .6rem .5rem;border-left:3px solid var(--line)}
   .tl li{position:relative;padding:.2rem 0 .65rem 1.1rem;font-size:.93rem;line-height:1.45}
@@ -111,6 +146,7 @@
     <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
     <a href="13_data_augmentation.html" title="Data augmentation">13</a>
     <a href="14_image_segmentation.html" title="Image segmentation">14</a>
+    <a href="15a_text_to_numbers.html" title="Text to numbers">15a</a>
     <a href="15_rnn_lstm.html" class="on" title="RNN &amp; LSTM">15</a>
     <!-- <a href="16_reinforcement_learning.html" title="Reinforcement learning">16</a> -->
   </nav>
@@ -431,7 +467,7 @@ h_t = o_t ⊙ tanh( c_t )</span>
       <div class="canvas-box"><div class="canvas-title">Measured on the 1,115 test messages (6 epochs each)</div>
         <div class="hbars" id="hbars"></div>
         <div class="legend"><span><i style="background:#adb5bd"></i>😴 always "ham"</span><span><i style="background:#f08c00"></i>plain RNN</span><span><i style="background:#2f6fed"></i>LSTM</span></div></div>
-      <div class="look">👀 Accuracy hardly separates the models (the lazy one already has 86.1%!). <b>Spam recall</b> does: the LSTM catches 91.6% of the spam, the plain RNN 84.5%, the lazy one 0%.</div>
+      <div class="look">👀 Accuracy hardly separates the models (the lazy one already has 86.1%!). <b>Spam recall</b> does: the LSTM catches 91.6% of the spam, the plain RNN 84.5%, the lazy one 0%. <b>Why?</b> See the squares below 👇</div>
     </div>
     <div>
       <div class="tbl-wrap"><table class="plain">
@@ -447,6 +483,44 @@ h_t = o_t ⊙ tanh( c_t )</span>
         <li>➖ But the gap is <b>modest</b>: SMS messages are short, so the plain RNN's memory fades less (see ③). On long texts the gap grows.</li>
       </ul>
       <p class="small adv">LSTM confusion matrix on the test set: 953 ham → ham, 7 ham → spam (lost messages!), 13 spam → ham (got through), 142 spam → spam. Vocabulary: 3,913 words (seen ≥ 2 times; others → <code>&lt;unk&gt;</code>). Adam, lr 3e-3, batch 64.</p>
+    </div>
+  </div>
+  <div class="aw" id="accWhy">
+    <h3>🔎 Why is accuracy so high, and why can't we trust it here?</h3>
+    <div class="callout think" style="margin:.4rem 0 .7rem"><b>🛂 Think of airport security.</b> 1,115 passengers walk through, and 155 of them carry something forbidden.
+      A lazy guard waves <b>everybody</b> through. He is "right" about the 960 innocent passengers, so he is <b>86% correct</b>, and he catches <b>nobody</b>.
+      Accuracy gives him a point for every easy "you're fine". The real question is: <b>of the 155, how many did you stop?</b> That question is called <b>recall</b>.</div>
+    <p>Below, <b>every square is one test message</b> from Notebook 07 (all 1,115). Pick a model, then click a metric: the squares that the metric <b>ignores</b> fade away.</p>
+    <div class="awctl">
+      <span><span class="lbl">Model</span><span class="seg" id="awModel"><button data-m="lstm" class="on">LSTM</button><button data-m="rnn">plain RNN</button><button data-m="lazy">😴 always "ham"</button></span></span>
+      <span><span class="lbl">Metric</span><span class="seg" id="awMetric"><button data-k="acc" class="on">Accuracy</button><button data-k="rec">Spam recall</button><button data-k="pre">Spam precision</button></span></span>
+    </div>
+    <div class="awgrid">
+      <div>
+        <div class="dots" id="awDots" role="img" aria-label="1,115 test messages as squares, coloured by outcome"></div>
+        <div class="dlegend">
+          <span><i style="background:#ced4da"></i>ham, kept in inbox ✅</span><span><i style="background:#2f6fed"></i>spam, caught ✅</span>
+          <span><i style="background:#e03131"></i>spam, got through ❌</span><span><i style="background:#f08c00"></i>real message sent to spam ❌</span></div>
+      </div>
+      <div>
+        <table class="cm" id="awCm">
+          <tr><th></th><th>model says<br>ham</th><th>model says<br>spam</th></tr>
+          <tr><th class="r">really<br>ham</th><td class="TN" data-c="TN"><b>953</b><small>✅ kept in inbox</small></td><td class="FP" data-c="FP"><b>7</b><small>❌ real message lost</small></td></tr>
+          <tr><th class="r">really<br>spam</th><td class="FN" data-c="FN"><b>13</b><small>❌ spam got through</small></td><td class="TP" data-c="TP"><b>142</b><small>✅ spam caught</small></td></tr>
+        </table>
+        <div class="awbig"><b id="awVal">98.2%</b><span id="awName">accuracy</span></div>
+        <div class="awf" id="awF"></div>
+        <div class="share" id="awShare"></div>
+        <div class="life" id="awLife"></div>
+      </div>
+    </div>
+    <div class="look">👀 Click <b>Accuracy</b>, then <b>Spam recall</b>. The <b>red squares do not change</b>: the model makes the same mistakes. What changes is <b>what we divide by</b>.
+      Accuracy hides the mistakes among all 1,115 messages, and 960 of those are easy ham. Recall puts them next to the 155 spam only, so the same mistakes now look much bigger.
+      Then pick <b>😴 always "ham"</b>: still 86% accurate, and every spam square is red.</div>
+    <div class="rule">
+      <div class="bad"><b>❌ Accuracy fools you when…</b>one class is rare (here only 14% spam). Saying "ham" every time already scores high, so a high number proves nothing.</div>
+      <div class="good"><b>✅ Then look at the rare class</b><b>Recall</b>: how much spam did we catch? <b>Precision</b>: when we say spam, are we right? And always compare with the lazy "always ham" model.</div>
+      <div><b>⚖️ Accuracy is fine when…</b>the classes are about equally common (e.g. the 10 clothing classes in FashionMNIST). More in Lesson 9.</div>
     </div>
   </div>
   <div class="adv">
@@ -551,6 +625,8 @@ h_t = o_t ⊙ tanh( c_t )</span>
       <details class="answer"><summary>Answer</summary>The Linear layer only uses the memory after the <b>last</b> step. With padding at the end, the model would read 20 empty slots after the real words, and the real words would fade from its memory.</details></li>
     <li>The lazy "always ham" model has 86.1% accuracy. Why is it useless, and which number shows it?
       <details class="answer"><summary>Answer</summary>It never catches any spam: spam recall = 0%. Because most messages are ham, accuracy looks high anyway (Lesson 9: imbalanced data).</details></li>
+    <li>In the squares, pick <b>plain RNN</b> and switch between <b>Accuracy</b> and <b>Spam recall</b>. How many red squares are there in each view, and why are the two percentages so different?
+      <details class="answer"><summary>Answer</summary><b>24</b> red squares in both views: the same 24 spam messages got through. Accuracy divides all 33 mistakes (24 red + 9 orange) by 1,115 messages: 3.0% wrong. Recall divides the 24 missed spam by only the 155 spam: 15.5% missed. Same mistakes, smaller total, bigger share.</details></li>
     <li>Give two reasons why Transformers replaced RNNs for large language models, and one case where an RNN is still a good choice.
       <details class="answer"><summary>Answer</summary>(1) All words are processed in parallel, so training on GPUs is much faster. (2) Attention links any two words directly, so nothing fades over long texts.
       RNNs are still good for small models on small devices and for streaming data (sensors, audio), where they do a fixed small amount of work per new sample.</details></li>
@@ -558,7 +634,7 @@ h_t = o_t ⊙ tanh( c_t )</span>
 </section>
 
 <nav class="pager">
-  <a href="14_image_segmentation.html"><small>← Previous</small>14 · Image segmentation</a>
+  <a href="15a_text_to_numbers.html"><small>← Previous</small>15a · Text to numbers</a>
   <a class="next" href="16_reinforcement_learning.html"><small>Next →</small>16 · Reinforcement learning</a>
 </nav>
 </main>
@@ -739,6 +815,45 @@ $$('#scaleSeg button').forEach(b=>b.onclick=()=>{SC.lo=+b.dataset.s;drawBars();}
 function drawAll(){drawFade();drawRNN();}
 window.addEventListener('resize',drawAll);
 drawOrder();rnnRun();drawRNN();drawFade();setGate('all');drawGates();drawBars();
+</script>
+<script>
+/* ⑤b Why accuracy fools us. State driver: the model and metric buttons. Counts measured in Notebook 07 (test set, 1,115 messages). */
+(function(){
+  const dots=document.getElementById('awDots');if(!dots)return;
+  const M={lstm:{TN:953,FP:7,FN:13,TP:142,name:'the LSTM'},rnn:{TN:951,FP:9,FN:24,TP:131,name:'the plain RNN'},lazy:{TN:960,FP:0,FN:155,TP:0,name:'the lazy model'}};
+  const USE={acc:['TN','FP','FN','TP'],rec:['FN','TP'],pre:['FP','TP']};   // squares each metric looks at
+  const TOP={acc:['TN','TP'],rec:['TP'],pre:['TP']};                       // the "right" ones, on top of the fraction
+  const st={m:'lstm',k:'acc'},N=1115,pct=(a,b)=>b?(100*a/b).toFixed(1)+'%':'–',fmt=n=>n.toLocaleString('en-US');
+  dots.innerHTML=Array.from({length:N},()=>'<i></i>').join('');const sq=[...dots.children];
+  function draw(){
+    const c=M[st.m],k=st.k;let i=0;
+    ['TN','FP','FN','TP'].forEach(t=>{for(let j=0;j<c[t];j++,i++)sq[i].className=t+(USE[k].includes(t)?'':' off');});
+    document.querySelectorAll('#awCm td').forEach(td=>{const t=td.dataset.c;td.querySelector('b').textContent=fmt(c[t]);
+      td.classList.toggle('off',!USE[k].includes(t));td.classList.toggle('top',TOP[k].includes(t));});
+    const all=c.TN+c.FP+c.FN+c.TP,spam=c.TP+c.FN,said=c.TP+c.FP;
+    let val,name,f,mis,den,life;
+    if(k==='acc'){val=pct(c.TN+c.TP,all);name='accuracy: right answers out of ALL messages';
+      f=`(${fmt(c.TN)} + ${fmt(c.TP)}) / ${fmt(all)} = ${val}`;mis=c.FP+c.FN;den=all;
+      life=st.m==='lazy'?`It is right about ${Math.round(100*c.TN/all)} of every 100 messages, only because ${Math.round(100*c.TN/all)} of every 100 messages are ham. It has learned nothing.`
+        :`Out of every 100 messages, about ${Math.round(100*(c.TN+c.TP)/all)} get the right label. Sounds great, but 86 of those 100 are ham, and ham is the easy part.`;}
+    else if(k==='rec'){val=pct(c.TP,spam);name='spam recall: spam caught out of all REAL spam';
+      f=`${fmt(c.TP)} / (${fmt(c.TP)} + ${fmt(c.FN)}) = ${val}`;mis=c.FN;den=spam;
+      life=`Out of every 100 spam messages, ${Math.round(100*c.TP/spam)} are caught and <b>${100-Math.round(100*c.TP/spam)} land in your inbox</b>.`;}
+    else{name='spam precision: right out of everything it CALLED spam';mis=c.FP;den=said;
+      if(!said){val='–';f='0 / (0 + 0): it never says "spam"';life='It never puts anything in the spam folder, so there is nothing to measure. Precision cannot even be computed, which is another warning sign.';}
+      else{val=pct(c.TP,said);f=`${fmt(c.TP)} / (${fmt(c.TP)} + ${fmt(c.FP)}) = ${val}`;
+        life=`Out of every 100 messages in the spam folder, ${Math.round(100*c.TP/said)} are really spam and <b>${100-Math.round(100*c.TP/said)} are real messages you may never see</b>.`;}}
+    document.getElementById('awVal').textContent=val;document.getElementById('awName').textContent=name;
+    document.getElementById('awF').textContent=f;
+    document.getElementById('awShare').innerHTML=den?`Mistakes counted here: <b>${fmt(mis)} of ${fmt(den)}</b> = ${pct(mis,den)}<div class="t"><b style="width:${100*mis/den}%"></b></div>`:'';
+    document.getElementById('awLife').innerHTML='📱 <b>In real life ('+c.name+'):</b> '+life;
+    document.querySelectorAll('#awModel button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.m));
+    document.querySelectorAll('#awMetric button').forEach(b=>b.classList.toggle('on',b.dataset.k===st.k));
+  }
+  document.querySelectorAll('#awModel button').forEach(b=>b.onclick=()=>{st.m=b.dataset.m;draw();});
+  document.querySelectorAll('#awMetric button').forEach(b=>b.onclick=()=>{st.k=b.dataset.k;draw();});
+  draw();
+})();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */

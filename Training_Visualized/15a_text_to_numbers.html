@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15a · Text to numbers — Training, Visualized</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* springs generated with the Apple duration/bounce model (designing-like-apple/spring.js) */
+  :root{
+    --spring-smooth: linear(0, 0.0392, 0.1285, 0.2385, 0.3517, 0.4587, 0.5547, 0.638, 0.7085, 0.7672, 0.8153, 0.8543, 0.8856, 0.9106, 0.9304, 0.946, 0.9582, 0.9677, 0.9752, 0.9809, 0.9854, 0.9888, 0.9915, 0.9935, 1);
+    --spring-smooth-ms: 592ms;
+    --spring-snappy: linear(0, 0.0339, 0.1156, 0.2218, 0.3364, 0.449, 0.5534, 0.646, 0.7256, 0.7921, 0.8463, 0.8896, 0.9232, 0.9489, 0.968, 0.9819, 0.9916, 0.9981, 1.0023, 1.0047, 1.0059, 1.0063, 1.0061, 1.0056, 1);
+    --spring-snappy-ms: 539ms;
+    --spring-quick: linear(0, 0.0227, 0.0794, 0.1561, 0.2429, 0.3327, 0.4206, 0.5035, 0.5796, 0.648, 0.7083, 0.7607, 0.8056, 0.8437, 0.8756, 0.902, 0.9237, 0.9413, 0.9555, 0.9668, 0.9757, 0.9827, 0.988, 0.992, 1);
+    --spring-quick-ms: 218ms;
+    --c-animal:#e8590c; --c-food:#2f9e44; --c-place:#1971c2; --c-person:#c2255c; --c-machine:#495057; --c-feeling:#f08c00; --c-action:#7048e8; --c-little:#adb5bd;
+  }
+  .hero h1{font-size:clamp(2rem,5vw,3.1rem);letter-spacing:-.025em;line-height:1.08;margin-bottom:.35em}
+  .hero h1 .arrow{color:var(--blue)}
+  .bigq{font-size:clamp(1.35rem,3vw,1.9rem);letter-spacing:-.015em;line-height:1.2;font-weight:700;margin:.1rem 0 .4rem}
+  .sub{color:var(--muted);font-size:1.02rem;max-width:46rem}
+
+  /* ① spelling vs meaning */
+  .vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:.8rem;align-items:start;margin:.8rem 0}
+  @media (max-width:640px){.vs{grid-template-columns:1fr}.vs .mid{display:none}}
+  .wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;min-width:0}
+  .wcard input{width:100%;font:700 1.6rem/1.2 var(--sans);letter-spacing:-.01em;border:0;border-bottom:2px solid var(--line);padding:.1rem 0 .25rem;outline:0;background:transparent;color:var(--ink)}
+  .wcard input:focus{border-bottom-color:var(--blue)}
+  .codes{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.55rem;min-height:2.6rem}
+  .code{display:flex;flex-direction:column;align-items:center;min-width:2.2rem;padding:.15rem .3rem;border-radius:8px;background:var(--soft);border:1px solid var(--line);font-family:var(--mono)}
+  .code b{font-size:.92rem}
+  .code small{font-size:.7rem;color:var(--muted)}
+  .code.same{background:#fff3bf;border-color:#f0b400}
+  .vs .mid{align-self:center;font-size:1.6rem;color:var(--muted)}
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:.8rem;margin:.4rem 0}
+  .meter{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.7rem 1rem}
+  .meter .lbl{font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .meter .num{font:800 2.3rem/1.1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .meter .track{height:.7rem;border-radius:99px;background:var(--soft);overflow:hidden;margin:.3rem 0 .2rem}
+  .meter .fill{height:100%;border-radius:99px;transform-origin:left;transition:transform var(--spring-smooth-ms) var(--spring-smooth)}
+  .meter .why{font-size:.88rem;color:var(--muted);min-height:1.4rem}
+
+  /* ② machine */
+  .composer{display:flex;gap:.5rem;align-items:center;background:#fff;border:2px solid var(--line);border-radius:18px;padding:.45rem .5rem .45rem 1rem;transition:border-color .2s,box-shadow .2s;margin:.6rem 0 .4rem}
+  .composer:focus-within{border-color:var(--blue);box-shadow:0 0 0 4px rgba(47,111,237,.12)}
+  .composer input{flex:1;min-width:0;border:0;outline:0;font:600 1.3rem/1.3 var(--sans);letter-spacing:-.01em;background:transparent;color:var(--ink)}
+  .composer .go{white-space:nowrap}
+  kbd{border:1px solid #ced4da;border-bottom-width:2px;background:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0 .6rem}
+  .chip{font:inherit;font-size:.86rem;border:1px solid var(--line);background:#fff;border-radius:999px;padding:.25rem .7rem;cursor:pointer;color:var(--ink)}
+  .chip:hover{border-color:var(--blue);color:var(--blue)}
+  .ladder{display:flex;flex-direction:column;gap:.7rem;margin-top:.6rem}
+  .rung{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr);gap:1rem;background:#fff;border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;align-items:start}
+  @media (max-width:820px){.rung{grid-template-columns:1fr;gap:.4rem}}
+  .rung .head .n{display:inline-grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--ink);color:#fff;font-weight:800;font-size:.85rem;margin-right:.4rem}
+  .rung .head h3{display:inline;font-size:1.08rem;margin:0}
+  .rung .head .ana{display:block;font-size:.93rem;color:var(--muted);margin:.3rem 0 .4rem;line-height:1.4}
+  .rung .head .per{font-size:.8rem;font-family:var(--mono);background:var(--soft);border-radius:8px;padding:.15rem .45rem;display:inline-block}
+  .rung .verdict{font-size:.9rem;font-weight:600;margin-top:.5rem;padding:.35rem .6rem;border-radius:10px}
+  .rung .verdict.bad{background:var(--bad-bg);color:#c92a2a}
+  .rung .verdict.good{background:var(--good-bg);color:var(--green)}
+  .rung.best{border:2px solid var(--green);box-shadow:0 8px 28px rgba(47,158,68,.12)}
+  .viz{min-width:0}
+  .wrow{display:grid;grid-template-columns:minmax(3.5rem,5.5rem) minmax(0,1fr);gap:.5rem;align-items:center;margin:.22rem 0}
+  .wrow .wl{font-family:var(--mono);font-weight:700;font-size:.88rem;overflow-wrap:anywhere;text-align:right}
+  .wrow .wl.unk{color:var(--red)}
+  .cells{display:flex;flex-wrap:wrap;gap:3px}
+  .cell{font-family:var(--mono);font-size:.8rem;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:.05rem .4rem;min-width:1.9rem;text-align:center}
+  .cell.pad{color:#adb5bd;border-style:dashed}
+  .cell.unk{background:#fff5f5;border-color:#ffc9c9;color:var(--red)}
+  .cell.id{background:#e7f0ff;border-color:#a5c4ff;font-weight:700}
+  .oh{display:grid;gap:1px;height:14px;flex:1;min-width:0}
+  .oh i{background:#edf0f4;border-radius:1px}
+  .oh i.on{background:var(--orange);box-shadow:0 0 0 2px rgba(240,140,0,.35)}
+  .oh-wrap{display:flex;align-items:center;gap:.5rem;min-width:0}
+  .oh-wrap small{font-family:var(--mono);font-size:.74rem;color:var(--muted);white-space:nowrap}
+  .bow{display:grid;gap:1px;height:46px;align-items:end;margin:.2rem 0}
+  .bow i{background:#edf0f4;border-radius:2px 2px 0 0;height:3px}
+  .bow i.on{background:var(--blue)}
+  .counts{display:flex;flex-wrap:wrap;gap:.3rem;margin:.3rem 0}
+  .counts span{font-family:var(--mono);font-size:.82rem;background:#e7f0ff;border:1px solid #a5c4ff;border-radius:8px;padding:.05rem .45rem}
+  .emb{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:2px;flex:1;min-width:0}
+  .emb i{height:1.45rem;border-radius:4px;border:1px solid rgba(0,0,0,.06);font-style:normal;font-family:var(--mono);font-size:.6rem;display:grid;place-items:center;color:#1c2230;overflow:hidden}
+  .embhead{display:grid;grid-template-columns:minmax(3.5rem,5.5rem) minmax(0,1fr);gap:.5rem;margin-bottom:.1rem}
+  .embhead .emb i{height:auto;border:0;font-size:.85rem;background:transparent!important}
+  .legendbar{display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted);margin-top:.35rem;flex-wrap:wrap}
+  .legendbar .grad{display:inline-block;width:7rem;height:.7rem;border-radius:4px;background:linear-gradient(90deg,#2f6fed,#fff,#f08c00);border:1px solid var(--line)}
+  /* State driver: Enter rebuilds the ladder; each rung's cells spring in, rung by rung */
+  .ladder.build .rung .viz > *{animation:rise var(--spring-snappy-ms) var(--spring-snappy) both;animation-delay:calc(var(--r,0) * 110ms)}
+  .ladder.build .rung{animation:lift var(--spring-smooth-ms) var(--spring-smooth) both;animation-delay:calc(var(--r,0) * 110ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes lift{from{transform:translateY(14px)}to{transform:none}}
+
+  /* ③ map */
+  .maplab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,21rem);gap:1rem;align-items:start}
+  @media (max-width:980px){.maplab{grid-template-columns:1fr}}
+  .mapbox{background:#fcfcfd;border:1px solid var(--line);border-radius:18px;padding:.3rem;position:relative;min-width:0}
+  .mapscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  svg#map{display:block;width:100%;height:auto;min-width:560px;font-family:var(--sans);user-select:none}
+  #map .zone{font-size:17px;font-weight:800;opacity:.14;text-anchor:middle;letter-spacing:.02em}
+  #map .wd{cursor:pointer;transition:opacity var(--spring-quick-ms) var(--spring-quick)}
+  #map .wd .dot{transition:transform var(--spring-snappy-ms) var(--spring-snappy);transform-box:fill-box;transform-origin:center}
+  #map .wd text{font-size:13px;text-anchor:middle;fill:#1c2230;paint-order:stroke;stroke:#fcfcfd;stroke-width:4px;stroke-linejoin:round}
+  #map .wd.little text{font-size:11px;fill:#868e96}
+  #map.dim .wd{opacity:.2}
+  #map.dim .wd.hl,#map.dim .wd.sel,#map.dim .wd.nb,#map.dim .wd.an{opacity:1}
+  #map .wd.hl .dot,#map .wd.sel .dot,#map .wd.an .dot{transform:scale(1.9)}
+  #map .wd.hl text,#map .wd.sel text,#map .wd.an text{font-weight:800;font-size:15px}
+  #map .ring{fill:none;stroke-width:2.5;transform-box:fill-box;transform-origin:center;animation:ring 1.4s var(--spring-smooth) both}
+  @keyframes ring{from{transform:scale(.3);opacity:1}to{transform:scale(1);opacity:.0}}
+  #map .nbline{stroke:#adb5bd;stroke-width:1.5;stroke-dasharray:4 4}
+  /* State driver: choosing an analogy draws its arrows (stroke-dashoffset) */
+  #map .arw{fill:none;stroke-width:3.5;stroke-linecap:round;transition:stroke-dashoffset 900ms var(--spring-smooth)}
+  #map .arw.a1{stroke:#f08c00}
+  #map .arw.a2{stroke:#f08c00}
+  #map .land{fill:#fff;stroke:#f08c00;stroke-width:3;stroke-dasharray:3 3}
+  .side{display:flex;flex-direction:column;gap:.8rem;min-width:0}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.75rem .9rem}
+  .panel h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 .4rem}
+  .bigword{font:800 1.8rem/1.1 var(--sans);letter-spacing:-.02em}
+  .nbrow{display:grid;grid-template-columns:minmax(0,6rem) minmax(0,1fr) 3rem;gap:.4rem;align-items:center;font-size:.9rem;margin:.2rem 0}
+  .nbrow .t{height:.65rem;background:var(--soft);border-radius:99px;overflow:hidden}
+  .nbrow .t b{display:block;height:100%;border-radius:99px;background:var(--green);transform-origin:left;transition:transform var(--spring-smooth-ms) var(--spring-smooth)}
+  .nbrow .v{font-family:var(--mono);font-weight:700;text-align:right;font-size:.85rem}
+  .eq{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;font-size:1.05rem;margin:.2rem 0 .4rem}
+  .eq select{font:inherit;font-weight:700;border:1px solid var(--line);border-radius:9px;padding:.2rem .3rem;background:#fff;max-width:7.5rem}
+  .eq .op{font-weight:800;color:var(--muted)}
+  .result{font:800 1.6rem/1.2 var(--sans);letter-spacing:-.02em;color:var(--orange)}
+  .presetrow{display:flex;flex-wrap:wrap;gap:.3rem}
+  .presetrow .chip{font-size:.8rem}
+  .presetrow .chip.on{background:#fff4e6;border-color:var(--orange);color:#d9480f}
+  .catlegend{display:flex;flex-wrap:wrap;gap:.25rem .8rem;font-size:.82rem;margin:.4rem .4rem .2rem}
+  .catlegend i{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.3rem;vertical-align:-1px}
+  .unkline{font-size:.88rem;color:var(--red);margin:.3rem .4rem 0;min-height:1.2rem}
+
+  /* ④ company matrix */
+  .company{border-collapse:separate;border-spacing:3px;font-size:.92rem;margin:.4rem 0}
+  .company th{font-weight:700;padding:.2rem .5rem;text-align:center}
+  .company th.s{text-align:left;font-weight:500;color:var(--ink)}
+  .company td{width:3.6rem;height:2.1rem;text-align:center;border-radius:8px;font-weight:700}
+  .company td.y{background:#ebfbee;color:var(--green)}
+  .company td.n{background:var(--soft);color:#ced4da}
+  .company tr.sim th.s{font-weight:700}
+  .company col.hi{background:#fff9db}
+
+  /* ⑤ recap */
+  .recap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:.6rem;margin:.6rem 0}
+  .recap div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.7rem .8rem;text-align:center}
+  .recap .em{font-size:2rem;line-height:1.2}
+  .recap b{display:block;font-size:1.02rem}
+  .recap span{display:block;font-size:.85rem;color:var(--muted)}
+  .recap .last{border:2px solid var(--green);background:var(--good-bg)}
+  .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  @media (prefers-reduced-motion:reduce){
+    .ladder.build .rung,.ladder.build .rung .viz > *{animation:none}
+    #map .ring{animation:none;opacity:0}
+    #map .arw,.meter .fill,.nbrow .t b,#map .wd .dot,#map .wd{transition:none}
+  }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🧠 Training, <span>Visualized</span></a>
+  <nav class="nav">
+    <a href="01_what_is_a_model.html" title="What is a model?">1</a>
+    <a href="02_gradient_descent.html" title="Gradient descent">2</a>
+    <a href="03_backpropagation.html" title="Backpropagation">3</a>
+    <a href="04_training_loop.html" title="The training loop">4</a>
+    <a href="05_activation_functions.html" title="Activation functions &amp; softmax">5</a>
+    <a href="06_neural_network_playground.html" title="Neural network playground">6</a>
+    <a href="07_overfitting.html" title="Overfitting">7</a>
+    <a href="08_dropout_batchnorm.html" title="Dropout &amp; BatchNorm">8</a>
+    <a href="09_metrics.html" title="Is it any good? Metrics">9</a>
+    <a href="10_cnn_convolution.html" title="How a CNN sees">10</a>
+    <a href="11_transfer_learning.html" title="Transfer learning">11</a>
+    <a href="12_quantization_pruning.html" title="Quantization &amp; pruning">12</a>
+    <a href="13_data_augmentation.html" title="Data augmentation">13</a>
+    <a href="14_image_segmentation.html" title="Image segmentation">14</a>
+    <a href="15a_text_to_numbers.html" class="on" title="Text to numbers">15a</a>
+    <a href="15_rnn_lstm.html" title="RNN &amp; LSTM">15</a>
+    <!-- <a href="16_reinforcement_learning.html" title="Reinforcement learning">16</a> -->
+  </nav>
+  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Lesson 15a · warm-up for Lesson 15 · ≈ 30 min</div>
+  <h1>Text <span class="arrow">→</span> numbers</h1>
+  <p class="sub">A neural network can only do maths. So before any model can read a message, every word must become numbers.
+  There are five ways to do it. Only the last one keeps the <b>meaning</b>.</p>
+</section>
+
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>Give every word a <b>home on a map</b>. Words that mean similar things live in the same neighbourhood:
+      <i>cat</i> next to <i>kitten</i>, <i>king</i> next to <i>queen</i>. The address of a word (a short list of numbers) is its <b>embedding</b>.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, compare <b>cat</b> with <b>car</b> and then with <b>kitten</b>.</li>
+      <li>In ②, type a sentence and press <kbd>Enter</kbd>. Watch it turn into numbers in five ways.</li>
+      <li>In ③, click words on the map, then try <b>king − man + woman</b>.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Letters and word numbers keep the <b>spelling</b> but lose the <b>meaning</b>.
+      Embeddings are the first numbers where <b>close numbers = close meaning</b>. Every modern text model (spam filter, chatbot, search) starts with this step.</p></div>
+  </div>
+  <div class="words">📖 <b>Hard words, made easy:</b><br>
+    <span><b>Vector</b> = a list of numbers, e.g. [0.2, −0.7, 0.9]</span><span><b>Token</b> = one piece of text, here one word</span>
+    <span><b>Vocabulary</b> = the list of all words the model knows, each with its own number</span><span><b>&lt;unk&gt;</b> = "unknown": the number for any word not in the list</span>
+    <span><b>One-hot</b> = a long row of 0s with a single 1</span><span><b>Embedding</b> = a short list of numbers for each word, learned so that similar words get similar lists</span>
+    <span><b>Similarity</b> = how much two vectors point the same way (100% = same direction)</span></div>
+</section>
+
+<!-- ① ANTAGONIST: spelling is not meaning -->
+<section class="card">
+  <h2>① A computer does not read. It stores numbers.</h2>
+  <p class="bigq">Which word is closer to <i>cat</i>: <span style="color:var(--machine,#495057)">car</span> or <span style="color:var(--c-animal)">kitten</span>?</p>
+  <p class="sub">You know the answer at once. Now look at what the computer actually has: one code number per letter. Type any two words.</p>
+  <div class="vs">
+    <div class="wcard"><input id="wA" value="cat" maxlength="14" spellcheck="false" aria-label="first word"><div class="codes" id="cA"></div></div>
+    <div class="mid">vs</div>
+    <div class="wcard"><input id="wB" value="car" maxlength="14" spellcheck="false" aria-label="second word"><div class="codes" id="cB"></div></div>
+  </div>
+  <div class="chips" id="vsPre">
+    <button class="chip" data-a="cat" data-b="car">cat · car</button>
+    <button class="chip" data-a="cat" data-b="kitten">cat · kitten</button>
+    <button class="chip" data-a="happy" data-b="glad">happy · glad</button>
+    <button class="chip" data-a="king" data-b="queen">king · queen</button>
+  </div>
+  <div class="meters">
+    <div class="meter"><div class="lbl">🔤 By the letters</div><div class="num" id="mL">67%</div><div class="track"><div class="fill" id="fL" style="background:#868e96"></div></div><div class="why" id="wL"></div></div>
+    <div class="meter"><div class="lbl">🧠 By the meaning (embedding)</div><div class="num" id="mM">5%</div><div class="track"><div class="fill" id="fM" style="background:var(--green)"></div></div><div class="why" id="wM"></div></div>
+  </div>
+  <div class="look">👀 <b>cat</b> and <b>car</b> share 2 of 3 letter codes, so by the letters they look like twins. <b>cat</b> and <b>kitten</b> share almost nothing.
+    <b>Spelling is not meaning.</b> The rest of this page is the search for numbers that carry the meaning.</div>
+  <p class="small muted adv">"By the letters" = share of positions where both words have the same character code (Unicode). "By the meaning" = cosine similarity of the two words' embeddings in our mini model from ③ (negative values shown as 0%).</p>
+</section>
+
+<!-- ② THE MACHINE -->
+<section class="card" id="machine">
+  <h2>② The text-to-numbers machine</h2>
+  <p>Type a sentence and press <kbd>Enter</kbd>. You get the same sentence in five kinds of numbers, from the most basic to the best.</p>
+  <form class="composer" id="sForm" autocomplete="off">
+    <input id="sIn" value="the king and queen love pizza" maxlength="80" spellcheck="false" aria-label="your sentence">
+    <button class="btn primary go" type="submit">Make numbers ⏎</button>
+  </form>
+  <div class="chips" id="sPre">
+    <button class="chip">the cat drank milk</button>
+    <button class="chip">dog bites man</button>
+    <button class="chip">man bites dog</button>
+    <button class="chip">i love my phone</button>
+    <button class="chip">a giraffe ate my homework</button>
+  </div>
+
+  <div class="ladder" id="ladder">
+    <div class="rung" style="--r:0">
+      <div class="head"><span class="n">1</span><h3>Letter codes</h3><span class="ana">✍️ The <b>ink</b>. What the computer actually stores: a code number for every letter.</span><span class="per" id="per1"></span></div>
+      <div><div class="viz" id="v1"></div><div class="verdict bad">✗ Spelling, not meaning: <i>cat</i> looks like <i>car</i>.</div></div>
+    </div>
+    <div class="rung" style="--r:1">
+      <div class="head"><span class="n">2</span><h3>Word IDs</h3><span class="ana">🏷️ A <b>name tag</b>. Every word in the vocabulary gets a number, like a page in a dictionary. Unknown words get 1, empty seats get 0.</span><span class="per" id="per2"></span></div>
+      <div><div class="viz" id="v2"></div><div class="verdict bad" id="vd2">✗ The numbers mean nothing: is word 40 "half of" word 80? No.</div></div>
+    </div>
+    <div class="rung" style="--r:2">
+      <div class="head"><span class="n">3</span><h3>One-hot</h3><span class="ana">💡 A <b>row of light switches</b>, one per vocabulary word. Exactly one switch is on.</span><span class="per" id="per3"></span></div>
+      <div><div class="viz" id="v3"></div><div class="verdict bad">✗ Huge and empty. And every word is equally far from every other word: <i>cat</i> is as far from <i>kitten</i> as from <i>pizza</i>.</div></div>
+    </div>
+    <div class="rung" style="--r:3">
+      <div class="head"><span class="n">4</span><h3>Bag of words</h3><span class="ana">🛍️ A <b>shopping list</b>. Count how many times each word appears in the whole sentence.</span><span class="per" id="per4"></span></div>
+      <div><div class="viz" id="v4"></div><div class="verdict bad" id="vd4">✗ The order is lost: "dog bites man" = "man bites dog".</div></div>
+    </div>
+    <div class="rung best" style="--r:4">
+      <div class="head"><span class="n" style="background:var(--green)">5</span><h3>Embedding</h3><span class="ana">🗺️ A <b>place on a map of meaning</b>. Each word gets a short list of numbers, and similar words get similar lists.</span><span class="per" id="per5"></span></div>
+      <div><div class="viz" id="v5"></div><div class="verdict good">✓ Small, every number is used, and close numbers mean close meaning. This is what every modern text model uses.</div></div>
+    </div>
+  </div>
+  <div class="look" style="margin-top:.8rem">👀 Read the five rows from top to bottom. Each one fixes the problem of the row above it.
+    Only row 5 shows <b>king</b> and <b>queen</b> with almost the same colours. That is the meaning, now in numbers.</div>
+  <div class="grid2 adv" style="margin-top:.8rem">
+    <div class="callout info"><h3>🎓 Detailed: TF-IDF, a smarter bag</h3><p class="small">A bag of words where each count is multiplied by how <b>rare</b> the word is across all documents:
+      <code>tfidf = count × log(N / docs_with_word)</code>. Little words like <i>the</i> get almost 0, rare words like <i>prize</i> get a big weight. It is still a bag, so the order is still lost. TF-IDF with logistic regression is a strong, cheap baseline for spam.</p></div>
+    <div class="callout info"><h3>🎓 Detailed: what ChatGPT really uses</h3><p class="small">Real models do not use whole words. They use <b>sub-word tokens</b> (BPE / WordPiece): <code>unhappiness → un · happi · ness</code>.
+      That way there is almost never an <code>&lt;unk&gt;</code>, and the vocabulary stays near 50,000 tokens (GPT-2: 50,257). Then each token ID goes through an embedding table, exactly like row 5.</p></div>
+  </div>
+</section>
+
+<!-- ③ PEAK: the map -->
+<section class="card" id="mapcard">
+  <h2>③ Meaning becomes a place</h2>
+  <p>Every embedding is a point. Here are about 120 words from our mini model, drawn on a flat map. Your sentence from ② is <b>lit up</b>.
+    <b>Click any word</b> to see its closest neighbours.</p>
+  <div class="maplab">
+    <div class="mapbox">
+      <div class="mapscroll"><svg id="map" viewBox="0 0 1000 640" role="img" aria-label="Map of word embeddings: similar words are close together"></svg></div>
+      <div class="catlegend" id="catLegend"></div>
+      <div class="unkline" id="unkLine"></div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>🔍 Clicked word</h3>
+        <div class="bigword" id="pWord">cat</div>
+        <div class="emb" id="pVec" style="margin:.45rem 0 .2rem"></div>
+        <div class="small muted" style="margin:.4rem 0 .2rem">Closest words (by similarity):</div>
+        <div id="pNb"></div>
+      </div>
+      <div class="panel">
+        <h3>➕ Word maths</h3>
+        <div class="presetrow" id="anPre">
+          <button class="chip on" data-q="king,man,woman">👑 king − man + woman</button>
+          <button class="chip" data-q="kitten,cat,dog">🐾 kitten − cat + dog</button>
+          <button class="chip" data-q="paris,france,japan">📍 paris − france + japan</button>
+        </div>
+        <div class="eq"><select id="aA"></select><span class="op">−</span><select id="aB"></select><span class="op">+</span><select id="aC"></select><span class="op">=</span></div>
+        <div class="result" id="aRes">queen</div>
+        <div class="small" id="aWhy"></div>
+      </div>
+    </div>
+  </div>
+  <div class="look">👀 Same kind of word, same neighbourhood: animals top-left, food at the top, people on the left. Small words like <i>the</i> and <i>is</i> sit in the middle, because they go with everything.
+    The orange arrows show that a <b>direction</b> also means something: <b>man → king</b> is the "royal" step. Take the same step from <b>woman</b> and you land on <b>queen</b>.</div>
+  <div class="callout think" style="margin-bottom:0"><b>🧪 Honest note:</b> a real model's embedding has 300 to 3,000 numbers, and nobody gives them names. We built a <b>tiny hand-made</b> model with 14 numbers and named 12 of them
+    (🐾 animal, 👑 royal, ♀ female…) so you can read them. Then we flattened the 14 numbers to 2 so they fit on a screen. Real models find the same kind of map on their own, from millions of sentences.</div>
+  <p class="small muted adv" style="margin-top:.6rem">Similarity = cosine similarity in all 14 dimensions: <code>cos(a,b) = a·b / (|a|·|b|)</code>. In word maths we skip the three input words when we search for the nearest one; that is the standard trick (word2vec does it too), because <i>king − man + woman</i> is often still closest to <i>king</i> itself.
+    The map uses a fixed linear projection from 14 numbers to 2, then nudges overlapping labels apart a little, so map distances are only roughly right. Trust the similarity numbers.</p>
+</section>
+
+<!-- ④ PROOF: how a model learns the map -->
+<section class="card">
+  <h2>④ Who decides where a word lives?</h2>
+  <p>Nobody does. The model learns it from text. The rule: <b>a word is known by the company it keeps.</b> Words that fit in the same sentences get pushed close together.</p>
+  <div class="scrollx">
+  <table class="company">
+    <tr><th class="s"></th><th>cat</th><th>kitten</th><th>dog</th><th>car</th><th>pizza</th></tr>
+    <tr><th class="s">I fed my ___ some milk.</th><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
+    <tr><th class="s">The ___ chased a mouse.</th><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
+    <tr><th class="s">The ___ is sleeping on the sofa.</th><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
+    <tr><th class="s">I parked the ___ outside.</th><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="y">✓</td><td class="n">✗</td></tr>
+    <tr><th class="s">We ordered a hot ___.</th><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="y">✓</td></tr>
+  </table>
+  </div>
+  <div class="look">👀 <b>cat</b>, <b>kitten</b> and <b>dog</b> have the same column of ticks, so training gives them nearly the same numbers. <b>car</b> has a different pattern, so it ends up far away, even though it is spelled almost like <i>cat</i>.</div>
+  <div class="grid2" style="margin-top:.6rem">
+    <div>
+      <h3>📏 Real embedding sizes</h3>
+      <table class="plain small">
+        <tr><th>Model</th><th>Numbers per word</th></tr>
+        <tr><td>our mini map (③)</td><td>14</td></tr>
+        <tr><td>Notebook 07 spam LSTM</td><td>32</td></tr>
+        <tr><td>word2vec (Google, 2013)</td><td>300</td></tr>
+        <tr><td>BERT-base (2018)</td><td>768</td></tr>
+        <tr><td>OpenAI text-embedding-3-small / large</td><td>1,536 / 3,072</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>🔗 In Notebook 07</h3>
+      <p class="small">The spam model's first layer is an embedding table: <b>one row of 32 numbers for every word</b> in the vocabulary. They start random. During training, words that help to spot spam (<i>free</i>, <i>win</i>, <i>£</i>, <i>call</i>) slowly move to the same corner.</p>
+      <pre class="code adv"><span class="c"># word IDs (row 2)  →  embeddings (row 5)</span>
+emb = nn.Embedding(len(vocab), <span class="n">32</span>, padding_idx=<span class="n">0</span>)
+ids = torch.tensor([[<span class="n">0</span>, <span class="n">0</span>, <span class="n">57</span>, <span class="n">12</span>, <span class="n">3</span>]])  <span class="c"># 0 = &lt;pad&gt;</span>
+emb(ids).shape   <span class="c"># (1, 5, 32): 32 numbers per word</span></pre>
+      <p class="small adv">An embedding layer is the same as multiplying a one-hot vector (row 3) by a weight matrix, just much faster: it picks one row. So row 3 and row 5 are connected: <code>one_hot @ W == W[id]</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ⑤ REMEMBER -->
+<section class="card">
+  <h2>🧠 Remember for life</h2>
+  <div class="recap">
+    <div><div class="em">✍️</div><b>Letters</b><span>the ink</span></div>
+    <div><div class="em">🏷️</div><b>Word IDs</b><span>a name tag</span></div>
+    <div><div class="em">💡</div><b>One-hot</b><span>one light switch on</span></div>
+    <div><div class="em">🛍️</div><b>Bag of words</b><span>a shopping list</span></div>
+    <div class="last"><div class="em">🗺️</div><b>Embedding</b><span>a place on the map of meaning</span></div>
+  </div>
+  <p style="font-size:1.1rem;text-align:center;margin:.8rem 0 0"><b>Close numbers = close meaning.</b> That is what an embedding gives a model, and it is the first layer of the RNN in Lesson 15.</p>
+</section>
+
+<section class="callout try">
+  <h3>🎯 Challenges: guess first, then try</h3>
+  <ol class="challenges">
+    <li>In ②, type <b>dog bites man</b>, then <b>man bites dog</b>. Which of the five rows change, and which one stays exactly the same?
+      <details class="answer"><summary>Answer</summary>Rows 1, 2, 3 and 5 change, because they keep one entry per word, in order. Row 4 (bag of words) is <b>identical</b>: same words, same counts. That is why Lesson 15 needs a model that reads in order.</details></li>
+    <li>Type <b>a giraffe ate my homework</b>. What word ID do <i>giraffe</i>, <i>ate</i> and <i>homework</i> get, and why?
+      <details class="answer"><summary>Answer</summary>All three get <b>1 = &lt;unk&gt;</b>: they are not in our mini vocabulary, so the model cannot tell them apart. Real models fix this with a bigger vocabulary and sub-word tokens (switch to Detailed view in ②).</details></li>
+    <li>On the map, click <b>kitten</b>. Which word is its closest neighbour: <i>cat</i> or <i>puppy</i>? Can you explain why?
+      <details class="answer"><summary>Answer</summary><b>puppy</b> comes first (91%), then <b>cat</b> (87%). Look at the coloured numbers: kitten and puppy both have 🐾 animal <b>and</b> 🍼 young switched on. "Similar" depends on which numbers match.</details></li>
+    <li>Try <b>paris − france + japan</b>. What do you get? Now set the last word to <b>india</b>. What happens?
+      <details class="answer"><summary>Answer</summary>The first gives <b>tokyo</b>. With <b>india</b> it gives <b>delhi</b>, with <b>mumbai</b> a close second: the "capital of" step is a direction on the map, just like "royal".</details></li>
+  </ol>
+</section>
+
+<nav class="pager">
+  <a href="14_image_segmentation.html"><small>← Previous</small>14 · Image segmentation</a>
+  <a class="next" href="15_rnn_lstm.html"><small>Next →</small>15 · RNN &amp; LSTM</a>
+</nav>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ================= the mini embedding model =================
+// 14 numbers per word: 8 "kind of word" numbers, 4 "detail" numbers, 2 unnamed ones (like a real model).
+const DIMS=[['🐾','animal'],['🍕','food'],['📍','place'],['🧑','person'],['🚗','machine'],['💭','feeling'],['🏃','action'],['🔤','little word'],
+  ['👑','royal'],['♀','female'],['🍼','young'],['😊','positive'],['?','no name'],['?','no name']];
+const CATS=[['animal','🐾 animals','--c-animal'],['food','🍕 food & drink','--c-food'],['place','📍 places','--c-place'],['person','🧑 people','--c-person'],
+  ['machine','🚗 machines','--c-machine'],['feeling','💭 feelings','--c-feeling'],['action','🏃 actions','--c-action'],['little','🔤 little words','--c-little']];
+// word: [category, {r:royal,f:female,y:young,p:positive,a:free1,b:free2}]
+const W={
+ little:'the a an is are was i you he she we it my and to in on of not very this at with for me have',
+ animal:'cat dog kitten:y.6,=cat puppy:y.6,=dog lion tiger cow horse bird fish elephant monkey mouse',
+ food:'pizza burger apple banana mango rice bread tea coffee milk cake chocolate',
+ place:'india:a.5,b.6 france:a-.6,b.6 japan:a0,b.6 delhi:a.5,b-.6 mumbai:a.7,b-.4 paris:a-.6,b-.6 tokyo:a0,b-.6 london:a-.95,b-.55 city:a.9,b-.3 village:a.9,b.3 school:a-.3,b0 home:a.2,b0',
+ person:'man woman:f.7 king:r.8 queen:r.8,f.7 boy:y.6 girl:y.6,f.7 prince:r.8,y.6 princess:r.8,f.7,y.6 mother:f.7,y-.5 father:y-.5 doctor teacher student:y.3 friend',
+ machine:'car bus train bike phone laptop computer robot plane',
+ feeling:'happy:p.6 glad:p.6 sad:p-.6 love:p.6 hate:p-.6 good:p.6 bad:p-.6 great:p.6 terrible:p-.6 angry:p-.6 excited:p.6 fun:p.6',
+ action:'eat drink drank run play read bites chased drive sleep fly swim go like:p.3 love_:p.6'
+};
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function rnd(s){return (hash(s)%10000)/10000*2-1;}   // deterministic −1…1
+const WORDS=[],VEC={},CAT={};
+for(const [ci,[cat]] of CATS.entries()){
+  for(const tok of W[cat].split(' ')){
+    let [w,mods]=tok.split(':');if(w.endsWith('_'))continue;
+    const v=DIMS.map((_,k)=>rnd(w+'#'+k)*0.05);          // a little noise everywhere, like a real vector
+    v[ci]+=1;
+    const m={};(mods||'').split(',').filter(Boolean).forEach(p=>m[p[0]]=p[0]==='='?p.slice(1):+p.slice(1));
+    const fw=m['=']||w;   // a baby animal shares the unnamed numbers of its grown-up
+    v[8]+=m.r||0;v[9]+=m.f||0;v[10]+=m.y||0;v[11]+=m.p||0;
+    v[12]+=('a' in m)?m.a:rnd(fw+'a')*0.3; v[13]+=('b' in m)?m.b:rnd(fw+'b')*0.3;
+    if(cat==='little'){v[12]=rnd(w+'a')*0.9;v[13]=rnd(w+'b')*0.9;}
+    WORDS.push(w);VEC[w]=v.map(x=>Math.round(x*100)/100);CAT[w]=cat;
+  }
+}
+const UNK=DIMS.map((_,k)=>Math.round(rnd('<unk>#'+k)*8)/100);
+// vocabulary like Notebook 07: 0 = <pad>, 1 = <unk>, common little words get the small numbers
+const VOCAB=['<pad>','<unk>',...WORDS],ID={};VOCAB.forEach((w,i)=>ID[w]=i);
+const V=VOCAB.length,MAXLEN=8;
+const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0),norm=a=>Math.sqrt(dot(a,a)),cos=(a,b)=>dot(a,b)/(norm(a)*norm(b)||1);
+function nearest(v,skip,k=4,allowLittle=false){
+  return WORDS.filter(w=>!skip.includes(w)&&(allowLittle||CAT[w]!=='little')).map(w=>[w,cos(v,VEC[w])]).sort((a,b)=>b[1]-a[1]).slice(0,k);}
+const words=t=>(t.toLowerCase().match(/[a-z0-9£$!]+/g)||[]);   // same rule as Notebook 07
+function col(x){x=Math.max(-1,Math.min(1,x));const a=Math.abs(x);
+  const c=x<0?[47,111,237]:[240,140,0];return `rgb(${Math.round(255+(c[0]-255)*a)},${Math.round(255+(c[1]-255)*a)},${Math.round(255+(c[2]-255)*a)})`;}
+const strip=v=>v.map((x,k)=>`<i style="background:${col(x)}" title="${DIMS[k][0]} ${DIMS[k][1]}: ${x.toFixed(2)}">${Math.abs(x)>=.3?x.toFixed(1).replace('0.','.'):''}</i>`).join('');
+
+// ================= ① spelling vs meaning =================
+function codes(w){return [...w].map(c=>c.codePointAt(0));}
+function drawVs(){
+  const a=$('#wA').value.trim().toLowerCase(),b=$('#wB').value.trim().toLowerCase(),ca=codes(a),cb=codes(b),n=Math.max(ca.length,cb.length)||1;
+  let same=0;for(let i=0;i<Math.min(ca.length,cb.length);i++)if(ca[i]===cb[i])same++;
+  const box=(cs,w,o)=>cs.map((c,i)=>`<span class="code${o[i]===c?' same':''}"><b>${c}</b><small>${esc([...w][i])}</small></span>`).join('');
+  $('#cA').innerHTML=box(ca,a,cb);$('#cB').innerHTML=box(cb,b,ca);
+  const L=a&&b?same/n:0;$('#mL').textContent=Math.round(L*100)+'%';$('#fL').style.transform=`scaleX(${L})`;
+  $('#wL').textContent=a&&b?`${same} of ${n} letter codes match`:'';
+  if(VEC[a]&&VEC[b]){const m=Math.max(0,cos(VEC[a],VEC[b]));$('#mM').textContent=Math.round(m*100)+'%';$('#fM').style.transform=`scaleX(${m})`;
+    $('#wM').textContent=m>.7?'close neighbours on the map of meaning':m>.35?'related, but not the same':'different neighbourhoods';}
+  else{$('#mM').textContent='?';$('#fM').style.transform='scaleX(0)';$('#wM').textContent=`"${!VEC[a]?a:b}" is not in our mini model. Try a word from the map in ③.`;}
+  $$('#vsPre .chip').forEach(c=>c.classList.toggle('on',c.dataset.a===a&&c.dataset.b===b));
+}
+['#wA','#wB'].forEach(s=>$(s).addEventListener('input',drawVs));
+$$('#vsPre .chip').forEach(c=>c.onclick=()=>{$('#wA').value=c.dataset.a;$('#wB').value=c.dataset.b;drawVs();});
+
+// ================= ② the machine =================
+let SENT=[];
+function build(animate){
+  const ws=words($('#sIn').value).slice(0,MAXLEN);SENT=ws;
+  if(!ws.length){['#v1','#v2','#v3','#v4','#v5'].forEach(s=>$(s).innerHTML='<p class="muted small">Type a few words first.</p>');return;}
+  const unk=w=>ID[w]===undefined;
+  const lbl=w=>`<div class="wl${unk(w)?' unk':''}">${esc(w)}</div>`;
+  // 1 letters
+  $('#v1').innerHTML=ws.map(w=>`<div class="wrow">${lbl(w)}<div class="cells">${codes(w).map(c=>`<span class="cell">${c}</span>`).join('')}</div></div>`).join('');
+  $('#per1').textContent='numbers per word: 1 per letter';
+  // 2 IDs, padded at the front like Notebook 07
+  const ids=ws.map(w=>unk(w)?1:ID[w]),padded=[...Array(MAXLEN-ids.length).fill(0),...ids];
+  $('#v2').innerHTML=`<div class="cells" style="margin-bottom:.4rem">${ws.map((w,i)=>`<span class="cell ${ids[i]===1?'unk':'id'}">${esc(w)} → ${ids[i]}</span>`).join('')}</div>
+    <div class="small muted">Padded to ${MAXLEN} numbers (empty seats = 0 at the front, like in Notebook 07):</div>
+    <div class="cells">${padded.map(x=>`<span class="cell ${x===0?'pad':x===1?'unk':'id'}">${x}</span>`).join('')}</div>`;
+  $('#per2').textContent='numbers per word: 1';
+  const nu=ws.filter(unk).length;
+  $('#vd2').innerHTML=nu?`✗ ${nu} word${nu>1?'s':''} not in the vocabulary → all become <b>1</b>, and the model can't tell them apart. And the numbers mean nothing: is word 40 "half of" word 80? No.`
+    :'✗ The numbers mean nothing: is word 40 "half of" word 80? No.';
+  // 3 one-hot
+  const oh=id=>`<div class="oh" style="grid-template-columns:repeat(${V},minmax(0,1fr))">${Array.from({length:V},(_,k)=>`<i${k===id?' class="on"':''}></i>`).join('')}</div>`;
+  $('#v3').innerHTML=ws.map((w,i)=>`<div class="wrow">${lbl(w)}<div class="oh-wrap">${oh(ids[i])}<small>#${ids[i]}</small></div></div>`).join('')
+    +`<div class="small muted">Each row has ${V} switches (one per word in our vocabulary). A real vocabulary has about 50,000.</div>`;
+  $('#per3').textContent=`numbers per word: ${V} (real: ~50,000)`;
+  // 4 bag of words
+  const cnt={};ids.forEach((id,i)=>{const k=id===1?'<unk>':ws[i];cnt[k]=(cnt[k]||0)+1;});
+  const mx=Math.max(...Object.values(cnt));
+  $('#v4').innerHTML=`<div class="bow" style="grid-template-columns:repeat(${V},minmax(0,1fr))">${VOCAB.map(w=>`<i${cnt[w]?` class="on" style="height:${12+34*cnt[w]/mx}px"`:''}></i>`).join('')}</div>
+    <div class="counts">${Object.entries(cnt).map(([w,n])=>`<span>${esc(w)}: ${n}</span>`).join('')}</div>`;
+  $('#per4').textContent=`numbers per sentence: ${V}`;
+  const shuf=[...ws].reverse().join(' ');
+  $('#vd4').innerHTML=ws.length>1&&shuf!==ws.join(' ')?`✗ The order is lost: "<i>${esc(shuf)}</i>" gives exactly the same bag.`:'✗ The order is lost: "dog bites man" = "man bites dog".';
+  // 5 embedding
+  $('#v5').innerHTML=`<div class="embhead"><div></div><div class="emb">${DIMS.map(d=>`<i title="${d[1]}">${d[0]}</i>`).join('')}</div></div>`
+    +ws.map(w=>`<div class="wrow">${lbl(unk(w)?w+' (unk)':w)}<div class="emb">${strip(unk(w)?UNK:VEC[w])}</div></div>`).join('')
+    +`<div class="legendbar"><span>−1</span><span class="grad"></span><span>+1</span><span>· hover a cell to see its number</span></div>`;
+  $('#per5').textContent='numbers per word: 14 (real: 300–3,000)';
+  if(animate){const l=$('#ladder');l.classList.remove('build');void l.offsetWidth;l.classList.add('build');}
+  highlightSentence();
+}
+$('#sForm').addEventListener('submit',e=>{e.preventDefault();build(true);});
+$$('#sPre .chip').forEach(c=>c.onclick=()=>{$('#sIn').value=c.textContent;build(true);});
+
+// ================= ③ the map =================
+const SVGNS='http://www.w3.org/2000/svg';
+// fixed linear projection 14 → 2 (kinds of word around a circle, details as small steps)
+const ang={animal:140,food:88,feeling:36,place:-18,machine:-70,action:-122,person:192,little:null};
+const P=DIMS.map(()=>[0,0]);CATS.forEach(([c],i)=>{if(ang[c]!==null){const a=ang[c]*Math.PI/180;P[i]=[.70*Math.cos(a),.70*Math.sin(a)];}});
+P[8]=[0,.30];P[9]=[.30,0];P[10]=[-.22,-.20];P[11]=[.08,.34];P[12]=[.22,.05];P[13]=[-.04,.22];
+const proj=v=>[v.reduce((s,x,k)=>s+x*P[k][0],0),v.reduce((s,x,k)=>s+x*P[k][1],0)];
+const SX=x=>500+x*440,SY=y=>320-y*285;
+const POS={};WORDS.forEach(w=>{const [x,y]=proj(VEC[w]);POS[w]=[SX(x),SY(y)];});
+// nudge overlapping labels apart a little (display only)
+(function relax(){const lw=w=>w.length*7.3+8;
+  for(let it=0;it<80;it++)for(let i=0;i<WORDS.length;i++)for(let j=i+1;j<WORDS.length;j++){
+    const a=POS[WORDS[i]],b=POS[WORDS[j]],dx=b[0]-a[0],dy=b[1]-a[1],mx=(lw(WORDS[i])+lw(WORDS[j]))/2,my=19;
+    if(Math.abs(dx)<mx&&Math.abs(dy)<my){const px=(mx-Math.abs(dx)),py=(my-Math.abs(dy));
+      if(py<px){const s=(dy>=0?1:-1)*py/2*.5;a[1]-=s;b[1]+=s;}else{const s=(dx>=0?1:-1)*px/2*.5;a[0]-=s;b[0]+=s;}}}
+  WORDS.forEach(w=>{POS[w][0]=Math.max(30,Math.min(970,POS[w][0]));POS[w][1]=Math.max(22,Math.min(628,POS[w][1]));});})();
+const map=$('#map');
+function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+const gZone=el('g',{},map),gLines=el('g',{},map),gArrows=el('g',{},map),gWords=el('g',{},map),gFx=el('g',{},map);
+el('defs',{},map).innerHTML='<marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f08c00"/></marker>';
+CATS.forEach(([c,name,v])=>{if(ang[c]===null)return;const a=ang[c]*Math.PI/180,r=1.02;
+  const t=el('text',{class:'zone',x:SX(r*Math.cos(a)),y:SY(r*.98*Math.sin(a))+6,fill:`var(${v})`},gZone);t.textContent=name.replace(/^\S+ /,'');});
+const G={};
+WORDS.forEach(w=>{const c=CAT[w],cv=CATS.find(x=>x[0]===c)[2];
+  const g=el('g',{class:'wd'+(c==='little'?' little':''),transform:`translate(${POS[w][0].toFixed(1)},${POS[w][1].toFixed(1)})`,tabindex:0,role:'button','aria-label':w},gWords);
+  el('circle',{class:'dot',r:c==='little'?3.5:5,fill:`var(${cv})`},g);
+  const t=el('text',{y:-9},g);t.textContent=w;
+  g.addEventListener('click',()=>select(w));g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(w);}});
+  G[w]=g;});
+$('#catLegend').innerHTML=CATS.map(([c,n,v])=>`<span><i style="background:var(${v})"></i>${n}</span>`).join('');
+
+function clearCls(c){WORDS.forEach(w=>G[w].classList.remove(c));}
+function ring(w,color){const [x,y]=POS[w];el('circle',{class:'ring',cx:x,cy:y,r:26,stroke:color||'#2f6fed'},gFx);}
+function highlightSentence(){
+  clearCls('hl');gFx.innerHTML='';
+  const known=SENT.filter(w=>VEC[w]),unk=SENT.filter(w=>!VEC[w]);
+  known.forEach((w,i)=>{G[w].classList.add('hl');setTimeout(()=>ring(w),i*90);});
+  map.classList.toggle('dim',known.length>0||!!SEL);
+  $('#unkLine').innerHTML=unk.length?`Not on the map (not in our mini vocabulary → &lt;unk&gt;): <b>${unk.map(esc).join(', ')}</b>`:'';
+}
+let SEL=null;
+function select(w){
+  SEL=w;clearCls('sel');clearCls('nb');gLines.innerHTML='';
+  G[w].classList.add('sel');
+  const nb=nearest(VEC[w],[w],4,CAT[w]==='little');
+  nb.forEach(([n])=>{G[n].classList.add('nb');el('line',{class:'nbline',x1:POS[w][0],y1:POS[w][1],x2:POS[n][0],y2:POS[n][1]},gLines);});
+  map.classList.add('dim');
+  $('#pWord').textContent=w;$('#pWord').style.color=`var(${CATS.find(x=>x[0]===CAT[w])[2]})`;
+  $('#pVec').innerHTML=strip(VEC[w]);
+  $('#pNb').innerHTML=nb.map(([n,s])=>`<div class="nbrow"><span>${esc(n)}</span><div class="t"><b style="transform:scaleX(${Math.max(0,s)})"></b></div><span class="v">${Math.round(s*100)}%</span></div>`).join('');
+}
+
+// word maths
+const NAMED=WORDS.filter(w=>CAT[w]!=='little').sort();
+['#aA','#aB','#aC'].forEach(s=>$(s).innerHTML=NAMED.map(w=>`<option>${w}</option>`).join(''));
+function arrowPath(a,b,shrink){const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,s=Math.min(shrink,L/3);
+  return {d:`M${a[0]+dx/L*s},${a[1]+dy/L*s} L${b[0]-dx/L*s},${b[1]-dy/L*s}`,len:Math.max(0,L-2*s)};}
+function drawArrow(a,b,cls,delay){const {d,len}=arrowPath(a,b,9);
+  const p=el('path',{class:'arw '+cls,d},gArrows);
+  p.style.strokeDasharray=len;p.style.strokeDashoffset=len;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){p.style.strokeDashoffset=0;p.setAttribute('marker-end','url(#ah)');return;}
+  p.getBoundingClientRect();setTimeout(()=>{p.style.strokeDashoffset=0;},delay);
+  setTimeout(()=>p.setAttribute('marker-end','url(#ah)'),delay+500);}   // the head appears once the line has (almost) arrived
+function analogy(){
+  const A=$('#aA').value,B=$('#aB').value,C=$('#aC').value;
+  const v=VEC[A].map((x,k)=>x-VEC[B][k]+VEC[C][k]);
+  const [[R,s]]=nearest(v,[A,B,C],1);
+  $('#aRes').textContent=R;
+  const diff=VEC[A].map((x,k)=>x-VEC[B][k]),big=diff.map((x,k)=>[x,k]).filter(([x])=>Math.abs(x)>=.3).sort((a,b)=>Math.abs(b[0])-Math.abs(a[0])).slice(0,2);
+  const step=big.length?big.map(([x,k])=>`${DIMS[k][0]} ${DIMS[k][1]} ${x>0?'↑':'↓'}`).join(', '):'only small changes';
+  $('#aWhy').innerHTML=`<b>${esc(B)} → ${esc(A)}</b> is one step on the map (${step}). The same step from <b>${esc(C)}</b> lands next to <b>${esc(R)}</b> (similarity ${Math.round(s*100)}%).`;
+  gArrows.innerHTML='';clearCls('an');[A,B,C,R].forEach(w=>G[w].classList.add('an'));map.classList.add('dim');
+  const pa=POS[A],pb=POS[B],pc=POS[C],land=[pc[0]+pa[0]-pb[0],pc[1]+pa[1]-pb[1]];
+  drawArrow(pb,pa,'a1',60);drawArrow(pc,land,'a2',700);
+  const lm=el('circle',{class:'land',cx:land[0],cy:land[1],r:7},gArrows);lm.style.opacity=0;setTimeout(()=>lm.style.opacity=1,1300);
+  $$('#anPre .chip').forEach(c=>c.classList.toggle('on',c.dataset.q===[A,B,C].join(',')));
+}
+['#aA','#aB','#aC'].forEach(s=>$(s).addEventListener('change',analogy));
+$$('#anPre .chip').forEach(c=>c.onclick=()=>{const [a,b,cc]=c.dataset.q.split(',');$('#aA').value=a;$('#aB').value=b;$('#aC').value=cc;analogy();});
+
+// start: everything filled in, nothing waiting for a click
+$('#aA').value='king';$('#aB').value='man';$('#aC').value='woman';
+drawVs();build(false);select('cat');analogy();
+// Scroll driver: the analogy arrows replay when the map first comes into view
+if('IntersectionObserver' in window){let done=false;new IntersectionObserver(es=>{if(!done&&es[0].isIntersecting){done=true;analogy();}},{threshold:.35}).observe($('#map'));}
+</script>
+<script>
+/* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
+(function(){var b=document.getElementById('modeBtn'),m='simple';try{m=localStorage.getItem('tv-mode')||'simple';}catch(e){}
+function set(s){document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';}
+set(m==='simple');b.onclick=function(){var s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('tv-mode',s?'simple':'detailed');}catch(e){}window.dispatchEvent(new Event('resize'));};})();
+</script>
+</body>
+</html>
