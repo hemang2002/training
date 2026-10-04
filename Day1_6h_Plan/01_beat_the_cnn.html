@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beat the CNN</title>
+<link rel="stylesheet" href="../Training_Visualized/style.css">
+<style>
+  :root{
+    --spring-snappy: linear(0, 0.0339, 0.1156, 0.2218, 0.3364, 0.449, 0.5534, 0.646, 0.7256, 0.7921, 0.8463, 0.8896, 0.9232, 0.9489, 0.968, 0.9819, 0.9916, 0.9981, 1.0023, 1.0047, 1.0059, 1.0063, 1.0061, 1.0056, 1);
+    --spring-snappy-ms: 539ms;
+  }
+  .wrap{max-width:980px}
+  .screen{display:none}.screen.on{display:block;animation:in var(--spring-snappy-ms) var(--spring-snappy) both}
+  @keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .big{font-size:clamp(2.2rem,6vw,3.6rem);letter-spacing:-.03em;line-height:1.05;margin:.3rem 0 .6rem}
+  .vsline{display:flex;align-items:center;justify-content:center;gap:1.2rem;font-size:clamp(3rem,9vw,5rem);margin:.6rem 0}
+  .vsline small{font-size:1.1rem;font-weight:800;color:var(--muted)}
+  .lead{font-size:1.15rem;max-width:40rem;margin:0 auto .8rem;text-align:center}
+  .center{text-align:center}
+  .go{font-size:1.1rem;padding:.7rem 1.6rem;border-radius:999px}
+  .arena{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:1.4rem;align-items:start;margin-top:.4rem}
+  @media (max-width:760px){.arena{grid-template-columns:1fr}}
+  .pic{width:100%;max-width:320px;aspect-ratio:1;image-rendering:pixelated;border-radius:18px;background:#000;display:block;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+  .pic.pop{animation:pop var(--spring-snappy-ms) var(--spring-snappy)}
+  @keyframes pop{from{transform:scale(.94);opacity:.4}to{transform:none;opacity:1}}
+  .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.95rem;color:var(--muted);margin:.5rem .2rem 0;max-width:320px}
+  .bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;max-width:320px;margin:.4rem .2rem 0}
+  .bar b{display:block;height:100%;background:var(--blue);transition:width .3s}
+  .labels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+  .labels button{font:inherit;font-size:1.02rem;font-weight:600;text-align:left;border:2px solid var(--line);background:#fff;border-radius:14px;padding:.6rem .8rem;cursor:pointer;color:var(--ink);display:flex;gap:.5rem;align-items:center;transition:transform 120ms,border-color 120ms}
+  .labels button:hover{border-color:var(--blue)}
+  .labels button:active{transform:scale(.97)}
+  .labels button kbd{margin-left:auto;font-size:.75rem;color:var(--muted)}
+  .labels button .em{font-size:1.4rem}
+  .score{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin:.8rem 0;text-align:center}
+  .score .side{background:#fff;border:1px solid var(--line);border-radius:18px;padding:.8rem}
+  .score .side b{display:block;font:800 3rem/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .score .side span{color:var(--muted);font-weight:600}
+  .score .side.win{border:2px solid var(--green);background:var(--good-bg)}
+  .score .mid{font-weight:800;color:var(--muted);font-size:1.4rem}
+  .verdict{font-size:1.35rem;font-weight:800;text-align:center;margin:.3rem 0 .8rem;letter-spacing:-.01em}
+  .speed{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.6rem;margin:.6rem 0}
+  .speed div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.6rem .8rem;font-size:.95rem}
+  .speed b{font-family:var(--mono);font-size:1.15rem}
+  .review{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:.5rem;margin:.6rem 0}
+  .rv{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.4rem;display:grid;grid-template-columns:56px 1fr;gap:.45rem;align-items:center;font-size:.78rem;line-height:1.35}
+  .rv canvas{width:56px;height:56px;image-rendering:pixelated;border-radius:6px;background:#000}
+  .rv.both{border:2px solid var(--red);background:var(--bad-bg)}
+  .rv .ok{color:var(--green);font-weight:700}.rv .no{color:var(--red);font-weight:700}
+  .filter{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0}
+  .cmx{border-collapse:separate;border-spacing:3px;font-size:.88rem;margin:.3rem auto}
+  .cmx th{padding:.2rem .4rem;color:var(--muted);font-weight:700;font-size:.8rem}
+  .cmx td{width:3rem;height:2.4rem;text-align:center;border-radius:8px;font-weight:800;font-family:var(--mono)}
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:1rem}
+  .tally{font:800 1.4rem/1.3 var(--mono);color:var(--blue);text-align:center;background:#fff;border:2px dashed var(--blue);border-radius:14px;padding:.5rem;margin:.6rem 0}
+  .take{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:.6rem;margin:.6rem 0}
+  .take div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.7rem .9rem}
+  .take .em{font-size:1.8rem}
+  .take b{display:block;margin:.2rem 0}
+  @media (prefers-reduced-motion:reduce){.screen.on,.pic.pop{animation:none}.bar b{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<!-- 0 · intro -->
+<section class="screen on" id="s0">
+  <div class="center" style="margin-top:1.4rem">
+    <div class="kicker">Day 1 · surprise round</div>
+    <div class="vsline"><span>🧑</span><small>VS</small><span>🤖</span></div>
+    <h1 class="big">Can you beat the CNN?</h1>
+    <p class="lead">This morning you trained a CNN that looks at <b>28 × 28 pixel</b> pictures of clothes. Now it's <b>your</b> turn.
+      Same test pictures, same 10 answers. The CNN has already answered. Let's see who wins.</p>
+    <p class="small muted">Round 1: 20 pictures, all 10 kinds. Round 2: 15 pictures, only tops. Click a label, or press keys 0–9.</p>
+    <button class="btn primary go" id="start">Start round 1 ▶</button>
+  </div>
+</section>
+
+<!-- 1 · play -->
+<section class="screen" id="s1">
+  <h2 id="rTitle">Round 1</h2>
+  <div class="arena">
+    <div>
+      <canvas class="pic" id="pic" width="28" height="28" aria-label="the picture to label"></canvas>
+      <div class="bar"><b id="prog"></b></div>
+      <div class="meta"><span id="count">1 / 20</span><span id="clock">0.0 s</span></div>
+    </div>
+    <div><p class="muted" style="margin-top:0">What is this? Trust your first guess.</p><div class="labels" id="labels"></div></div>
+  </div>
+</section>
+
+<!-- 2 · result -->
+<section class="screen" id="s2">
+  <h2 id="resTitle">Round 1: the result</h2>
+  <div class="score"><div class="side" id="youSide"><b id="youScore">0</b><span>🧑 you</span></div><div class="mid">vs</div><div class="side" id="cnnSide"><b id="cnnScore">0</b><span>🤖 CNN</span></div></div>
+  <div class="verdict" id="verdict"></div>
+  <div class="speed" id="speed"></div>
+  <h3>Every picture, side by side</h3>
+  <div class="filter"><button class="chip btn ghost" id="fAll">All</button><button class="btn ghost" id="fBoth">❌ Both wrong</button><button class="btn ghost" id="fDiff">⚔️ You and the CNN disagree</button></div>
+  <div class="review" id="review"></div>
+  <div id="cmBox"></div>
+  <div class="center" style="margin:1rem 0"><button class="btn primary go" id="next">Next ▶</button></div>
+</section>
+
+<!-- 3 · final -->
+<section class="screen" id="s3">
+  <h1 class="big center">What just happened?</h1>
+  <p class="lead">Tell the trainer your score code:</p>
+  <div class="tally" id="tally"></div>
+  <div class="take">
+    <div><div class="em">⚡</div><b>The CNN is fast</b><span id="tFast"></span></div>
+    <div><div class="em">👔</div><b>Shirts are hard for everyone</b>A shirt, a T-shirt, a pullover and a coat look almost the same at 28 × 28 pixels. When humans <i>and</i> the model fail on the same pictures, the problem is often the <b>data</b>, not only the model.</div>
+    <div><div class="em">🧮</div><b>You just built a confusion matrix</b>The table after round 2 counts "true kind → answered kind". Next, we read the CNN's confusion matrix on all 10,000 test pictures.</div>
+  </div>
+  <div class="center"><button class="btn ghost" id="again">⟲ Play again</button></div>
+</section>
+</main>
+
+<script src="game_data.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const EM=['👕','👖','🧶','👗','🧥','👡','👔','👟','👜','🥾'];
+const NAMES=['T-shirt/top','Trouser','Pullover','Dress','Coat','Sandal','Shirt','Sneaker','Bag','Ankle boot'];
+const ROUNDS=[{title:'Round 1 · all 10 kinds',items:GAME.rounds[0],classes:[0,1,2,3,4,5,6,7,8,9]},
+              {title:'Round 2 · only tops (the hard ones)',items:GAME.rounds[1],classes:[0,2,4,6]}];
+const PX=GAME.rounds.map(r=>r.map(d=>Uint8Array.from(atob(d.px),c=>c.charCodeAt(0))));
+let R=0,i=0,ans=[[],[]],t0=0,times=[0,0],tick=null;
+
+function paint(cv,px){const c=cv.getContext('2d'),im=c.createImageData(28,28);
+  for(let k=0;k<784;k++){im.data[4*k]=im.data[4*k+1]=im.data[4*k+2]=px[k];im.data[4*k+3]=255;}c.putImageData(im,0,0);}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));window.scrollTo({top:0});}
+
+function startRound(r){R=r;i=0;ans[r]=[];
+  $('#rTitle').textContent=ROUNDS[r].title;
+  $('#labels').innerHTML=ROUNDS[r].classes.map(c=>`<button data-c="${c}"><span class="em">${EM[c]}</span>${NAMES[c]}<kbd>${c}</kbd></button>`).join('');
+  $('#labels').querySelectorAll('button').forEach(b=>b.onclick=()=>answer(+b.dataset.c));
+  show('s1');drawPic();t0=performance.now();
+  clearInterval(tick);tick=setInterval(()=>{$('#clock').textContent=((performance.now()-t0)/1000).toFixed(1)+' s';},100);}
+function drawPic(){const n=ROUNDS[R].items.length,cv=$('#pic');paint(cv,PX[R][i]);
+  cv.classList.remove('pop');void cv.offsetWidth;cv.classList.add('pop');
+  $('#count').textContent=`${i+1} / ${n}`;$('#prog').style.width=`${100*i/n}%`;}
+function answer(c){ans[R].push(c);i++;
+  if(i<ROUNDS[R].items.length)drawPic();
+  else{clearInterval(tick);times[R]=(performance.now()-t0)/1000;results();}}
+document.addEventListener('keydown',e=>{if(!$('#s1').classList.contains('on'))return;
+  const c=+e.key;if(e.key>='0'&&e.key<='9'&&ROUNDS[R].classes.includes(c))answer(c);});
+
+function results(){
+  const it=ROUNDS[R].items,a=ans[R],n=it.length;
+  const you=it.filter((d,k)=>a[k]===d.y).length,cnn=it.filter(d=>d.cnn===d.y).length;
+  $('#resTitle').textContent=(R?'Round 2':'Round 1')+': the result';
+  $('#youScore').textContent=`${you}/${n}`;$('#cnnScore').textContent=`${cnn}/${n}`;
+  $('#youSide').classList.toggle('win',you>cnn);$('#cnnSide').classList.toggle('win',cnn>you);
+  $('#verdict').textContent=you>cnn?'🎉 You beat the CNN!':you===cnn?'🤝 A draw.':'🤖 The CNN wins this round.';
+  const cnnSec=GAME.secs10k*n/10000;
+  $('#speed').innerHTML=`<div>🧑 You: <b>${times[R].toFixed(1)} s</b> for ${n} pictures</div>
+    <div>🤖 CNN: <b>${(cnnSec*1000).toFixed(1)} ms</b> for ${n} pictures (all 10,000 test pictures take ${GAME.secs10k.toFixed(1)} s on a laptop CPU)</div>`;
+  review('all');
+  const both=it.filter((d,k)=>a[k]!==d.y&&d.cnn!==d.y).length;
+  if(R===1){const cls=ROUNDS[1].classes,cm=(get)=>cls.map(t=>cls.map(p=>it.filter((d,k)=>d.y===t&&get(d,k)===p).length));
+    const tbl=(m,title)=>`<div><h4 class="center" style="margin:.4rem 0">${title}</h4><table class="cmx"><tr><th>true ↓ / answered →</th>${cls.map(c=>`<th>${EM[c]}</th>`).join('')}</tr>${
+      m.map((row,ti)=>`<tr><th>${EM[cls[ti]]} ${NAMES[cls[ti]]}</th>${row.map((v,pi)=>`<td style="background:${v?(ti===pi?'#d3f9d8':'#ffe3e3'):'#f8f9fa'};color:${v?'inherit':'#ced4da'}">${v}</td>`).join('')}</tr>`).join('')}</table></div>`;
+    $('#cmBox').innerHTML=`<h3>🧮 Your confusion matrix vs the CNN's</h3><p class="small muted">Green = right. Red = a mix-up: row = what it really was, column = what was answered.</p>
+      <div class="two">${tbl(cm((d,k)=>a[k]),'🧑 you')}${tbl(cm(d=>d.cnn),'🤖 CNN')}</div>
+      <div class="look">👀 Look for red cells in the <b>👔 Shirt</b> row. ${both?`You and the CNN both got <b>${both}</b> of these pictures wrong.`:''} On all 10,000 test pictures, this CNN gets 91% overall but only 70% of shirts right.</div>`;}
+  else $('#cmBox').innerHTML=both?`<div class="look">👀 <b>${both}</b> picture${both>1?'s':''} fooled you <b>and</b> the CNN. Click "❌ Both wrong" and look at them closely. Would a friend get them right?</div>`:'';
+  $('#next').textContent=R?'See what we learned ▶':'Start round 2: only tops ▶';
+  show('s2');}
+function review(mode){const it=ROUNDS[R].items,a=ans[R];
+  $('#review').innerHTML='';
+  it.forEach((d,k)=>{const yOk=a[k]===d.y,cOk=d.cnn===d.y;
+    if(mode==='both'&&(yOk||cOk))return;if(mode==='diff'&&a[k]===d.cnn)return;
+    const el=document.createElement('div');el.className='rv'+(!yOk&&!cOk?' both':'');
+    el.innerHTML=`<canvas width="28" height="28"></canvas><div><b>${EM[d.y]} ${NAMES[d.y]}</b><br><span class="${yOk?'ok':'no'}">🧑 ${NAMES[a[k]]}</span><br><span class="${cOk?'ok':'no'}">🤖 ${NAMES[d.cnn]} <small>(${Math.round(d.conf*100)}% sure)</small></span></div>`;
+    paint(el.querySelector('canvas'),PX[R][k]);$('#review').appendChild(el);});
+  if(!$('#review').children.length)$('#review').innerHTML='<p class="muted">No pictures here. 🎉</p>';}
+$('#fAll').onclick=()=>review('all');$('#fBoth').onclick=()=>review('both');$('#fDiff').onclick=()=>review('diff');
+$('#start').onclick=()=>startRound(0);
+$('#next').onclick=()=>{if(R===0)startRound(1);else final();};
+function final(){const s=r=>ROUNDS[r].items.filter((d,k)=>ans[r][k]===d.y).length;
+  $('#tally').textContent=`R1 ${s(0)}/20 · R2 ${s(1)}/15`;
+  $('#tFast').innerHTML=`You needed <b>${(times[0]+times[1]).toFixed(0)} s</b> for 35 pictures. The CNN labels all <b>10,000</b> test pictures in <b>${GAME.secs10k.toFixed(1)} s</b>, which is about ${Math.round(10000/GAME.secs10k).toLocaleString('en-US')} pictures per second.`;
+  show('s3');}
+$('#again').onclick=()=>{show('s0');};
+</script>
+</body>
+</html>

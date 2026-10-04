@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 1 · Check-in &amp; exit quiz</title>
+<link rel="stylesheet" href="../Training_Visualized/style.css">
+<style>
+  .hero h1{font-size:clamp(1.9rem,4.5vw,2.7rem);letter-spacing:-.02em;line-height:1.1}
+  .tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0 1rem}
+  .tab{font:inherit;font-weight:700;font-size:1rem;border:2px solid var(--line);background:#fff;border-radius:999px;padding:.45rem 1rem;cursor:pointer;color:var(--muted)}
+  .tab.on{border-color:var(--blue);background:var(--blue);color:#fff}
+  .topic{margin:1.2rem 0 .4rem;display:flex;align-items:center;gap:.5rem}
+  .topic h2{margin:0;font-size:1.2rem}
+  .q{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.8rem 1rem;margin:.6rem 0}
+  .q .qt{font-weight:600;margin-bottom:.45rem}
+  .q .qt code{font-size:.92em}
+  .q .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:.4rem}
+  .q button.o{font:inherit;text-align:left;border:2px solid var(--line);background:#fff;border-radius:10px;padding:.45rem .7rem;cursor:pointer;color:var(--ink);line-height:1.35}
+  .q button.o:hover:not(:disabled){border-color:var(--blue)}
+  .q button.o:disabled{cursor:default}
+  .q button.o.right{border-color:var(--green);background:var(--good-bg)}
+  .q button.o.wrong{border-color:var(--red);background:var(--bad-bg)}
+  .q .ex{display:none;margin-top:.45rem;font-size:.9rem;color:#5c4813;background:#fff9db;border-radius:8px;padding:.35rem .6rem}
+  .q.done .ex{display:block}
+  .score{position:sticky;bottom:0;z-index:5;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:.7rem 1rem;margin-top:1rem;box-shadow:var(--shadow)}
+  .bars{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) 3rem;gap:.3rem .6rem;align-items:center;font-size:.9rem}
+  .bars .t{height:.75rem;background:var(--soft);border-radius:99px;overflow:hidden}
+  .bars .t b{display:block;height:100%;border-radius:99px;background:var(--blue);transition:width .4s}
+  .bars .n{font-family:var(--mono);font-weight:700;text-align:right}
+  .code{font:800 1.5rem/1.2 var(--mono);letter-spacing:.05em;color:var(--blue)}
+  .total{display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;align-items:baseline;margin-bottom:.5rem}
+  .total b{font:800 1.6rem/1 var(--sans)}
+  .cmp{font-size:.9rem;color:var(--green);font-weight:600}
+  .self .opts button.o.pick{border-color:var(--blue);background:#e7f0ff}
+  @media (prefers-reduced-motion:reduce){.bars .t b{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap" style="max-width:920px">
+<section class="hero">
+  <div class="kicker">Day 1 · PyTorch fundamentals</div>
+  <h1>What do you already know?</h1>
+  <p class="sub" style="color:var(--muted);font-size:1.05rem">No marks, no names. Answer honestly. Guessing is fine, and "I don't know" is useful information too.
+  When you finish, your <b>score code</b> appears at the bottom. Tell it to the trainer.</p>
+  <div class="tabs"><button class="tab on" data-m="morning">🌅 Morning check-in · 15 questions</button><button class="tab" data-m="exit">🌇 End-of-day exit quiz · 10 questions</button></div>
+</section>
+
+<div id="quiz"></div>
+
+<div class="score" id="score">
+  <div class="total"><span>Score: <b id="tot">0 / 15</b></span><span>Answered: <span id="ans">0</span></span><span>Your code: <span class="code" id="code">–</span></span></div>
+  <div class="bars" id="bars"></div>
+  <div class="cmp" id="cmp"></div>
+</div>
+</main>
+
+<script>
+// Each question: topic, text (HTML), options, index of the right one, one-line explanation.
+const TOPICS={py:'🐍 Python & NumPy',ten:'🧱 Tensors',learn:'⛰️ How a model learns',loop:'🔁 The training loop',good:'🎯 Is it any good?'};
+const QS={
+morning:[
+ ['py','<code>a = np.array([1, 2, 3])</code>. What is <code>a * 2</code>?',['[1, 2, 3, 1, 2, 3]','[2, 4, 6]','an error','12'],1,'NumPy works element by element: every number is doubled. (A Python list would repeat instead.)'],
+ ['py','<code>a = np.zeros((3, 4))</code>. What is <code>a.shape[0]</code>?',['3','4','12','(3, 4)'],0,'shape is (rows, columns) = (3, 4), so shape[0] = 3 rows.'],
+ ['py','<code>np.array([[1, 2], [3, 4]]).sum(axis=0)</code> gives…',['10','[3, 7]','[4, 6]','[[4, 6]]'],2,'axis=0 adds down the columns: 1+3 = 4 and 2+4 = 6.'],
+ ['ten','<code>x = torch.ones(2, 3)</code>. What is <code>x.T.shape</code>?',['(2, 3)','(3, 2)','(6,)','(3, 3)'],1,'.T swaps rows and columns.'],
+ ['ten','Shape of <code>torch.ones(4, 3) @ torch.ones(3, 5)</code>?',['(4, 5)','(3, 3)','(4, 3, 5)','an error'],0,'Matrix multiplication: (4×3) @ (3×5) → (4×5). The inner 3s must match.'],
+ ['ten','A batch of 32 colour pictures, 28×28 pixels. Which shape does PyTorch use?',['(32, 28, 28, 3)','(3, 32, 28, 28)','(32, 3, 28, 28)','(28, 28, 3, 32)'],2,'PyTorch order: (batch, channels, height, width) = N, C, H, W.'],
+ ['learn','What does the <b>loss</b> tell you?',['how fast the model runs','one number for how wrong the model is','how many weights it has','the accuracy in %'],1,'Loss = one number for "how wrong". Training tries to make it smaller.'],
+ ['learn','You stand on a foggy hill and want to reach the valley. Gradient descent says…',['jump to a random place','step in the direction where the ground goes down the most','walk uphill first','stay where you are'],1,'The gradient points uphill, so we step the opposite way: downhill.'],
+ ['learn','The learning rate is much too big. What usually happens?',['training gets slower but safer','the loss jumps around or explodes','nothing changes','the model gets more weights'],1,'Steps are too long: you jump over the valley, and the loss bounces or blows up.'],
+ ['loop','Why do we call <code>optimizer.zero_grad()</code> in every step?',['to reset the weights to 0','because PyTorch adds new gradients on top of old ones','to make training faster','to save memory only'],1,'Gradients accumulate (add up) in .grad. Without a reset, old steps leak into the new one.'],
+ ['loop','One <b>epoch</b> means…',['one weight update','one batch','one full pass over all the training data','one hour of training'],2,'Epoch = the model has seen every training example once.'],
+ ['loop','A <b>batch</b> is…',['the whole dataset','a small group of examples used for one update','one single example','the test set'],1,'For example 64 pictures at once: one forward pass, one update.'],
+ ['good','Train accuracy 99%, test accuracy 70%. This is…',['underfitting','overfitting','a perfect model','a bug in PyTorch'],1,'It memorised the training data and fails on new data: overfitting.'],
+ ['good','1% of patients are sick. A model always says "healthy". Its accuracy is…',['1%','50%','99%, but it finds no sick patient','impossible to tell'],2,'99% accurate and useless. Accuracy can lie when one class is rare. Check recall.'],
+ ['good','Why do we keep a separate <b>validation</b> set?',['to have more training data','to choose settings without peeking at the test set','because PyTorch needs it','to make training faster'],1,'Tune on validation; touch the test set only once, at the very end.'],
+],
+exit:[
+ ['ten','Shape of <code>torch.zeros(5, 1) + torch.zeros(1, 4)</code>?',['(5, 1)','(1, 4)','(5, 4)','an error'],2,'Broadcasting stretches each size-1 axis: (5,1) + (1,4) → (5,4).'],
+ ['ten','The model returns <code>logits</code> with shape (32, 10): 32 pictures, 10 class scores each. Shape of <code>logits.argmax(dim=1)</code>?',['(32,)','(10,)','(32, 10)','(1,)'],0,'argmax(dim=1) picks the best of the 10 scores for each picture: one predicted class per picture, so 32 numbers. This is how we turn scores into answers when we measure accuracy.'],
+ ['learn','After <code>loss.backward()</code>, where is the gradient of weight <code>w</code>?',['in loss.grad','in w.grad','in optimizer.grad','it is printed'],1,'backward() fills the .grad of every tensor with requires_grad=True.'],
+ ['learn','Gradient descent on (w − 3)² from w = 0 with learning rate 1.0. What happens?',['w reaches 3 in one step','w bounces between 0 and 6 forever','w slowly reaches 3','w goes to infinity'],1,'The gradient is 2(w−3) = −6, so w jumps to 6, then back to 0, and so on. You measured this in Task 2b.'],
+ ['loop','Put the core loop in order:',['forward → loss → zero_grad → step → backward','zero_grad → forward → loss → backward → step','backward → forward → step → loss → zero_grad','forward → backward → loss → step → zero_grad'],1,'zero_grad → forward → loss → backward → step. Say it until you dream it.'],
+ ['loop','When we only <b>measure</b> the model on test data, which steps of the training loop do we keep?',['all five, the same as in training','only the forward pass and the score: no backward(), no step()','only backward() and step()','only optimizer.zero_grad()'],1,'Measuring must never change the knobs. So we only guess (forward) and count the right answers. Without backward() and step() the model learns nothing from the test set.'],
+ ['loop','Your model has Dropout. Before measuring test accuracy you must…',['call model.train()','call model.eval() and use torch.no_grad()','delete the Dropout layer','lower the learning rate'],1,'eval() switches Dropout off; no_grad() saves memory and time.'],
+ ['good','Validation loss goes down until epoch 6, then goes up. Best plan?',['train much longer','stop and keep the weights from epoch 6','restart with lr = 0','use the test set to decide'],1,'That is early stopping: keep the best validation epoch.'],
+ ['good','Your CNN has 91% accuracy on FashionMNIST. What should you check next?',['nothing, 91% is great','the accuracy per class (confusion matrix)','the file size','the training speed'],1,'One overall number hides a weak class. In Day 1 the "Shirt" class is much worse than the average.'],
+ ['good','The recommended way to save a trained model is…',['torch.save(model.state_dict(), path)','pickle the notebook','copy the .ipynb file','print(model)'],0,'Save the state_dict (the weights). Rebuild the model class, then load_state_dict.'],
+]};
+const ORDER={morning:['py','ten','learn','loop','good'],exit:['ten','learn','loop','good']};
+let mode='morning',state={};
+const $=s=>document.querySelector(s);
+function render(){
+  const qs=QS[mode];state={};let html='',last='';
+  qs.forEach((q,i)=>{if(q[0]!==last){last=q[0];html+=`<div class="topic"><h2>${TOPICS[q[0]]}</h2></div>`;}
+    // fixed shuffle per question, so the right answer is not always in the same place
+    const ord=q[2].map((_,k)=>k).sort((a,b)=>((a*7+i*5+3)%11)-((b*7+i*5+3)%11));
+    html+=`<div class="q" data-i="${i}"><div class="qt">${i+1}. ${q[1]}</div><div class="opts">${ord.map(k=>`<button class="o" data-k="${k}">${q[2][k]}</button>`).join('')}</div><div class="ex">💡 ${q[4]}</div></div>`;});
+  $('#quiz').innerHTML=html;
+  document.querySelectorAll('#quiz .q').forEach(el=>{const i=+el.dataset.i,q=qs[i];
+    el.querySelectorAll('button.o').forEach(b=>b.onclick=()=>{const k=+b.dataset.k;state[i]=k===q[3];
+      el.querySelectorAll('button.o').forEach(x=>{x.disabled=true;const kk=+x.dataset.k;if(kk===q[3])x.classList.add('right');else if(kk===k)x.classList.add('wrong');});
+      el.classList.add('done');score();});});
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.m===mode));
+  $('#self').style.display=mode==='morning'?'':'none';
+  score();
+}
+function score(){
+  const qs=QS[mode],per={};ORDER[mode].forEach(t=>per[t]=[0,0]);
+  qs.forEach((q,i)=>{per[q[0]][1]++;if(state[i])per[q[0]][0]++;});
+  const got=Object.values(state).filter(Boolean).length,ans=Object.keys(state).length;
+  $('#tot').textContent=`${got} / ${qs.length}`;$('#ans').textContent=`${ans} of ${qs.length}`;
+  $('#bars').innerHTML=ORDER[mode].map(t=>`<span>${TOPICS[t]}</span><div class="t"><b style="width:${100*per[t][0]/per[t][1]}%"></b></div><span class="n">${per[t][0]}/${per[t][1]}</span>`).join('');
+  // the score code is what students say out loud: one digit per topic, e.g. "3-2-1-0-1"
+  $('#code').textContent=ans===qs.length?ORDER[mode].map(t=>per[t][0]).join('-'):'–';
+  let cmp='';
+  if(ans===qs.length){try{
+    if(mode==='morning')localStorage.setItem('day1-morning',JSON.stringify(per));
+    else{const m=JSON.parse(localStorage.getItem('day1-morning')||'null');
+      if(m){const pm=ORDER.exit.reduce((s,t)=>s+m[t][0]/m[t][1],0)/4,pe=ORDER.exit.reduce((s,t)=>s+per[t][0]/per[t][1],0)/4;
+        cmp=`📈 This morning you scored ${Math.round(pm*100)}% on these four topics. Now: ${Math.round(pe*100)}%.`;}}
+  }catch(e){}}
+  $('#cmp').textContent=cmp;
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{mode=t.dataset.m;render();window.scrollTo({top:0});});
+document.querySelectorAll('#self button.o').forEach(b=>b.onclick=()=>{document.querySelectorAll('#self button.o').forEach(x=>x.classList.toggle('pick',x===b));});
+if(location.hash==='#exit')mode='exit';
+render();
+</script>
+</body>
+</html>

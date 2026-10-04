@@ -21,6 +21,7 @@ Extra  Live demos          ──► object detection (Faster R-CNN) + GAN (DCGA
 | Folder | What's inside | Start with |
 |---|---|---|
 | [`Day1_PyTorch_Fundamentals/`](Day1_PyTorch_Fundamentals/) | tensors & autograd, training loop, CNN on FashionMNIST, lab | `README.md` |
+| [`Day1_6h_Plan/`](Day1_6h_Plan/) | **new 6-hour Day 1 plan** (4 h 30 teaching + 1 h 30 breaks): every block is Check → Show → Solve → Conclude; morning check-in / exit quiz page; 5 solve tasks incl. a "five bugs" final challenge | `README.md` |
 | [`Day2_Transfer_Learning_and_Optimization/`](Day2_Transfer_Learning_and_Optimization/) | MobileNetV2 fine-tuning, dynamic/static/QAT quantization, pruning, FP16, ONNX + ONNX Runtime INT8, lab, one-command `scripts/train_and_export.py`; extra notebooks: data augmentation, image segmentation (Penn-Fudan, U-Net vs pretrained LR-ASPP), RNN/LSTM text classification (SMS spam) | `README.md` |
 | [`Day3_Serving_Flask_Streamlit/`](Day3_Serving_Flask_Streamlit/) | Flask API, Streamlit UI, tests, API notebooks, server-side LAB | `README.md` |
 | [`Day4_Docker_Kubernetes_Cloud/`](Day4_Docker_Kubernetes_Cloud/) | Dockerfiles (good vs naive), compose, Kubernetes manifests + load test, free-cloud guides, LAB | `README.md` |

@@ -4,6 +4,8 @@
 > **Audience:** MSc students (comfortable with Python and NumPy; basic ML theory helpful but not required)
 > **Duration:** 5 hours including 2 breaks. About 35% is dedicated student lab time, plus follow-along live coding.
 
+> 🆕 **6-hour version:** the timetable in [`../Day1_6h_Plan/README.md`](../Day1_6h_Plan/README.md) (Check → Show → Solve → Conclude, with check-in and exit quizzes) replaces the one below. The concept notes here are still the background for it.
+
 This README is the **trainer's lecture guide**. Each block has talking points you can speak from, ASCII diagrams you can draw on the whiteboard, common student mistakes, and discussion questions.
 
 ---
