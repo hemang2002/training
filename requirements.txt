@@ -1,6 +1,6 @@
-# Course environment (Days 1-4 + live demos). Python 3.10 - 3.13.
-#
-# CPU-only PyTorch (smaller download, works everywhere):
+# Course environment. Python 3.10 - 3.13.
+# winget install --id=astral-sh.uv -e
+# CPU-only PyTorch:
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 #   pip install -r requirements.txt
 # With an NVIDIA GPU, install torch/torchvision following https://pytorch.org/get-started/locally/ instead.
