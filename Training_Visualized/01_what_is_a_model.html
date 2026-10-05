@@ -5,6 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>1 · What is a model? — Training, Visualized</title>
 <link rel="stylesheet" href="style.css">
+<style>
+.lossbox .formula{font-family:var(--mono);background:var(--soft);padding:.5rem .7rem;border-radius:8px;display:block;margin:.5rem 0;overflow-x:auto;font-size:1.05rem}
+.lossbox .box{background:var(--soft);border-radius:14px;padding:.8rem 1rem}
+.lossbox .box ul{margin:.3rem 0;padding-left:1.2rem}
+.lossbox .box li{margin:.35rem 0}
+.lossbox table{margin:.4rem 0 .8rem}
+.odemo{border:2px dashed #f3c4d4;border-radius:16px;padding:.6rem 1rem 1rem;margin:1rem 0 1.2rem;background:#fffafc}
+.odemo h3{margin-top:.3rem}
+.octl{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin:.4rem 0 .8rem}
+.octl label{font-weight:700}
+.octl output{display:inline-block;min-width:2.5rem;color:#d6336c;font-weight:800;font-size:1.1rem}
+.octl input[type=range]{flex:1 1 220px}
+.tug{display:flex;flex-direction:column;gap:.9rem;padding:.6rem .2rem}
+.tug-row{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:.6rem}
+.tug-bar{display:flex;height:42px;border-radius:10px;overflow:hidden;background:var(--soft)}
+.tug-bar div{height:100%;border-right:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.85rem;transition:flex-grow .25s;min-width:0;overflow:hidden;white-space:nowrap}
+.tug-bar .f{background:#d6336c}
+.tug-bar .n{background:#868e96}
+.tug-key{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.82rem;color:var(--muted)}
+.tug-key i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:.3rem;vertical-align:-1px}
+.ostats{margin-top:.6rem}
+.ostats .stat{flex:1 1 0}
+.oscore td:not(:first-child),.oscore th:not(:first-child){text-align:right}
+.lossbox .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem}
+</style>
 </head>
 <body>
 <header class="topbar"><div class="topbar-in">
@@ -85,8 +110,9 @@
 
       <h3>How we measure "wrong"</h3>
       <div class="seg" id="lossSeg">
-        <button data-v="mse" class="on">MSE (squared)</button>
-        <button data-v="mae">MAE (absolute)</button>
+        <button data-v="mse" class="on">MSE</button>
+        <button data-v="rmse">RMSE</button>
+        <button data-v="mae">MAE</button>
       </div>
       <label class="check"><input type="checkbox" id="showSq" checked> Show the error squares</label>
       <label class="check"><input type="checkbox" id="showBest"> Reveal the best possible line</label>
@@ -126,6 +152,109 @@
       </div>
     </div>
   </div>
+</section>
+
+<section class="card lossbox">
+  <h2>📏 MSE, RMSE or MAE? Three ways to measure "wrong"</h2>
+  <p>All three start the same way: for every day, take the <b>error</b> = guess − real value (the red dashed line).
+  They only differ in <b>how they add the errors up</b>.</p>
+  <div class="grid3">
+    <div>
+      <h3><span class="pill blue">MSE</span> Mean <i>Squared</i> Error</h3>
+      <span class="formula">MSE = ( error₁² + error₂² + … + errorₙ² ) ÷ n</span>
+      <p class="small muted">In maths: MSE = (1/n) · Σ (ŷᵢ − yᵢ)²  &nbsp;(ŷ = guess, y = real value, n = number of days)</p>
+      <p><b>Square</b> each error, then take the average. Squaring makes big errors <b>much</b> bigger:
+      an error of 2 counts as 4, but an error of 20 counts as 400.</p>
+    </div>
+    <div>
+      <h3><span class="pill green">RMSE</span> <i>Root</i> Mean Squared Error</h3>
+      <span class="formula">RMSE = √MSE</span>
+      <p class="small muted">In maths: RMSE = √( (1/n) · Σ (ŷᵢ − yᵢ)² ) &nbsp;(√ = square root)</p>
+      <p>Just MSE with a <b>square root</b> on top. This undoes the squaring of the <i>unit</i>, so the answer is back in <b>cups</b>, not cups².
+      Big errors still count extra, just like MSE.</p>
+    </div>
+    <div>
+      <h3><span class="pill orange">MAE</span> Mean <i>Absolute</i> Error</h3>
+      <span class="formula">MAE = ( |error₁| + |error₂| + … + |errorₙ| ) ÷ n</span>
+      <p class="small muted">In maths: MAE = (1/n) · Σ |ŷᵢ − yᵢ|  &nbsp;(|…| = drop the minus sign)</p>
+      <p>Drop the minus sign from each error, then take the average. An error of 20 counts as 20, exactly 10× an error of 2. <b>Fair to every error.</b></p>
+    </div>
+  </div>
+
+  <h3>🔢 Same 4 days, three different scores</h3>
+  <p>Our guesses were off by <b>2, 2, 2</b> cups on three normal days, and by <b>20</b> cups on the festival day.</p>
+  <table class="plain">
+    <tr><th></th><th>Calculation</th><th>Result</th><th>Who decides the score?</th></tr>
+    <tr><td><span class="pill blue">MSE</span></td><td>(4 + 4 + 4 + <b>400</b>) ÷ 4</td><td><b>103</b> cups²</td><td>The festival day is 400 of the 412 total. <b>One bad day decides almost everything.</b></td></tr>
+    <tr><td><span class="pill green">RMSE</span></td><td>√103</td><td><b>10.1</b> cups</td><td>Back in cups, but still pulled up by the festival day: 10.1 is much more than the "typical" miss of 2.</td></tr>
+    <tr><td><span class="pill orange">MAE</span></td><td>(2 + 2 + 2 + <b>20</b>) ÷ 4</td><td><b>6.5</b> cups</td><td>Every day has a fair say. Easy to read: "we are off by about 6.5 cups on average".</td></tr>
+  </table>
+
+  <div class="odemo">
+    <h3>🎪 Watch what ONE weird day does</h3>
+    <p>Below are 11 normal days that sit nicely on a line, plus <b>one festival day</b> (pink dot) at 14 °C.
+    Push the slider to make the festival day sell more and more ice-cream, or press ▶, and watch the two lines.</p>
+    <div class="octl">
+      <label for="oJump">Festival day: extra cups sold <output id="oJumpOut">0</output></label>
+      <input type="range" id="oJump" min="0" max="120" step="1" value="0">
+      <button class="btn primary" id="oPlay" type="button">▶ Make it rise</button>
+    </div>
+    <div class="grid2">
+      <div class="canvas-box">
+        <div class="canvas-title">The best line for each loss</div>
+        <canvas id="oPlot" style="height:330px"></canvas>
+        <div class="legend">
+          <span><i style="background:#2f6fed"></i>best MSE line (= best RMSE line)</span>
+          <span><i style="background:#f08c00"></i>best MAE line</span>
+          <span><i style="background:#adb5bd"></i>starting line (festival day = normal day)</span>
+        </div>
+      </div>
+      <div class="canvas-box">
+        <div class="canvas-title">Tug-of-war: how hard each day pulls the line</div>
+        <div class="tug">
+          <div class="tug-row"><span class="pill blue">MSE / RMSE</span><div class="tug-bar" id="oBarSq"></div></div>
+          <div class="tug-row"><span class="pill orange">MAE</span><div class="tug-bar" id="oBarAbs"></div></div>
+          <div class="tug-key"><span><i style="background:#d6336c"></i>festival day</span><span><i style="background:#868e96"></i>the 11 normal days (one block each)</span></div>
+        </div>
+        <div class="look" id="oWhy"></div>
+        <div class="stats ostats">
+          <div class="stat blue"><b id="oMoveSq">0</b><span>cups the MSE line moved (at 14 °C)</span></div>
+          <div class="stat orange"><b id="oMoveAbs">0</b><span>cups the MAE line moved (at 14 °C)</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="banner info" id="oSum"></div>
+  </div>
+
+  <h3>🧭 When to use which</h3>
+  <div class="grid3">
+    <div class="box">
+      <h3><span class="pill blue">Use MSE</span> when…</h3>
+      <ul>
+        <li><b>Big mistakes are really bad</b> and must be avoided. Being off by 20 is far worse than being off by 2 ten times (e.g. a medicine dose, a bridge load).</li>
+        <li>Your data is <b>clean</b>, with no strange one-off points.</li>
+        <li>You don't know what to pick: MSE is the <b>usual default</b> for predicting numbers. <span class="adv">Its smooth curve also gives gradient descent nicely shrinking steps near the best answer.</span></li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3><span class="pill green">Use RMSE</span> when…</h3>
+      <ul>
+        <li>You want MSE's "big mistakes are bad" behaviour, but need to <b>show the number to people</b>: "off by about 10 cups" is easy to understand.</li>
+        <li>You are <b>reporting results</b> (charts, reports, comparing models). RMSE is one of the most common scores you will see.</li>
+        <li>Training tip: the best line for RMSE is the <b>same</b> as for MSE (the root doesn't change which line wins), so we usually <b>train with MSE</b> and <b>report RMSE</b>.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3><span class="pill orange">Use MAE</span> when…</h3>
+      <ul>
+        <li>Your data has <b>outliers</b> (festival days, typos, broken sensors) that you <b>don't</b> want the model to chase.</li>
+        <li>Every mistake is <b>equally bad</b> per cup: being off by 20 is just 10× as bad as being off by 2.</li>
+        <li>You want a number that is <b>easy to explain</b>: MAE is in the same unit as the data ("6.5 cups"). MSE is in cups², which means little to a shop owner.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="look">👀 See it yourself: tick <b>Add a festival day</b> above, press 🤖 with <b>MSE</b>, then switch to <b>MAE</b> and press 🤖 again. The MSE line gets pulled towards the festival day; the MAE line mostly ignores it.</div>
+  <p class="small muted adv">In PyTorch: <code>nn.MSELoss()</code> for MSE, <code>torch.sqrt(nn.MSELoss()(pred, y))</code> for RMSE, <code>nn.L1Loss()</code> for MAE. A popular middle ground is <code>nn.HuberLoss()</code>: it acts like MSE for small errors and like MAE for big ones.</p>
 </section>
 
 <!-- <section class="card">
@@ -229,10 +358,12 @@ function makeData(){
   if(outlier)data.push({x:14,y:140,out:true});
   sel=Math.min(sel,data.length-1);yourBest=Infinity;path=[];computeBest();heatImg=null;$('#compSteps').textContent='–';
 }
-function lossAt(wv,bv,type=lossType){let s=0;for(const p of data){const e=wv*p.x+bv-p.y;s+=type==='mse'?e*e:Math.abs(e);}return s/data.length;}
+const isSq=(t=lossType)=>t!=='mae';   // MSE and RMSE both square the errors
+const TAGS={mse:'MSE',rmse:'RMSE',mae:'MAE'};
+function lossAt(wv,bv,type=lossType){let s=0;for(const p of data){const e=wv*p.x+bv-p.y;s+=isSq(type)?e*e:Math.abs(e);}s/=data.length;return type==='rmse'?Math.sqrt(s):s;}
 function computeBest(){
   const n=data.length;let mx=0,my=0;for(const p of data){mx+=p.x;my+=p.y;}mx/=n;my/=n;
-  if(lossType==='mse'){let sxy=0,sxx=0;for(const p of data){sxy+=(p.x-mx)*(p.y-my);sxx+=(p.x-mx)**2;}
+  if(isSq()){let sxy=0,sxx=0;for(const p of data){sxy+=(p.x-mx)*(p.y-my);sxx+=(p.x-mx)**2;}
     const bw=sxx>0?sxy/sxx:0;best={w:bw,b:my-bw*mx};}
   else{ // least-absolute-deviation: an optimal line always passes through two data points -> try all pairs
     best={w:0,b:my};let bl=lossAt(0,my,'mae');
@@ -255,7 +386,7 @@ function drawPlot(){
   ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
   // errors
   data.forEach((p,i)=>{const pr=w*p.x+b,x=sx(p.x),y1=sy(p.y),y2=sy(pr),side=Math.abs(y2-y1);
-    if(showSq&&lossType==='mse'){ctx.fillStyle=i===sel?'rgba(224,49,49,.22)':'rgba(224,49,49,.09)';ctx.fillRect(x,Math.min(y1,y2),side,side);}
+    if(showSq&&isSq()){ctx.fillStyle=i===sel?'rgba(224,49,49,.22)':'rgba(224,49,49,.09)';ctx.fillRect(x,Math.min(y1,y2),side,side);}
     ctx.strokeStyle='rgba(224,49,49,.85)';ctx.setLineDash([4,3]);ctx.lineWidth=i===sel?2.2:1.3;
     ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y2);ctx.stroke();ctx.setLineDash([]);});
   if(showBest){ctx.strokeStyle='#2f9e44';ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.beginPath();
@@ -300,7 +431,7 @@ function drawHeat(){
 
 // ---------- UI text ----------
 function updateText(){
-  const l=lossAt(w,b),tag=lossType==='mse'?'MSE':'MAE';
+  const l=lossAt(w,b),tag=TAGS[lossType];
   $('#wOut').textContent=w.toFixed(2);$('#bOut').textContent=b.toFixed(1);
   $('#lossNow').textContent=fmt(l);$('#lossLabel').textContent='Your loss ('+tag+')';
   $('#lossBest').textContent=fmt(best.loss);$('#yourBest').textContent=fmt(yourBest);$('#tries').textContent=tries;
@@ -314,7 +445,7 @@ function updateText(){
     `① The model predicts: <span class="formula">cups = w × temp + b = ${w.toFixed(2)} × ${p.x} ${b<0?'−':'+'} ${Math.abs(b).toFixed(1)} = ${pr.toFixed(1)} cups</span>`+
     `② The shop actually sold <b>${p.y}</b> cups.<br>`+
     `③ Error = prediction − truth = ${pr.toFixed(1)} − ${p.y} = <b style="color:var(--red)">${e.toFixed(1)}</b> `+
-    (lossType==='mse'?`→ squared error = <b>${(e*e).toFixed(1)}</b> (the area of this day's red square)<br>`:`→ absolute error = <b>${Math.abs(e).toFixed(1)}</b><br>`)+
+    (isSq()?`→ squared error = <b>${(e*e).toFixed(1)}</b> (the area of this day's red square)<br>`:`→ absolute error = <b>${Math.abs(e).toFixed(1)}</b><br>`)+
     `④ Do this for all ${data.length} days and take the average: <b>${tag} = ${fmt(l)}</b>. That single number is the <b>loss</b>.`;
 }
 function redraw(){drawPlot();drawHeat();updateText();}
@@ -329,17 +460,17 @@ function autofit(){
   const sxd=Math.sqrt(m2/n)||1,syd=Math.sqrt(sy2/n)||1;
   let ww=w*sxd,bb=b+w*mx,t=0;              // same line written with normalized x' = (x - mean) / std
   path=[[w,b]];$('#autofit').disabled=true;
-  const steps=lossType==='mse'?60:200;
+  const steps=isSq()?60:200;
   anim=setInterval(()=>{
     let gw=0,gb=0;
     for(const p of data){const xn=(p.x-mx)/sxd,e=ww*xn+bb-p.y;
-      if(lossType==='mse'){gw+=2*e*xn;gb+=2*e;}else{const s=Math.sign(e);gw+=s*xn;gb+=s;}}
+      if(isSq()){gw+=2*e*xn;gb+=2*e;}else{const s=Math.sign(e);gw+=s*xn;gb+=s;}}
     gw/=n;gb/=n;
-    const lr=lossType==='mse'?0.1:syd*0.25/(1+t/15);
+    const lr=isSq()?0.1:syd*0.25/(1+t/15);
     ww-=lr*gw;bb-=lr*gb;t++;
     setKnobs(ww/sxd,bb-ww*mx/sxd);path.push([w,b]);$('#compSteps').textContent=t;redraw();
     if(t>=steps)stopAnim();
-  },lossType==='mse'?45:20);
+  },isSq()?45:20);
 }
 
 // ---------- events ----------
@@ -365,6 +496,98 @@ window.addEventListener('resize',redraw);
 
 $('#nOut').textContent=nPts;$('#noiseOut').textContent=noise;
 makeData();redraw();
+</script>
+<script>
+// ---------- outlier demo: one festival day vs MSE / RMSE / MAE ----------
+(function(){
+  const XS=[10,13,16,19,22,25,28,31,34,37,40], NOISE=[2,-3,1,-2,3,-1,2,-3,1,2,-2];
+  const CLEAN=XS.map((x,i)=>({x,y:3*x-20+NOISE[i]})), FX=14, FBASE=3*FX-20;
+  const oX0=5,oX1=45,oY0=-20,oY1=170;
+  let jump=0,play=null;
+
+  function fitSq(pts){const n=pts.length;let mx=0,my=0;pts.forEach(p=>{mx+=p.x;my+=p.y;});mx/=n;my/=n;
+    let sxy=0,sxx=0;pts.forEach(p=>{sxy+=(p.x-mx)*(p.y-my);sxx+=(p.x-mx)**2;});const w=sxy/sxx;return {w,b:my-w*mx};}
+  function fitAbs(pts){let best=null,bl=Infinity;   // best MAE line always passes through two of the points
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[j].x-pts[i].x;if(!dx)continue;
+      const w=(pts[j].y-pts[i].y)/dx,b=pts[i].y-w*pts[i].x,l=mae(pts,{w,b});if(l<bl-1e-9){bl=l;best={w,b};}}return best;}
+  const mse=(pts,L)=>pts.reduce((s,p)=>s+(L.w*p.x+L.b-p.y)**2,0)/pts.length;
+  const mae=(pts,L)=>pts.reduce((s,p)=>s+Math.abs(L.w*p.x+L.b-p.y),0)/pts.length;
+  const at=(L,x)=>L.w*x+L.b;
+
+  // reference = slider at 0, i.e. the festival day is just a normal day
+  const P0=[{x:FX,y:FBASE},...CLEAN], ref=fitSq(P0), refAbs=fitAbs(P0);
+  const base={mse:mse(P0,ref),mae:mae(P0,refAbs)};
+
+  function bar(el,pulls){const tot=pulls.reduce((a,b)=>a+b,0)||1;
+    el.innerHTML=pulls.map((v,i)=>{const pct=v/tot*100,f=i===0;
+      return `<div class="${f?'f':'n'}" style="flex:${Math.max(v/tot,0.0001)} 1 0" title="${f?'festival day':'normal day'}: ${pct.toFixed(0)}% of the pull">${f&&pct>=12?pct.toFixed(0)+'%':''}</div>`;}).join('');
+    return pulls[0]/tot*100;}
+
+  function draw(){
+    const fest={x:FX,y:FBASE+jump}, pts=[fest,...CLEAN];
+    const Ls=fitSq(pts), La=fitAbs(pts);
+    const cv=document.getElementById('oPlot'),{ctx,w:W,h:H}=setupCanvas(cv),L=46,R=12,T=12,B=38,pw=W-L-R,ph=H-T-B;
+    const sx=x=>L+(x-oX0)/(oX1-oX0)*pw, sy=y=>T+(oY1-y)/(oY1-oY0)*ph;
+    ctx.clearRect(0,0,W,H);ctx.font='12px Segoe UI, system-ui, sans-serif';ctx.strokeStyle='#eceef2';ctx.fillStyle='#6b7385';ctx.lineWidth=1;
+    for(let x=10;x<=40;x+=10){ctx.beginPath();ctx.moveTo(sx(x),T);ctx.lineTo(sx(x),T+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText(x+'°',sx(x),T+ph+15);}
+    for(let y=0;y<=150;y+=50){ctx.beginPath();ctx.moveTo(L,sy(y));ctx.lineTo(L+pw,sy(y));ctx.stroke();ctx.textAlign='right';ctx.fillText(y,L-6,sy(y)+4);}
+    ctx.textAlign='center';ctx.fillText('Temperature (°C)',L+pw/2,H-4);
+    ctx.save();ctx.translate(12,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('Cups sold',0,0);ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(L,T,pw,ph);ctx.clip();
+    const line=(Ln,c,wd,dash)=>{ctx.strokeStyle=c;ctx.lineWidth=wd;ctx.setLineDash(dash||[]);ctx.beginPath();ctx.moveTo(sx(oX0),sy(at(Ln,oX0)));ctx.lineTo(sx(oX1),sy(at(Ln,oX1)));ctx.stroke();ctx.setLineDash([]);};
+    line(ref,'#adb5bd',2,[7,5]);
+    // how far each line got pulled at the festival temperature
+    const arrow=(y0,y1,c,dx)=>{if(Math.abs(y1-y0)<1.5)return;const x=sx(FX)+dx;ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(x,sy(y0));ctx.lineTo(x,sy(y1));ctx.stroke();const d=y1>y0?1:-1;
+      ctx.beginPath();ctx.moveTo(x,sy(y1));ctx.lineTo(x-5,sy(y1)+7*d);ctx.lineTo(x+5,sy(y1)+7*d);ctx.closePath();ctx.fill();};
+    arrow(at(ref,FX),at(Ls,FX),'#2f6fed',-10);arrow(at(ref,FX),at(La,FX),'#f08c00',10);
+    line(La,'#f08c00',3.5);line(Ls,'#2f6fed',3.5);
+    // festival day's error against each line
+    ctx.setLineDash([4,3]);ctx.strokeStyle='rgba(214,51,108,.7)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(sx(FX),sy(fest.y));ctx.lineTo(sx(FX),sy(at(Ls,FX)));ctx.stroke();ctx.setLineDash([]);
+    CLEAN.forEach(p=>{ctx.beginPath();ctx.arc(sx(p.x),sy(p.y),5,0,7);ctx.fillStyle='#1c2230';ctx.fill();});
+    ctx.beginPath();ctx.arc(sx(fest.x),sy(fest.y),8,0,7);ctx.fillStyle='#d6336c';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
+    const tag=(t,x,y,c,al)=>{ctx.font='bold 12px Segoe UI, sans-serif';ctx.textAlign=al||'left';ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.95)';ctx.strokeText(t,x,y);ctx.fillStyle=c;ctx.fillText(t,x,y);};
+    tag('🎪 festival day',sx(fest.x)+12,sy(fest.y)+4,'#d6336c');
+    // label the lines on the left, where a pulled line is furthest from the other
+    const ys=at(Ls,6),ya=at(La,6),apart=Math.abs(sy(ys)-sy(ya))>=18;
+    if(apart){const up=ys>=ya;tag('MSE / RMSE',sx(6),sy(ys)+(up?-8:16),'#2f6fed');tag('MAE',sx(6),sy(ya)+(up?16:-8),'#f08c00');}
+    else tag('MSE / RMSE / MAE (all agree)',sx(6),Math.min(sy(ys),sy(ya))-8,'#1c2230');
+    ctx.restore();
+
+    // tug-of-war: MSE pull grows with the error, MAE pull is always the same size (just the sign)
+    const errs=pts.map(p=>at(ref,p.x)-p.y);
+    const shSq=bar(document.getElementById('oBarSq'),errs.map(e=>Math.abs(e)));
+    const shAbs=bar(document.getElementById('oBarAbs'),errs.map(e=>Math.abs(e)>1e-9?1:0));
+    const mvS=at(Ls,FX)-at(ref,FX), mvA=at(La,FX)-at(refAbs,FX);
+    const sgn=v=>Math.abs(v)<0.05?'0':(v>0?'+':'−')+Math.abs(v).toFixed(1);
+    document.getElementById('oMoveSq').textContent=sgn(mvS);
+    document.getElementById('oMoveAbs').textContent=sgn(mvA);
+    document.getElementById('oWhy').innerHTML= jump<5
+      ? '👀 Right now the festival day is a normal day, so every day pulls about the same and both lines agree. <b>Move the slider!</b>'
+      : `👀 The festival day is <b>${jump} cups</b> off. In <b>MSE</b> a day pulls harder the more wrong it is, so this one day pulls with <b>${shSq.toFixed(0)}%</b> of all the force. `+
+        `In <b>MAE</b> every day pulls with the <b>same</b> force, however wrong it is: the festival day is just <b>1 vote out of 12</b> (${shAbs.toFixed(0)}%).`;
+
+    const m1=mse(pts,Ls), a1=mae(pts,La), f=(v,d)=>v.toFixed(d), g=(a,b)=>b/a<1.005?'–':'× '+(b/a).toFixed(1);
+    const set=(id,v)=>document.getElementById(id).textContent=v;
+    set('oS0',f(base.mse,1));set('oS1',f(m1,1));set('oS2',g(base.mse,m1));
+    set('oR0',f(Math.sqrt(base.mse),1));set('oR1',f(Math.sqrt(m1),1));set('oR2',g(Math.sqrt(base.mse),Math.sqrt(m1)));
+    set('oA0',f(base.mae,1));set('oA1',f(a1,1));set('oA2',g(base.mae,a1));
+    const sum=document.getElementById('oSum');
+    if(jump<5){sum.className='banner info';sum.textContent='Start with the slider at 0: no outlier yet. All three losses are small and both lines sit on the normal days.';}
+    else{sum.className='banner bad';sum.innerHTML=`One weird day moved the <b>MSE/RMSE line by ${Math.abs(mvS).toFixed(0)} cups</b>, but the <b>MAE line ${Math.abs(mvA)<0.5?'did not move at all':'by only '+Math.abs(mvA).toFixed(0)+(Math.abs(mvA).toFixed(0)==='1'?' cup':' cups')}</b>. `+
+      `The blue line now misses the 11 normal days just to get closer to one strange day. The orange line still fits the normal days. `+
+      `<br>➡️ Outliers you don't care about? Use <b>MAE</b>. Big misses really matter? Use <b>MSE</b> (and report <b>RMSE</b>).`;}
+  }
+
+  const sl=document.getElementById('oJump'),out=document.getElementById('oJumpOut'),btn=document.getElementById('oPlay');
+  const setJump=v=>{jump=v;sl.value=v;out.textContent=v;draw();};
+  const stop=()=>{if(play){clearInterval(play);play=null;btn.textContent='▶ Make it rise';}};
+  sl.addEventListener('input',e=>{stop();setJump(+e.target.value);});
+  btn.onclick=()=>{if(play){stop();return;}let v=jump>=120?0:jump;setJump(v);btn.textContent='⏸ Pause';
+    play=setInterval(()=>{v+=2;setJump(Math.min(v,120));if(v>=120)stop();},40);};
+  window.addEventListener('resize',draw);
+  setJump(0);
+})();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
