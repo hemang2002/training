@@ -6,19 +6,116 @@
 <title>11 · Transfer learning — Training, Visualized</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
-  .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
-  .scen{display:flex;flex-direction:column;gap:.35rem;margin:.3rem 0 .6rem}
-  .scen .btn{text-align:left;font-size:.86rem;padding:.4rem .6rem}
-  .scen .btn.on{border-color:var(--blue);background:#e7f0ff}
-  .three{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:.6rem;margin:.5rem 0}
-  .three .side{border:1px solid var(--line);border-radius:12px;padding:.5rem .65rem;background:#fff}
-  .three .side h3{font-size:.95rem;margin:0 0 .15rem}
-  .three .side p{margin:0 0 .3rem;font-size:.82rem;color:var(--muted)}
-  .three .stats{margin:.2rem 0}
-  .three .stat{min-width:6rem;padding:.3rem .55rem}
-  .three .stat b{font-size:1.05rem}
+  .hero h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.025em;line-height:1.08;margin-bottom:.3em}
+  .sub{color:var(--muted);font-size:1.1rem;margin:.2rem 0 .8rem}
+  .bigq{font-size:clamp(1.3rem,3vw,1.75rem);letter-spacing:-.015em;line-height:1.2;font-weight:700;margin:0 0 .3rem}
   canvas.pix{image-rendering:pixelated}
+
+  /* hero analogy */
+  .analogy{display:flex;flex-direction:column;gap:.7rem;background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem 1.2rem;box-shadow:var(--shadow);max-width:52rem}
+  .arow{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:.8rem;align-items:center}
+  .arow .who{font-size:2rem;white-space:nowrap;text-align:center}
+  .arow .lbl{font-size:.95rem;font-weight:600;margin-bottom:.2rem}
+  .arow .bar{height:1.6rem;background:var(--soft);border-radius:99px;overflow:hidden}
+  .arow .bar i{display:flex;align-items:center;justify-content:flex-end;height:100%;width:0;border-radius:99px;color:#fff;font-style:normal;font-weight:700;font-size:.85rem;padding-right:.6rem;white-space:nowrap;min-width:6.5rem;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+  .analogy .tag{font-size:1.05rem;font-weight:700;color:var(--blue);text-align:center;margin-top:.2rem}
+
+  /* layer diagram */
+  .diagram{background:#fcfcfd;border:1px solid var(--line);border-radius:18px;padding:.4rem;overflow-x:auto}
+  svg#tl{display:block;width:100%;min-width:620px;height:auto;font-family:var(--sans)}
+  #tl .blk{fill:#eef4ff;stroke:#2f6fed;stroke-width:2;transition:fill .5s,stroke .5s}
+  #tl .ttl{font-size:15px;font-weight:700;fill:#1c2230;text-anchor:middle}
+  #tl .cap{font-size:15px;font-weight:700;text-anchor:middle}
+  #tl .ico{font-size:30px;text-anchor:middle;dominant-baseline:central}
+  #tl .stroke{stroke:#2f6fed;stroke-width:6;stroke-linecap:round}
+  #tl .shape{fill:none;stroke:#2f6fed;stroke-width:4}
+  #tl .arrow{stroke:#adb5bd;stroke-width:3;marker-end:url(#ah)}
+  #tl .lock{font-size:26px;opacity:0;transition:opacity .4s,transform .5s;transform-box:fill-box;transform-origin:center;transform:scale(.3)}
+  #tl .oldhead,#tl .newhead{transition:transform .8s cubic-bezier(.3,1.3,.5,1),opacity .6s}
+  #tl .newhead{transform:translateY(-280px);opacity:0}
+  #tl .hrow{font-size:19px;font-weight:600;fill:#1c2230}
+  #tl .fly{display:none}
+  #tl .fly text{font-size:30px;opacity:0;animation:fly 2.4s linear infinite;dominant-baseline:central}
+  #tl .fly text:nth-child(2){animation-delay:.6s}
+  #tl .fly text:nth-child(3){animation-delay:1.2s}
+  #tl .fly text:nth-child(4){animation-delay:1.8s}
+  @keyframes fly{0%{transform:translateX(-60px);opacity:0}25%{opacity:1}75%{opacity:1}100%{transform:translateX(75px);opacity:0}}
+  #tl .spark{opacity:0;font-size:28px}
+  #tl.learn .bb .blk{animation:glow 1.2s ease-in-out infinite alternate}
+  #tl.learn .fly1{display:inline}
+  #tl.frozen .bb .blk{fill:#dde6f5;stroke:#8fa6cf;stroke-dasharray:7 5}
+  #tl.frozen .lock{opacity:1;transform:none}
+  #tl.swapped .oldhead{transform:translateY(300px) rotate(8deg);opacity:0}
+  #tl.swapped .newhead{transform:none;opacity:1}
+  #tl.tune .fly4{display:inline}
+  #tl.tune .newhead .blk{animation:glowg 0.9s ease-in-out infinite alternate}
+  #tl.tune .spark{opacity:1;animation:pop .9s ease-in-out infinite alternate}
+  @keyframes glow{from{fill:#eef4ff}to{fill:#cfe0ff}}
+  @keyframes glowg{from{fill:#ebfbee}to{fill:#c3f0cb}}
+  @keyframes pop{from{transform:scale(.85)}to{transform:scale(1.15)}}
+  .steps4{display:flex;flex-wrap:wrap;gap:.45rem;margin:.7rem 0 .4rem}
+  .steps4 .btn{display:flex;align-items:center;gap:.4rem}
+  .steps4 .btn .n{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--soft);font-size:.8rem;font-weight:800}
+  .steps4 .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .steps4 .btn.on .n{background:var(--blue);color:#fff}
+  .stepcap{font-size:1.2rem;font-weight:700;min-height:2rem;margin:.3rem .2rem}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem}
+  .wchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.92rem}
+
+  /* shapes strip + task */
+  .shapes{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:.4rem;max-width:40rem}
+  .shapes canvas{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line)}
+  .rowlbl{font-size:.82rem;font-weight:700;color:var(--muted);margin:.5rem 0 .25rem;text-transform:uppercase;letter-spacing:.05em}
+  .prog{height:12px;background:var(--soft);border-radius:6px;overflow:hidden;max-width:40rem}
+  .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
+  .exrow{display:flex;align-items:center;gap:.6rem;margin:.25rem 0}
+  .exrow .sym{font-size:1.7rem;width:2.2rem;text-align:center}
+  .exrow .tiles{flex:1;min-width:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:.35rem;max-width:40rem}
+  .exrow .tiles canvas{width:100%;aspect-ratio:1;border-radius:6px;border:1px solid var(--line)}
+
+  /* race */
+  .scen{display:flex;flex-wrap:wrap;gap:.5rem;margin:.6rem 0 .8rem}
+  .scen .btn{font-size:1rem;padding:.55rem 1rem}
+  .scen .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .scen .btn.pulse{animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(47,111,237,.45)}50%{box-shadow:0 0 0 8px rgba(47,111,237,0)}}
+  .race{display:flex;flex-direction:column;gap:.55rem}
+  .scale{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) 4.2rem;gap:.8rem;font-size:.82rem;color:var(--muted);font-weight:600}
+  .scale div:nth-child(2){display:flex;justify-content:space-between}
+  .lane{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) 4.2rem;gap:.8rem;align-items:center;background:#fff;border:2px solid var(--line);border-radius:16px;padding:.5rem .8rem;transition:border-color .3s,box-shadow .3s}
+  .lane .who b{display:block;font-size:1.02rem}
+  .lane .who small{color:var(--muted);font-size:.8rem}
+  .lane .track{position:relative;height:46px;border-radius:12px;background:repeating-linear-gradient(90deg,#f4f5f8 0 10%,#eceef3 10% 20%)}
+  .lane .track::after{content:"🏁";position:absolute;right:-.2rem;top:50%;transform:translateY(-50%);font-size:1.3rem}
+  .lane .runner{position:absolute;top:50%;left:0;transform:translate(-50%,-50%);font-size:2rem;transition:left .25s linear;line-height:1}
+  .lane .pct{font:800 1.5rem/1 var(--sans);font-variant-numeric:tabular-nums;text-align:right}
+  .lane.win{border-color:var(--green);box-shadow:0 8px 26px rgba(47,158,68,.15)}
+  .lane.win .pct::after{content:" 🏆";font-size:1.1rem}
+  @media (max-width:700px){.lane,.scale{grid-template-columns:1fr 3.6rem}.lane .who{grid-column:1 / -1}.scale div:first-child{display:none}.lane .track{grid-column:1}}
+  .verdict{font-size:1.1rem;font-weight:700;min-height:1.6rem;padding:.6rem .9rem;border-radius:12px;background:var(--info);color:#1864ab;margin-top:.4rem}
+  .verdict.good{background:var(--good-bg);color:var(--green)}
+
+  /* when to use */
+  .when{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.8rem}
+  .wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;text-align:center}
+  .wcard .pic{font-size:2.4rem;line-height:1.2}
+  .wcard .if{font-weight:600;margin:.3rem 0 .5rem;min-height:2.6rem}
+  .wcard .then{display:inline-block;font-weight:800;border-radius:999px;padding:.3rem .9rem}
+
+  /* real world bars */
+  .rw{display:flex;flex-direction:column;gap:.7rem;max-width:52rem}
+  .rw .r{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:.8rem;align-items:center}
+  .rw .r .l b{display:block}
+  .rw .r .l small{color:var(--muted)}
+  .rw .bar{height:2rem;background:var(--soft);border-radius:10px;overflow:hidden;position:relative}
+  .rw .bar i{display:block;height:100%;border-radius:10px;width:0;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+  .rw .bar span{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);font-weight:700;font-size:.9rem}
+  .bignums{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.8rem}
+  .bignum{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.5rem .9rem;text-align:center;min-width:8rem}
+  .bignum b{display:block;font:800 1.7rem/1.1 var(--sans);letter-spacing:-.02em}
+  .bignum span{font-size:.82rem;color:var(--muted)}
+
+  @media (prefers-reduced-motion:reduce){#tl *{animation:none!important;transition:none!important}.scen .btn.pulse{animation:none}}
 </style>
 </head>
 <body>
@@ -48,149 +145,165 @@
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 11 of 15 · ≈ 35 min</div>
-  <h1>Transfer learning: don't start from zero</h1>
-  <p class="one-liner">Training a network from scratch needs <b>lots</b> of labelled examples. But a network that was already trained on a <b>big, related dataset</b> has learned
-  useful <b>features</b> (edges, strokes, shapes). We can <b>reuse</b> those features and only teach it the new task: often with just a handful of examples.
-  That's exactly what Day 2 does with MobileNetV2 (pretrained on ImageNet) for CIFAR-10. It is not always the right choice, and this page shows both sides.</p>
-</section>
-<section class="start">
-  <h2>👋 New here? The 30-second version</h2>
-  <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p>Someone who already plays the guitar learns the ukulele in a weekend: fingers, chords and rhythm carry over.
-      Someone who has never played anything needs months. But a guitarist doesn't learn the drums faster: skills only transfer to <b>similar</b> things.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>Wait a few seconds while the network <b>pre-trains</b> on 4,000 small pictures.</li>
-      <li>In ③, press <b>✅ Only 5 examples each</b> and watch the three strategies race.</li>
-      <li>Try the ➖ and ❌ situations too.</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>With very few examples, the network that <b>reuses</b> pretrained features wins by a mile. With very <b>different</b> pictures, frozen features stop working and
-      the network must <b>adapt</b> them (fine-tuning).</p></div>
-  </div>
-  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Pretrained</b> = already trained on a big dataset</span><span><b>Backbone</b> = the part that turns pixels into features</span>
-    <span><b>Head</b> = the last layer that makes the decision</span><span><b>Freeze</b> = don't change these weights any more</span>
-    <span><b>Feature extraction</b> = frozen backbone + new head</span><span><b>Fine-tuning</b> = keep training the backbone too, gently</span></div>
-</section>
-
-<section class="card">
-  <h2>① The big dataset: pre-training the backbone</h2>
-  <div class="prog" id="progBox"><i id="prog"></i></div><div class="small muted" id="progTxt">Pre-training…</div>
-  <div class="grid2" style="margin-top:.5rem">
-    <div>
-      <p>4,000 tiny grey pictures (10 × 10 pixels) of <b>8 kinds of shapes</b>: lines in four directions, plus, cross, triangle and V. Each one is shifted, resized and covered in noise,
-      so the network can't just memorise pixel positions. It must learn what a <b>stroke</b> looks like.</p>
-      <p>The network: <b>100 pixels → 32 → 32 → 8</b>. The first two layers are the <b>backbone</b>; the last layer is the <b>head</b> that picks one of the 8 shapes.
-      This is our small "ImageNet": lots of labelled pictures, trained once.</p>
-      <div class="stats"><div class="stat blue"><b id="srcAcc">–</b><span>Backbone + head on its own 8 shapes</span></div><div class="stat"><b>12.5%</b><span>Guessing</span></div></div>
-    </div>
-    <div class="canvas-box"><div class="canvas-title">Examples from the big dataset (one row per shape)</div><canvas id="srcc" class="pix" style="aspect-ratio:2/1"></canvas>
-      <div class="look">👀 Every row is one shape, drawn at a different place, size and noise level. Hard to see at first, even for you: that's why the network needs thousands of them.</div></div>
+  <div class="kicker">Lesson 11 of 15 · ≈ 25 min</div>
+  <h1>Transfer learning: reuse, don't restart</h1>
+  <p class="sub">A model that already learned one thing can learn a similar thing much faster.</p>
+  <div class="analogy">
+    <div class="arow"><div class="who">🎸 ➜ 🪕</div><div><div class="lbl">Guitar player learns ukulele</div><div class="bar"><i id="ab1" style="background:var(--green)">1 weekend</i></div></div></div>
+    <div class="arow"><div class="who">🙋 ➜ 🪕</div><div><div class="lbl">Never played anything</div><div class="bar"><i id="ab2" style="background:var(--orange)">6 months</i></div></div></div>
+    <div class="tag">Skills carry over. Neural networks work the same way.</div>
   </div>
 </section>
 
 <section class="card">
-  <h2>② What did the backbone learn?</h2>
-  <div class="grid2">
-    <div class="canvas-box"><div class="canvas-title">The 32 neurons of the first layer: the pixel pattern each one looks for</div><canvas id="featc" class="pix" style="aspect-ratio:8/4"></canvas>
-      <div class="look">👀 Each square shows one neuron's 100 weights as a picture: <b style="color:#2f6fed">blue</b> = "I want ink here", <b style="color:#f08c00">orange</b> = "I want no ink here".
-        Many look like pieces of <b>strokes and edges</b>: little detectors that are useful for <i>any</i> task with strokes in it, not only for these 8 shapes. Compare Lesson 10's kernels.</div></div>
-    <div>
-      <p>The head is task-specific: it only knows the 8 old shapes. But the <b>backbone's features</b> are general. For a new task we can:</p>
-      <ol class="steps">
-        <li><b>A · From scratch</b>Random weights everywhere, learn everything from the new examples only.</li>
-        <li><b>B · Feature extraction</b>Keep the pretrained backbone <b>frozen</b> 🔒, throw away the old head, train only a new head (33 weights).</li>
-        <li><b>C · Fine-tuning</b>Start from the pretrained backbone + new head, and keep training <b>everything</b> with a small learning rate.</li>
-      </ol>
-    </div>
+  <h2>① What's inside a trained model?</h2>
+  <p class="bigq">Layers of skills, from simple to specific.</p>
+  <div class="diagram">
+    <svg id="tl" viewBox="0 0 1000 330" role="img" aria-label="A photo goes through three backbone layers (edges, shapes, parts) and then a head that picks the answer">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#adb5bd"/></marker></defs>
+      <!-- flying training photos -->
+      <g class="fly fly1"><text x="20" y="150">🐱</text><text x="20" y="150">🚗</text><text x="20" y="150">🐶</text><text x="20" y="150">🌳</text></g>
+      <g class="fly fly4"><text x="20" y="150">➕</text><text x="20" y="150">✖️</text><text x="20" y="150">➕</text><text x="20" y="150">✖️</text></g>
+      <!-- input -->
+      <rect x="95" y="100" width="100" height="100" rx="14" fill="#fff" stroke="#ced4da" stroke-width="2"/>
+      <text class="ico" x="145" y="150" style="font-size:52px">🖼️</text>
+      <text class="cap" x="145" y="225" fill="#868e96">photo</text>
+      <line class="arrow" x1="200" y1="150" x2="222" y2="150"/>
+      <!-- backbone -->
+      <g class="bb">
+        <rect class="blk" x="228" y="55" width="140" height="190" rx="16"/>
+        <text class="ttl" x="298" y="82">Layer 1</text>
+        <line class="stroke" x1="255" y1="120" x2="290" y2="120"/><line class="stroke" x1="325" y1="105" x2="325" y2="140"/>
+        <line class="stroke" x1="255" y1="200" x2="290" y2="165"/><line class="stroke" x1="308" y1="165" x2="343" y2="200"/>
+        <text class="cap" x="298" y="232" fill="#2f6fed">edges</text>
+        <text class="lock" x="352" y="62">🔒</text>
+        <line class="arrow" x1="372" y1="150" x2="394" y2="150"/>
+
+        <rect class="blk" x="400" y="55" width="140" height="190" rx="16"/>
+        <text class="ttl" x="470" y="82">Layer 2</text>
+        <circle class="shape" cx="440" cy="125" r="18"/><path class="shape" d="M500,105 L520,142 L480,142 Z"/>
+        <rect class="shape" x="423" y="165" width="34" height="34"/><path class="shape" d="M482,170 Q500,205 518,170"/>
+        <text class="cap" x="470" y="232" fill="#2f6fed">shapes</text>
+        <text class="lock" x="524" y="62">🔒</text>
+        <line class="arrow" x1="544" y1="150" x2="566" y2="150"/>
+
+        <rect class="blk" x="572" y="55" width="140" height="190" rx="16"/>
+        <text class="ttl" x="642" y="82">Layer 3</text>
+        <text class="ico" x="612" y="125">👁️</text><text class="ico" x="672" y="125">👂</text>
+        <text class="ico" x="612" y="182">🐾</text><text class="ico" x="672" y="182">🛞</text>
+        <text class="cap" x="642" y="232" fill="#2f6fed">parts</text>
+        <text class="lock" x="696" y="62">🔒</text>
+      </g>
+      <line class="arrow" x1="716" y1="150" x2="742" y2="150"/>
+      <!-- heads -->
+      <g class="oldhead">
+        <rect class="blk" x="748" y="55" width="170" height="190" rx="16" style="fill:#fff4e6;stroke:#f08c00"/>
+        <text class="ttl" x="833" y="82">Head</text>
+        <text class="hrow" x="775" y="128">🐱 cat</text><text class="hrow" x="775" y="166">🐶 dog</text><text class="hrow" x="775" y="204">🚗 car</text>
+      </g>
+      <g class="newhead">
+        <rect class="blk" x="748" y="55" width="170" height="190" rx="16" style="fill:#ebfbee;stroke:#2f9e44"/>
+        <text class="ttl" x="833" y="82">New head</text>
+        <text class="hrow" x="775" y="140">➕ plus</text><text class="hrow" x="775" y="186">✖️ cross</text>
+        <text class="spark" x="902" y="62">✨</text>
+      </g>
+      <!-- brackets -->
+      <path d="M232,262 v10 h476 v-10" fill="none" stroke="#2f6fed" stroke-width="2.5"/>
+      <text class="cap" x="470" y="300" fill="#2f6fed">🧠 BACKBONE: general skills, useful for any picture</text>
+      <path d="M752,262 v10 h162 v-10" fill="none" stroke="#f08c00" stroke-width="2.5"/>
+      <text class="cap" x="833" y="300" fill="#d9480f">🎯 HEAD: one task</text>
+    </svg>
+  </div>
+  <div class="steps4" id="steps">
+    <button class="btn" data-k="1"><span class="n">1</span>Learn</button>
+    <button class="btn" data-k="2"><span class="n">2</span>Freeze 🔒</button>
+    <button class="btn" data-k="3"><span class="n">3</span>Swap head</button>
+    <button class="btn" data-k="4"><span class="n">4</span>Train head</button>
+    <button class="btn primary" id="playAll">▶ Play all</button>
+  </div>
+  <div class="stepcap" id="stepcap">👆 Press ▶ Play all</div>
+  <div class="chipsrow">
+    <span class="wchip">🧠 <b>Backbone</b> = the part that sees</span>
+    <span class="wchip">🎯 <b>Head</b> = the part that decides</span>
+    <span class="wchip">🔒 <b>Freeze</b> = don't change it any more</span>
   </div>
 </section>
 
 <section class="card">
-  <h2>③ A new task: tell <b>+</b> from <b>×</b>. Three strategies race.</h2>
-  <p>New task, new labels: the network has to answer "plus or cross?" The pictures are the same kind of noisy 10 × 10 images. All three networks see exactly the same training examples,
-  and are tested on 600 new pictures they have never seen.</p>
-  <div class="lab">
-    <aside class="controls">
-      <h3>Pick a situation</h3>
-      <div class="scen" id="scen">
-        <button class="btn" data-s="few">✅ Only 5 examples each</button>
-        <button class="btn" data-s="many">➖ 200 examples each</button>
-        <button class="btn" data-s="inv">❌ Different-looking pictures (inverted colours)</button>
-        <button class="btn" data-s="hot">❌ Fine-tuning with too big a learning rate</button>
+  <h2>② Let's try it for real</h2>
+  <p class="bigq">Step 1: a model studies 4,000 pictures of 8 shapes.</p>
+  <div class="rowlbl">The 8 shapes</div>
+  <div class="shapes" id="clean"></div>
+  <div class="rowlbl">What the model really sees (shifted, resized, noisy)</div>
+  <div class="shapes" id="noisy"></div>
+  <div style="margin-top:.8rem"><div class="prog" id="progBox"><i id="prog"></i></div><div class="small muted" id="progTxt">🧠 Studying…</div></div>
+  <div class="stats adv"><div class="stat blue"><b id="srcAcc">–</b><span>Accuracy on its own 8 shapes</span></div><div class="stat"><b>12.5%</b><span>Guessing</span></div></div>
+</section>
+
+<section class="card">
+  <h2>③ New question: <b>➕</b> or <b>✖️</b>? Three players race.</h2>
+  <div class="exrow"><span class="sym">➕</span><div class="tiles" id="exP"></div></div>
+  <div class="exrow"><span class="sym">✖️</span><div class="tiles" id="exX"></div></div>
+  <div class="small muted" id="exNote" style="margin-left:2.8rem">Training photos</div>
+
+  <div class="scen" id="scen">
+    <button class="btn pulse" data-s="few">🤏 Only 10 photos</button>
+    <button class="btn" data-s="many">📚 400 photos</button>
+    <button class="btn" data-s="inv">🔄 Flipped colours</button>
+    <button class="btn adv" data-s="hot">🔥 Tweak too hard</button>
+  </div>
+
+  <div class="race">
+    <div class="scale"><div></div><div><span>🎲 50% = guessing</span><span>100% = perfect</span></div><div></div></div>
+    <div class="lane" id="lane0"><div class="who"><b>🐣 From scratch</b><small>knows nothing · learns all <span id="pA">4,321</span> knobs</small></div><div class="track"><span class="runner">🐣</span></div><div class="pct">–</div></div>
+    <div class="lane" id="lane1"><div class="who"><b>🔒 Reuse, frozen</b><small>old backbone · learns only <span id="pB">33</span> knobs</small></div><div class="track"><span class="runner">🔒</span></div><div class="pct">–</div></div>
+    <div class="lane" id="lane2"><div class="who"><b>🔧 Reuse + adjust</b><small>old backbone, tweaks all <span id="pC">4,321</span> knobs</small></div><div class="track"><span class="runner">🔧</span></div><div class="pct">–</div></div>
+  </div>
+  <div class="verdict" id="verdict">⏳ Wait for the model to finish studying…</div>
+
+  <div class="adv" style="margin-top:1rem">
+    <div class="lab">
+      <aside class="controls">
+        <h3>Set it yourself</h3>
+        <div class="ctl"><label>Training examples per class</label><select id="nPer"><option selected>5</option><option>20</option><option>50</option><option>200</option></select></div>
+        <div class="ctl"><label>Pictures</label><select id="style"><option value="normal" selected>like the big dataset (dark ink on light)</option><option value="inv">inverted (light ink on dark)</option></select></div>
+        <div class="ctl"><label>Fine-tuning learning rate (🔧)</label><select id="ftlr"><option selected>0.001</option><option>0.03</option></select></div>
+        <div class="btn-row"><button class="btn primary" id="go" disabled>▶ Train all three</button></div>
+      </aside>
+      <div class="stage">
+        <div class="canvas-box"><div class="canvas-title">Test accuracy during training (600 unseen pictures)</div><canvas id="curvec" style="height:220px"></canvas>
+          <div class="legend"><span><i style="background:#f08c00"></i>🐣 from scratch</span><span><i style="background:#2f6fed"></i>🔒 frozen (feature extraction)</span><span><i style="background:#7048e8"></i>🔧 fine-tuning</span><span>dashed = 50%</span></div></div>
       </div>
-      <h3>…or set it yourself</h3>
-      <div class="ctl"><label>Training examples per class</label><select id="nPer"><option selected>5</option><option>20</option><option>50</option><option>200</option></select></div>
-      <div class="ctl"><label>Pictures</label><select id="style"><option value="normal" selected>like the big dataset (dark ink on light)</option><option value="inv">inverted (light ink on dark)</option></select></div>
-      <div class="ctl"><label>Fine-tuning learning rate (C)</label><select id="ftlr"><option selected>0.001</option><option>0.03</option></select></div>
-      <div class="btn-row"><button class="btn primary" id="go" disabled>▶ Train all three</button></div>
-    </aside>
-    <div class="stage">
-      <div class="canvas-box"><div class="canvas-title">The training examples (top row: plus · bottom row: cross)</div><canvas id="exc" class="pix" style="aspect-ratio:10/2"></canvas></div>
-      <div class="three">
-        <div class="side"><h3 style="color:#f08c00">A · From scratch</h3><p>everything random, all trained</p><div class="stats"><div class="stat"><b id="aA">–</b><span>Test accuracy</span></div><div class="stat"><b id="pA">–</b><span>Weights trained</span></div></div></div>
-        <div class="side"><h3 style="color:#2f6fed">B · Frozen features 🔒</h3><p>pretrained backbone, only a new head</p><div class="stats"><div class="stat"><b id="aB">–</b><span>Test accuracy</span></div><div class="stat"><b id="pB">–</b><span>Weights trained</span></div></div></div>
-        <div class="side"><h3 style="color:#7048e8">C · Fine-tuning</h3><p id="cSub">pretrained backbone + new head, all trained</p><div class="stats"><div class="stat"><b id="aC">–</b><span>Test accuracy</span></div><div class="stat"><b id="pC">–</b><span>Weights trained</span></div></div></div>
-      </div>
-      <div id="verdict" class="banner info">Waiting for pre-training…</div>
-      <div class="canvas-box"><div class="canvas-title">Test accuracy during training</div><canvas id="curvec" style="height:220px"></canvas>
-        <div class="legend"><span><i style="background:#f08c00"></i>A · from scratch</span><span><i style="background:#2f6fed"></i>B · frozen features</span><span><i style="background:#7048e8"></i>C · fine-tuning</span><span>dashed = 50% (guessing)</span></div>
-        <div class="look">👀 Higher is better. The pretrained networks (B, C) usually start learning <b>right away</b>, because their features already separate strokes. A has to invent its own features from a few noisy pictures.</div></div>
     </div>
+    <div class="canvas-box" style="margin-top:.8rem"><div class="canvas-title">What layer 1 learned: the pixel pattern each of its 32 neurons looks for (blue = ink, orange = no ink)</div><canvas id="featc" class="pix" style="aspect-ratio:8/4;max-width:640px"></canvas></div>
   </div>
 </section>
 
 <section class="card">
-  <h2>🧭 Summary: which strategy when?</h2>
-  <div class="tbl-wrap"><table class="plain">
-    <tr><th>Situation</th><th>Best choice</th><th>What you saw on this page</th></tr>
-    <tr><td>Few labelled examples, pictures similar to the pretraining data</td><td><b>Feature extraction</b> (freeze the backbone, train a new head)</td><td>✅ 5 examples each: frozen features ≈ 90%, from scratch ≈ 48% (guessing).</td></tr>
-    <tr><td>More labelled data, similar pictures</td><td><b>Fine-tuning</b> with a small learning rate (or still frozen)</td><td>➖ 200 each: from scratch improves a lot, but the pretrained ones are still ahead.</td></tr>
-    <tr><td>Pictures that look different from the pretraining data</td><td><b>Fine-tuning</b>: the features must adapt</td><td>❌ Inverted colours: frozen features stall; fine-tuning adapts and wins.</td></tr>
-    <tr><td>Completely unrelated data (e.g. audio spectrograms with an ImageNet model) and lots of it</td><td>Try <b>from scratch</b> too, and compare</td><td>Features only transfer to similar things.</td></tr>
-    <tr><td>Any fine-tuning</td><td>Use a <b>small learning rate</b>, or train the head first</td><td>❌ A big learning rate wrecks the pretrained features ("catastrophic forgetting").</td></tr>
-  </table></div>
-</section>
-
-<section class="card">
-  <h2>🌍 The real thing: Day 2, MobileNetV2 on CIFAR-10</h2>
-  <div class="grid2">
-    <div>
-      <div class="tbl-wrap"><table class="plain">
-        <tr><th></th><th>Feature extraction</th><th>Fine-tuning</th></tr>
-        <tr><td>Trained weights</td><td>12,810 (only the new head)</td><td>2.2 million</td></tr>
-        <tr><td>Result (Notebook 01)</td><td>≈ 78% after 1 epoch</td><td>≈ 90% after 3 epochs</td></tr>
-        <tr><td>Training data used</td><td colspan="2">10,000 CIFAR images, ≈ 6 CPU minutes, instead of 1.28 million ImageNet images and days of GPU time</td></tr>
-      </table></div>
-      <p class="small muted">Fine-tuning wins on Day 2 because CIFAR's 32 × 32 pictures look quite different from ImageNet's big photos, the same lesson as the inverted pictures in ③.</p>
-    </div>
-    <div>
-      <h3>Three real-world rules</h3>
-      <ul>
-        <li><b>Same preprocessing.</b> Feed the pretrained model exactly what it was trained on: ImageNet mean/std normalisation. Forgetting <code>Normalize</code> is like the inverted pictures: the features see "different-looking" input (Day 2 Lab Ex. 3: ≈ 90% → ≈ 30%).</li>
-        <li><b>Frozen BatchNorm needs eval().</b> Freezing weights doesn't stop BatchNorm from updating its running statistics in train() mode (Lesson 8).</li>
-        <li><b>Small learning rate</b> for the backbone, or train the head first with the backbone frozen, then unfreeze.</li>
-      </ul>
-    </div>
+  <h2>④ Which one should I use?</h2>
+  <div class="when">
+    <div class="wcard"><div class="pic">🤏📷</div><div class="if">Few photos that look like the old ones</div><span class="then" style="background:#e7f0ff;color:var(--blue)">🔒 Freeze + new head</span></div>
+    <div class="wcard"><div class="pic">🔄📷</div><div class="if">Photos that look different</div><span class="then" style="background:#f3f0ff;color:var(--purple)">🔧 Adjust, in small steps</span></div>
+    <div class="wcard"><div class="pic">🌊📷</div><div class="if">Millions of photos of a totally new kind</div><span class="then" style="background:#fff4e6;color:#d9480f">🐣 Scratch can work too</span></div>
   </div>
 </section>
 
-<section class="callout try">
-  <h3>🧪 Try this (guess first, then check!)</h3>
-  <ol class="challenges">
-    <li><b>Five examples.</b> Press ✅ Only 5 examples each. Who wins, and by how much?
-      <details class="answer"><summary>Answer</summary>A (from scratch) ≈ 48%: with 10 noisy pictures it basically guesses. B (frozen) ≈ 90%, C (fine-tuning) ≈ 65%.
-      B trains only 33 weights on top of features that already know what strokes look like, so 10 examples are enough. We repeated this with 4 different sets of training examples: B won every time.</details></li>
-    <li><b>More data.</b> Press ➖ 200 examples each.
-      <details class="answer"><summary>Answer</summary>A improves a lot (≈ 75%), because now it has enough examples to learn its own features, but it is still behind B (≈ 92%) and C (≈ 91%).
-      The more labelled data you have, the smaller the advantage of pretraining. With millions of pictures, training from scratch can catch up.</details></li>
-    <li><b>Different-looking pictures.</b> Press ❌ Different-looking pictures. The backbone was trained on dark ink on a light background; now the ink is light on dark.
-      <details class="answer"><summary>Answer</summary>B (frozen) drops to ≈ 74%: its features look for the wrong kind of pixels. C (fine-tuning) adapts them and reaches ≈ 89%, better than A (≈ 83%) because it still
-      reuses the <i>shape</i> knowledge. When the new data looks different, <b>fine-tune</b>, don't just freeze. (Forgetting ImageNet normalisation on Day 2 is the same mistake.)</details></li>
-    <li><b>Too hot.</b> Press ❌ Fine-tuning with too big a learning rate.
-      <details class="answer"><summary>Answer</summary>C falls from ≈ 65% (learning rate 0.001) to ≈ 60% (0.03), far below the frozen B (≈ 90%). The first big steps, driven by a random new head,
-      overwrite the pretrained features before the head has learned anything: <b>catastrophic forgetting</b>. That's why fine-tuning uses small learning rates.</details></li>
-    <li><b>Count the knobs.</b> Look at "Weights trained" for A, B and C.
-      <details class="answer"><summary>Answer</summary>A and C train all 4,321 weights; B trains only 33 (32 features + 1 bias). Fewer weights to learn from few examples = much less room to overfit (Lesson 7),
-      and much less compute: MobileNetV2 feature extraction trains 12,810 weights instead of 2.2 million.</details></li>
-  </ol>
+<section class="card">
+  <h2>🌍 Day 2 does exactly this</h2>
+  <p class="bigq">MobileNetV2 already learned from ImageNet. We reuse it for CIFAR-10.</p>
+  <div class="rw">
+    <div class="r"><div class="l"><b>🐣 From scratch</b><small>ImageNet training</small></div><div class="bar"><i id="rw1" style="background:var(--orange)"></i><span>1,280,000 photos · days on a GPU</span></div></div>
+    <div class="r"><div class="l"><b>🔧 Transfer</b><small>Day 2, Notebook 01</small></div><div class="bar"><i id="rw2" style="background:var(--green)"></i><span>10,000 photos · ≈ 6 min on a CPU</span></div></div>
+  </div>
+  <div class="bignums">
+    <div class="bignum"><b style="color:var(--blue)">≈ 78%</b><span>🔒 frozen, 1 epoch</span></div>
+    <div class="bignum"><b style="color:var(--purple)">≈ 90%</b><span>🔧 adjusted, 3 epochs</span></div>
+  </div>
+  <ul class="adv small" style="margin-top:.9rem">
+    <li><b>Same preprocessing.</b> Use ImageNet mean/std <code>Normalize</code>. Forgetting it is like 🔄 flipped colours (Lab Ex. 3: ≈ 90% → ≈ 30%).</li>
+    <li><b>Frozen BatchNorm needs eval().</b> Freezing weights doesn't stop BatchNorm statistics from updating in train() mode (Lesson 8).</li>
+    <li><b>Small learning rate</b> for the backbone (🔥 shows why), or train the head first, then unfreeze.</li>
+  </ul>
 </section>
 
 <section class="card adv">
@@ -201,29 +314,28 @@
 model = mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1)     <span class="c"># pretrained backbone + old 1000-class head</span>
 model.classifier[<span class="n">1</span>] = nn.Linear(<span class="n">1280</span>, <span class="n">10</span>)                         <span class="c"># new head for 10 classes (random)</span>
 
-<span class="c"># B · feature extraction: freeze the backbone</span>
+<span class="c"># 🔒 feature extraction: freeze the backbone</span>
 <span class="k">for</span> p <span class="k">in</span> model.features.parameters():
     p.requires_grad = <span class="k">False</span>
 model.features.eval()                                             <span class="c"># keep frozen BatchNorm statistics fixed</span>
 opt = torch.optim.Adam(model.classifier.parameters(), lr=<span class="n">3e-3</span>)
 
-<span class="c"># C · fine-tuning: unfreeze and use a SMALL learning rate</span>
+<span class="c"># 🔧 fine-tuning: unfreeze and use a SMALL learning rate</span>
 <span class="k">for</span> p <span class="k">in</span> model.parameters():
     p.requires_grad = <span class="k">True</span>
 opt = torch.optim.Adam(model.parameters(), lr=<span class="n">1e-3</span>)</pre>
-  <p class="small muted">On this page the backbone is a small MLP on 10 × 10 pictures; a real backbone is a CNN (Lesson 10) whose early layers learn edges and colour blobs,
-  middle layers textures, and late layers object parts. The same three strategies apply.</p>
+  <p class="small muted">Here the backbone is a small MLP (100 → 32 → 32) on 10 × 10 pictures; a real backbone is a CNN (Lesson 10). Same three strategies.</p>
 </section>
 
 <section class="callout think">
-  <h3>🤔 Check yourself</h3>
+  <h3>🤔 Quick quiz</h3>
   <ol class="challenges">
-    <li>You have 300 labelled photos of 3 kinds of machine parts. Train from scratch or start from an ImageNet model?
-      <details class="answer"><summary>Answer</summary>Start from the pretrained model: 300 photos are far too few to learn good features from scratch, and photos of objects are similar enough to ImageNet for its edge and texture features to help.</details></li>
-    <li>Why does feature extraction train so much faster than fine-tuning?
-      <details class="answer"><summary>Answer</summary>No gradients are computed or applied for the frozen backbone: only the small head learns. (You can even compute the backbone's features once and reuse them every epoch.)</details></li>
-    <li>Your fine-tuned model is worse than the frozen one. Name two likely causes.
-      <details class="answer"><summary>Answer</summary>A learning rate that is too big (challenge 4), or too little data so the many trainable weights overfit. Also check that frozen BatchNorm layers are in eval() mode and the preprocessing matches.</details></li>
+    <li>You have 300 photos of 3 machine parts. 🐣 or 🔒?
+      <details class="answer"><summary>Answer</summary>🔒 Reuse a pretrained model. 300 photos is far too few to learn to see from zero.</details></li>
+    <li>Why is 🔒 so fast to train?
+      <details class="answer"><summary>Answer</summary>Only the small head learns (33 knobs here, 12,810 in Day 2). The backbone just runs.</details></li>
+    <li>Why did 🔒 lose with 🔄 flipped colours?
+      <details class="answer"><summary>Answer</summary>Its frozen skills look for dark ink. The new photos have light ink, so the skills fire in the wrong places. 🔧 can adjust them.</details></li>
   </ol>
 </section>
 
@@ -275,10 +387,10 @@ const SHAPES={
   tri:poly([[0.5,0.18],[0.82,0.8],[0.18,0.8]],true), V:[[[0.2,0.2],[0.5,0.82]],[[0.5,0.82],[0.8,0.2]]],
 };
 function segDist(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/(dx*dx+dy*dy)));return Math.hypot(px-a[0]-t*dx,py-a[1]-t*dy);}
-// ink = 1, paper = 0; random size, position and noise; invert = light ink on dark
-function render(shape,r,opt={}){const segs=SHAPES[shape],sc=0.6+0.5*r(),ox=(r()-0.5)*0.45,oy=(r()-0.5)*0.45,img=new Float64Array(S*S),noise=0.3;
+// ink = 1, paper = 0; random size, position and noise; invert = light ink on dark; clean = centred, no noise (display only)
+function render(shape,r,opt={}){const segs=SHAPES[shape],clean=!!opt.clean,sc=clean?1:0.6+0.5*r(),ox=clean?0:(r()-0.5)*0.45,oy=clean?0:(r()-0.5)*0.45,img=new Float64Array(S*S),noise=clean?0:0.3;
   for(let j=0;j<S;j++)for(let i=0;i<S;i++){const px=((i+0.5)/S-0.5-ox)/sc+0.5,py=((j+0.5)/S-0.5-oy)/sc+0.5;let d=9;for(const [a,b] of segs)d=Math.min(d,segDist(px,py,a,b));
-    let v=Math.exp(-((d/0.07)**2))+noise*gauss(r);if(opt.invert)v=1-v;img[j*S+i]=v;}return img;}
+    let v=Math.exp(-((d/0.07)**2))+(noise?noise*gauss(r):0);if(opt.invert)v=1-v;img[j*S+i]=v;}return img;}
 const SRC=['hline','vline','slash','back','plus','cross','tri','V'];
 
 const $=s=>document.querySelector(s);
@@ -293,69 +405,94 @@ function drawImg(ctx,img,x,y,sz,mode='ink'){const c=sz/S;for(let j=0;j<S;j++)for
   else{const t=Math.max(-1,Math.min(1,v)),col=t>=0?[47,111,237]:[240,140,0],a=Math.abs(t);ctx.fillStyle=`rgb(${255+(col[0]-255)*a},${255+(col[1]-255)*a},${255+(col[2]-255)*a})`;}
   ctx.fillRect(x+i*c,y+j*c,c+0.6,c+0.6);}}
 
-// ---------- ① pre-training ----------
-const ST={base:null,srcAcc:null,run:null};
+// ---------- hero bars + real-world bars: grow when visible ----------
+const grow=[[ '#ab1','14%'],['#ab2','100%'],['#rw1','100%'],['#rw2','1.2%']];
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const g=grow.find(q=>$(q[0])===e.target);e.target.style.width=g[1];io.unobserve(e.target);}}),{threshold:.4});
+grow.forEach(([id])=>io.observe($(id)));
+$('#rw2').style.minWidth='6px';
+
+// ---------- ① the layer diagram ----------
+const CAPS={1:'📚 The model studies a million photos. Every layer learns a skill.',2:'🔒 Freeze the backbone. Its skills stay exactly as they are.',
+  3:'✂️ Throw away the old head. Plug in a new one for the new question.',4:'🎯 Train only the new head, with just a few photos. Fast!'};
+let playT=null;
+function setStep(k){const svg=$('#tl');svg.classList.toggle('learn',k===1);svg.classList.toggle('frozen',k>=2);svg.classList.toggle('swapped',k>=3);svg.classList.toggle('tune',k===4);
+  document.querySelectorAll('#steps [data-k]').forEach(b=>b.classList.toggle('on',+b.dataset.k===k));$('#stepcap').textContent=CAPS[k];}
+document.querySelectorAll('#steps [data-k]').forEach(b=>b.onclick=()=>{clearTimeout(playT);setStep(+b.dataset.k);});
+$('#playAll').onclick=()=>{clearTimeout(playT);let k=1;const tick=()=>{setStep(k);if(k++<4)playT=setTimeout(tick,2600);};tick();};
+
+// ---------- ② pre-training ----------
+const ST={base:null,srcAcc:null};
 const rS=mulberry32(1);
 const srcData=Array.from({length:4000},(_,k)=>{const c=k%8;return {v:render(SRC[c],rS),y:Float64Array.from(SRC,(_,j)=>j===c?1:0)};});
 const srcTest=Array.from({length:400},(_,k)=>{const c=k%8;return {v:render(SRC[c],rS),c};});
-function drawSrc(){const {ctx,w:W,h:H}=setupCanvas($('#srcc')),cols=16,rows=8,sz=Math.min(W/cols,H/rows)-2;
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const s=srcData[c*8+r];drawImg(ctx,s.v,c*(sz+2),r*(sz+2),sz);}}
+['clean','noisy'].forEach(id=>{const box=$('#'+id);SRC.forEach(()=>{const cv=document.createElement('canvas');cv.className='pix';box.appendChild(cv);});});
+function drawShapes(){SRC.forEach((sh,k)=>{
+  const a=$('#clean').children[k],b=$('#noisy').children[k];
+  let s=setupCanvas(a);drawImg(s.ctx,render(sh,null,{clean:true}),0,0,s.w);
+  s=setupCanvas(b);drawImg(s.ctx,srcData[k].v,0,0,s.w);});}
 async function pretrain(){
   const base=new TNet([100,32,32,8],5),r=mulberry32(2),E=20;
-  for(let e=0;e<E;e++){epoch(base,srcData,50,0.005,r);$('#prog').style.width=((e+1)/E*100)+'%';$('#progTxt').textContent=`Pre-training on the big dataset: epoch ${e+1} / ${E}`;await nextFrame();}
+  for(let e=0;e<E;e++){epoch(base,srcData,50,0.005,r);$('#prog').style.width=((e+1)/E*100)+'%';$('#progTxt').textContent=`🧠 Studying… ${e+1} / ${E}`;await nextFrame();}
   ST.base=base;ST.srcAcc=srcTest.reduce((a,s)=>{const p=base.predict(s.v);return a+(p.indexOf(Math.max(...p))===s.c?1:0);},0)/srcTest.length;
-  $('#srcAcc').textContent=pct(ST.srcAcc);$('#progBox').hidden=true;$('#progTxt').textContent='✅ Pre-trained. The backbone is ready to be reused.';
-  drawFeat();$('#go').disabled=false;$('#verdict').textContent='Pick a situation, or press ▶ Train all three.';
+  $('#srcAcc').textContent=pct(ST.srcAcc);$('#progBox').hidden=true;$('#progTxt').innerHTML=`✅ Done! It now recognises the 8 shapes <b>${pct(ST.srcAcc)}</b> of the time (guessing = 12%).`;
+  drawFeat();$('#go').disabled=false;$('#verdict').textContent='👆 Pick a button above to start the race.';
+  const tmp=ST.base.clone();tmp.newHead(1,11);tmp.frozen=[true,true,false];$('#pB').textContent=tmp.trainable();
 }
 function drawFeat(){if(!ST.base)return;const {ctx,w:W,h:H}=setupCanvas($('#featc')),cols=8,rows=4,sz=Math.min(W/cols,H/rows)-4,W1=ST.base.W[0];
   for(let k=0;k<32;k++){let m=1e-9;for(let i=0;i<100;i++)m=Math.max(m,Math.abs(W1[k*100+i]));const img=Float64Array.from({length:100},(_,i)=>W1[k*100+i]/m);
     drawImg(ctx,img,(k%cols)*(sz+4),Math.floor(k/cols)*(sz+4),sz,'weights');}}
 
-// ---------- ③ the new task ----------
+// ---------- ③ the race ----------
 const SCEN={few:{n:5,style:'normal',ftlr:0.001},many:{n:200,style:'normal',ftlr:0.001},inv:{n:200,style:'inv',ftlr:0.001},hot:{n:5,style:'normal',ftlr:0.03}};
 function cfg(){return {n:+$('#nPer').value,style:$('#style').value,ftlr:+$('#ftlr').value};}
 function tgtData(nPer,seed,invert){const r=mulberry32(seed),d=[];for(let k=0;k<nPer;k++){d.push({v:render('plus',r,{invert}),y:Float64Array.of(1)});d.push({v:render('cross',r,{invert}),y:Float64Array.of(0)});}return d;}
-const R={hist:[],res:null,scen:null};
+const R={cur:null,scen:null};
 function epochsFor(n){return n<=20?200:n<=50?100:40;}
-function makeRace(c,seed=1){const inv=c.style==='inv',tr=tgtData(c.n,seed,inv),te=tgtData(c.n>0?300:300,999,inv);
+function makeRace(c,seed=1){const inv=c.style==='inv',tr=tgtData(c.n,seed,inv),te=tgtData(300,999,inv);
   const A=new TNet([100,32,32,1],11),B=ST.base.clone(),C=ST.base.clone();B.newHead(1,11);B.frozen=[true,true,false];C.newHead(1,11);
-  return {c,tr,te,nets:[A,B,C],lrs:[0.005,0.01,c.ftlr],rngs:[mulberry32(3),mulberry32(3),mulberry32(3)],E:epochsFor(c.n),e:0,hist:[]};}
+  const Rc={c,tr,te,nets:[A,B,C],lrs:[0.005,0.01,c.ftlr],rngs:[mulberry32(3),mulberry32(3),mulberry32(3)],E:epochsFor(c.n),e:0,hist:[]};
+  Rc.hist.push({e:0,acc:Rc.nets.map(n=>acc(n,te))});return Rc;}
 function raceStep(Rc,k){const bs=Math.min(Rc.tr.length,32);for(let q=0;q<k&&Rc.e<Rc.E;q++){Rc.nets.forEach((n,i)=>epoch(n,Rc.tr,bs,Rc.lrs[i],Rc.rngs[i]));Rc.e++;
   if(Rc.e%Math.max(1,Math.round(Rc.E/40))===0||Rc.e===Rc.E)Rc.hist.push({e:Rc.e,acc:Rc.nets.map(n=>acc(n,Rc.te))});}}
-function drawExamples(){const c=cfg(),tr=tgtData(Math.min(c.n,10),1,c.style==='inv'),{ctx,w:W,h:H}=setupCanvas($('#exc')),sz=Math.min(W/10,H/2)-3;
-  ctx.clearRect(0,0,W,H);tr.forEach((s,k)=>{const col=Math.floor(k/2),row=k%2;drawImg(ctx,s.v,col*(sz+3),row*(sz+3),sz);});
-  if(c.n>10){ctx.fillStyle='#868e96';ctx.font='11px Segoe UI, sans-serif';ctx.textAlign='right';ctx.fillText(`(first 10 of ${c.n} each)`,W-4,H-4);}}
-function render3(){
-  const Rc=R.cur,last=Rc&&Rc.hist[Rc.hist.length-1];
-  ['#aA','#aB','#aC'].forEach((id,i)=>$(id).textContent=last?pct(last.acc[i]):'–');
-  if(ST.base){const tmp=ST.base.clone();tmp.newHead(1,11);tmp.frozen=[true,true,false];$('#pA').textContent='4,321';$('#pB').textContent=tmp.trainable();$('#pC').textContent='4,321';}
-  $('#cSub').textContent=`pretrained backbone + new head, all trained (learning rate ${cfg().ftlr})`;
-  const {ctx,w:W,h:H}=setupCanvas($('#curvec')),L=40,T=8,pw=W-L-10,ph=H-T-24,E=Rc?Rc.E:200,sx=e=>L+e/E*pw,sy=v=>T+(1-(v-0.4)/0.6)*ph;
+function drawExamples(){const c=cfg(),inv=c.style==='inv',tr=tgtData(Math.min(c.n,10),1,inv);
+  [['#exP',0],['#exX',1]].forEach(([id,cls])=>{const box=$(id);box.innerHTML='';
+    tr.filter((_,k)=>k%2===cls).forEach(s=>{const cv=document.createElement('canvas');cv.className='pix';box.appendChild(cv);const {ctx,w}=setupCanvas(cv);drawImg(ctx,s.v,0,0,w);});});
+  $('#exNote').textContent=c.n>10?`Training photos: first 10 of ${c.n} each${inv?' · colours flipped':''}`:`Training photos: all ${c.n} of each${inv?' · colours flipped':''}`;}
+const WHY={few:'With 10 photos, 🐣 never learns to see. 🔒 can already see, so it only has to learn to decide.',
+  many:'With 400 photos, 🐣 catches up a lot. Reusing still wins.',
+  inv:'Flipped colours confuse the frozen skills. 🔧 adjusts them and wins.',
+  hot:'Big tweaks wipe out the old skills. Fine-tune in small steps!'};
+function renderRace(){
+  const Rc=R.cur,last=Rc&&Rc.hist[Rc.hist.length-1],done=Rc&&Rc.e>=Rc.E,best=last?last.acc.indexOf(Math.max(...last.acc)):-1;
+  [0,1,2].forEach(i=>{const lane=$('#lane'+i),a=last?last.acc[i]:0.5;
+    lane.querySelector('.runner').style.left=`calc(${Math.max(0,Math.min(1,(a-0.5)/0.5))*100}% * .94 + 3%)`;
+    lane.querySelector('.pct').textContent=last?pct(a):'–';lane.classList.toggle('win',!!done&&i===best);});
+  const v=$('#verdict');
+  if(Rc){if(!done){v.className='verdict';v.textContent='🏃 Training…';}
+    else{v.className='verdict good';v.textContent=(WHY[R.scen]||['🐣','🔒','🔧'][best]+' wins this time.');}}
+  drawCurve();
+}
+function drawCurve(){
+  const Rc=R.cur,{ctx,w:W,h:H}=setupCanvas($('#curvec'));if(W<10)return;
+  const L=40,T=8,pw=W-L-10,ph=H-T-24,E=Rc?Rc.E:200,sx=e=>L+e/E*pw,sy=v=>T+(1-(v-0.4)/0.6)*ph;
   ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';
   for(const v of [0.4,0.5,0.6,0.7,0.8,0.9,1]){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(pct(v),L-4,sy(v)+4);}
   ctx.strokeStyle='#adb5bd';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,sy(0.5));ctx.lineTo(L+pw,sy(0.5));ctx.stroke();ctx.setLineDash([]);
   for(let q=0;q<=4;q++){const e=Math.round(E*q/4);ctx.textAlign='center';ctx.fillText(e,sx(e),T+ph+13);}ctx.fillText('epoch',L+pw/2,H-1);
-  if(!Rc||!Rc.hist.length){ctx.textAlign='center';ctx.fillText('Press ▶ Train all three',L+pw/2,T+ph/2);}
-  else ['#f08c00','#2f6fed','#7048e8'].forEach((col,i)=>{ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.beginPath();Rc.hist.forEach((q,k)=>{const x=sx(q.e),y=sy(Math.max(0.4,q.acc[i]));k?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();});
-  const v=$('#verdict');if(!Rc||Rc.e<Rc.E){if(Rc){v.className='banner info';v.textContent='Training…';}return;}
-  const [a,b,c]=last.acc,names=['A (from scratch)','B (frozen features)','C (fine-tuning)'],best=last.acc.indexOf(Math.max(a,b,c));
-  const why={few:'With only 10 pictures, A must invent its own features and mostly guesses. B only has to learn 33 weights on top of features that already know strokes.',
-    many:'With 400 pictures, A can learn its own features and improves a lot, but pretraining still gives B and C a head start.',
-    inv:'The inverted pictures look different from the big dataset, so the frozen features fire in the wrong places. Fine-tuning lets them adapt, while still reusing the shape knowledge.',
-    hot:'The big learning rate overwrites the pretrained features in the first steps (catastrophic forgetting). The gentle frozen network B keeps them intact.'}[R.scen]||'';
-  v.className='banner '+(best===0?'info':'good');v.innerHTML=`<b>${names[best]} wins</b>: A ${pct(a)} · B ${pct(b)} · C ${pct(c)}. ${why}`;
+  if(!Rc){ctx.textAlign='center';ctx.fillText('Press ▶ Train all three',L+pw/2,T+ph/2);return;}
+  ['#f08c00','#2f6fed','#7048e8'].forEach((col,i)=>{ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.beginPath();Rc.hist.forEach((q,k)=>{const x=sx(q.e),y=sy(Math.max(0.4,q.acc[i]));k?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();});
 }
-async function race(){if(!ST.base)return;$('#go').disabled=true;const Rc=makeRace(cfg());R.cur=Rc;drawExamples();
-  while(Rc.e<Rc.E){raceStep(Rc,Math.max(1,Math.round(Rc.E/40)));render3();await nextFrame();if(R.cur!==Rc)return;}
-  render3();$('#go').disabled=false;}
-function scenButtons(key){document.querySelectorAll('#scen .btn').forEach(b=>b.classList.toggle('on',b.dataset.s===key));}
+async function race(){if(!ST.base)return;$('#go').disabled=true;const Rc=makeRace(cfg());R.cur=Rc;drawExamples();renderRace();
+  while(Rc.e<Rc.E){raceStep(Rc,Math.max(1,Math.round(Rc.E/40)));renderRace();await nextFrame();if(R.cur!==Rc)return;}
+  renderRace();$('#go').disabled=false;}
+function scenButtons(key){document.querySelectorAll('#scen .btn').forEach(b=>{b.classList.toggle('on',b.dataset.s===key);b.classList.remove('pulse');});}
 
 // ---------- events ----------
-document.querySelectorAll('#scen .btn').forEach(b=>b.onclick=()=>{const c=SCEN[b.dataset.s];$('#nPer').value=c.n;$('#style').value=c.style;$('#ftlr').value=c.ftlr;R.scen=b.dataset.s;scenButtons(R.scen);race();});
-['#nPer','#style','#ftlr'].forEach(id=>$(id).addEventListener('input',()=>{R.scen=null;scenButtons(null);R.cur=null;drawExamples();render3();}));
+document.querySelectorAll('#scen .btn').forEach(b=>b.onclick=()=>{if(!ST.base)return;const c=SCEN[b.dataset.s];$('#nPer').value=c.n;$('#style').value=c.style;$('#ftlr').value=c.ftlr;R.scen=b.dataset.s;scenButtons(R.scen);race();});
+['#nPer','#style','#ftlr'].forEach(id=>$(id).addEventListener('input',()=>{R.scen=null;scenButtons(null);R.cur=null;drawExamples();renderRace();}));
 $('#go').onclick=race;
-window.addEventListener('resize',()=>{drawSrc();drawFeat();drawExamples();render3();});
-drawSrc();drawExamples();render3();pretrain();
+window.addEventListener('resize',()=>{drawShapes();drawFeat();drawExamples();drawCurve();});
+drawShapes();drawExamples();renderRace();pretrain();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */

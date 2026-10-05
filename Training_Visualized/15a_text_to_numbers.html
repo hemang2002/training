@@ -19,7 +19,28 @@
   .hero h1{font-size:clamp(2rem,5vw,3.1rem);letter-spacing:-.025em;line-height:1.08;margin-bottom:.35em}
   .hero h1 .arrow{color:var(--blue)}
   .bigq{font-size:clamp(1.35rem,3vw,1.9rem);letter-spacing:-.015em;line-height:1.2;font-weight:700;margin:.1rem 0 .4rem}
-  .sub{color:var(--muted);font-size:1.02rem;max-width:46rem}
+  .sub{color:var(--muted);font-size:1.1rem;margin:.2rem 0 .6rem;max-width:46rem}
+  .hint{font-size:1rem;font-weight:600;color:var(--blue);margin:.1rem 0 .5rem}
+
+  /* hero */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:0 0 .8rem}
+  .flow span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem;font-size:1.05rem}
+  .flow i{font-style:normal;color:var(--blue);font-weight:800;font-size:1.2rem}
+  .analogy{display:flex;flex-direction:column;gap:.7rem;background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem 1.2rem;box-shadow:var(--shadow);max-width:52rem}
+  .arow{display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:.8rem;align-items:center}
+  .arow .who{font-size:1.9rem;white-space:nowrap;text-align:center}
+  .arow .lbl{font-size:.95rem;font-weight:600;margin-bottom:.2rem}
+  .arow .bar{height:1.6rem;background:var(--soft);border-radius:99px;overflow:hidden}
+  .arow .bar i{display:flex;align-items:center;justify-content:flex-end;height:100%;width:0;border-radius:99px;color:#fff;font-style:normal;font-weight:700;font-size:.85rem;padding-right:.6rem;white-space:nowrap;min-width:6rem;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+  .analogy .tag{font-size:1.05rem;font-weight:700;color:var(--blue);text-align:center;margin-top:.2rem}
+  @media (max-width:480px){.arow{grid-template-columns:5.2rem minmax(0,1fr);gap:.5rem}.arow .who{font-size:1.4rem}}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+  .wchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.92rem}
+  .rowlbl{font-size:.82rem;font-weight:700;color:var(--muted);margin:.9rem 0 .3rem;text-transform:uppercase;letter-spacing:.05em}
+  .bignums{display:flex;flex-wrap:wrap;gap:.7rem}
+  .bignum{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.5rem .9rem;text-align:center;min-width:8rem;flex:1 1 8rem}
+  .bignum b{display:block;font:800 1.7rem/1.1 var(--sans);letter-spacing:-.02em}
+  .bignum span{font-size:.82rem;color:var(--muted)}
 
   /* ① spelling vs meaning */
   .vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:.8rem;align-items:start;margin:.8rem 0}
@@ -55,7 +76,9 @@
   @media (max-width:820px){.rung{grid-template-columns:1fr;gap:.4rem}}
   .rung .head .n{display:inline-grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--ink);color:#fff;font-weight:800;font-size:.85rem;margin-right:.4rem}
   .rung .head h3{display:inline;font-size:1.08rem;margin:0}
-  .rung .head .ana{display:block;font-size:.93rem;color:var(--muted);margin:.3rem 0 .4rem;line-height:1.4}
+  .rung .head .em{display:block;font-size:2rem;line-height:1.1;margin-bottom:.2rem}
+  @media (max-width:820px){.rung .head .em{display:inline;font-size:1.5rem;margin-right:.3rem}}
+  .rung .head .ana{display:block;font-size:.95rem;color:var(--muted);margin:.25rem 0 .4rem;line-height:1.4;font-style:italic}
   .rung .head .per{font-size:.8rem;font-family:var(--mono);background:var(--soft);border-radius:8px;padding:.15rem .45rem;display:inline-block}
   .rung .verdict{font-size:.9rem;font-weight:600;margin-top:.5rem;padding:.35rem .6rem;border-radius:10px}
   .rung .verdict.bad{background:var(--bad-bg);color:#c92a2a}
@@ -156,7 +179,7 @@
   @media (prefers-reduced-motion:reduce){
     .ladder.build .rung,.ladder.build .rung .viz > *{animation:none}
     #map .ring{animation:none;opacity:0}
-    #map .arw,.meter .fill,.nbrow .t b,#map .wd .dot,#map .wd{transition:none}
+    #map .arw,.meter .fill,.nbrow .t b,#map .wd .dot,#map .wd,.arow .bar i{transition:none}
   }
 </style>
 </head>
@@ -189,33 +212,19 @@
 <section class="hero">
   <div class="kicker">Lesson 15a · warm-up for Lesson 15 · ≈ 30 min</div>
   <h1>Text <span class="arrow">→</span> numbers</h1>
-  <p class="sub">A neural network can only do maths. So before any model can read a message, every word must become numbers.
-  There are five ways to do it. Only the last one keeps the <b>meaning</b>.</p>
-</section>
-
-<section class="start">
-  <h2>👋 New here? The 30-second version</h2>
-  <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p>Give every word a <b>home on a map</b>. Words that mean similar things live in the same neighbourhood:
-      <i>cat</i> next to <i>kitten</i>, <i>king</i> next to <i>queen</i>. The address of a word (a short list of numbers) is its <b>embedding</b>.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, compare <b>cat</b> with <b>car</b> and then with <b>kitten</b>.</li>
-      <li>In ②, type a sentence and press <kbd>Enter</kbd>. Watch it turn into numbers in five ways.</li>
-      <li>In ③, click words on the map, then try <b>king − man + woman</b>.</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>Letters and word numbers keep the <b>spelling</b> but lose the <b>meaning</b>.
-      Embeddings are the first numbers where <b>close numbers = close meaning</b>. Every modern text model (spam filter, chatbot, search) starts with this step.</p></div>
+  <p class="sub">A model only understands numbers. So every word must become numbers first.</p>
+  <div class="flow"><span>📝 <b>words</b></span><i>➜</i><span>🔢 <b>numbers</b></span><i>➜</i><span>🤖 <b>model</b></span></div>
+  <div class="analogy">
+    <div class="arow"><div class="who">🐱 ↔ 🐈</div><div><div class="lbl">cat · kitten</div><div class="bar"><i id="ab1" style="background:var(--green)">next door</i></div></div></div>
+    <div class="arow"><div class="who">🐱 ↔ 🚗</div><div><div class="lbl">cat · car</div><div class="bar"><i id="ab2" style="background:var(--orange)">far away</i></div></div></div>
+    <div class="tag">🗺️ Give every word a place on a map. Close place = close meaning.</div>
   </div>
-  <div class="words">📖 <b>Hard words, made easy:</b><br>
-    <span><b>Vector</b> = a list of numbers, e.g. [0.2, −0.7, 0.9]</span><span><b>Token</b> = one piece of text, here one word</span>
-    <span><b>Vocabulary</b> = the list of all words the model knows, each with its own number</span><span><b>&lt;unk&gt;</b> = "unknown": the number for any word not in the list</span>
-    <span><b>One-hot</b> = a long row of 0s with a single 1</span><span><b>Embedding</b> = a short list of numbers for each word, learned so that similar words get similar lists</span>
-    <span><b>Similarity</b> = how much two vectors point the same way (100% = same direction)</span></div>
 </section>
 
-<!-- ① ANTAGONIST: spelling is not meaning -->
+<!-- ① spelling is not meaning -->
 <section class="card">
-  <h2>① A computer does not read. It stores numbers.</h2>
-  <p class="bigq">Which word is closer to <i>cat</i>: <span style="color:var(--machine,#495057)">car</span> or <span style="color:var(--c-animal)">kitten</span>?</p>
-  <p class="sub">You know the answer at once. Now look at what the computer actually has: one code number per letter. Type any two words.</p>
+  <h2>① Spelling is not meaning</h2>
+  <p class="bigq">Which is closer to <i>cat</i>: <span style="color:var(--c-machine)">car</span> or <span style="color:var(--c-animal)">kitten</span>?</p>
   <div class="vs">
     <div class="wcard"><input id="wA" value="cat" maxlength="14" spellcheck="false" aria-label="first word"><div class="codes" id="cA"></div></div>
     <div class="mid">vs</div>
@@ -229,17 +238,16 @@
   </div>
   <div class="meters">
     <div class="meter"><div class="lbl">🔤 By the letters</div><div class="num" id="mL">67%</div><div class="track"><div class="fill" id="fL" style="background:#868e96"></div></div><div class="why" id="wL"></div></div>
-    <div class="meter"><div class="lbl">🧠 By the meaning (embedding)</div><div class="num" id="mM">5%</div><div class="track"><div class="fill" id="fM" style="background:var(--green)"></div></div><div class="why" id="wM"></div></div>
+    <div class="meter"><div class="lbl">🗺️ By the meaning</div><div class="num" id="mM">5%</div><div class="track"><div class="fill" id="fM" style="background:var(--green)"></div></div><div class="why" id="wM"></div></div>
   </div>
-  <div class="look">👀 <b>cat</b> and <b>car</b> share 2 of 3 letter codes, so by the letters they look like twins. <b>cat</b> and <b>kitten</b> share almost nothing.
-    <b>Spelling is not meaning.</b> The rest of this page is the search for numbers that carry the meaning.</div>
+  <div class="look">👀 Letters say <b>cat ≈ car</b>. Meaning says <b>cat ≈ kitten</b>.</div>
   <p class="small muted adv">"By the letters" = share of positions where both words have the same character code (Unicode). "By the meaning" = cosine similarity of the two words' embeddings in our mini model from ③ (negative values shown as 0%).</p>
 </section>
 
 <!-- ② THE MACHINE -->
 <section class="card" id="machine">
   <h2>② The text-to-numbers machine</h2>
-  <p>Type a sentence and press <kbd>Enter</kbd>. You get the same sentence in five kinds of numbers, from the most basic to the best.</p>
+  <p class="bigq">One sentence, five ways to turn it into numbers.</p>
   <form class="composer" id="sForm" autocomplete="off">
     <input id="sIn" value="the king and queen love pizza" maxlength="80" spellcheck="false" aria-label="your sentence">
     <button class="btn primary go" type="submit">Make numbers ⏎</button>
@@ -254,28 +262,32 @@
 
   <div class="ladder" id="ladder">
     <div class="rung" style="--r:0">
-      <div class="head"><span class="n">1</span><h3>Letter codes</h3><span class="ana">✍️ The <b>ink</b>. What the computer actually stores: a code number for every letter.</span><span class="per" id="per1"></span></div>
-      <div><div class="viz" id="v1"></div><div class="verdict bad">✗ Spelling, not meaning: <i>cat</i> looks like <i>car</i>.</div></div>
+      <div class="head"><span class="em">✍️</span><span class="n">1</span><h3>Letter codes</h3><span class="ana">the ink</span><span class="per" id="per1"></span></div>
+      <div><div class="viz" id="v1"></div><div class="verdict bad">✗ Spelling only: <i>cat</i> looks like <i>car</i>.</div></div>
     </div>
     <div class="rung" style="--r:1">
-      <div class="head"><span class="n">2</span><h3>Word IDs</h3><span class="ana">🏷️ A <b>name tag</b>. Every word in the vocabulary gets a number, like a page in a dictionary. Unknown words get 1, empty seats get 0.</span><span class="per" id="per2"></span></div>
-      <div><div class="viz" id="v2"></div><div class="verdict bad" id="vd2">✗ The numbers mean nothing: is word 40 "half of" word 80? No.</div></div>
+      <div class="head"><span class="em">🏷️</span><span class="n">2</span><h3>Word IDs</h3><span class="ana">a name tag</span><span class="per" id="per2"></span></div>
+      <div><div class="viz" id="v2"></div><div class="verdict bad" id="vd2">✗ Just labels: word 40 is not "half of" word 80.</div></div>
     </div>
     <div class="rung" style="--r:2">
-      <div class="head"><span class="n">3</span><h3>One-hot</h3><span class="ana">💡 A <b>row of light switches</b>, one per vocabulary word. Exactly one switch is on.</span><span class="per" id="per3"></span></div>
-      <div><div class="viz" id="v3"></div><div class="verdict bad">✗ Huge and empty. And every word is equally far from every other word: <i>cat</i> is as far from <i>kitten</i> as from <i>pizza</i>.</div></div>
+      <div class="head"><span class="em">💡</span><span class="n">3</span><h3>One-hot</h3><span class="ana">one switch on</span><span class="per" id="per3"></span></div>
+      <div><div class="viz" id="v3"></div><div class="verdict bad">✗ Huge, mostly zeros. <i>cat</i> is as far from <i>kitten</i> as from <i>pizza</i>.</div></div>
     </div>
     <div class="rung" style="--r:3">
-      <div class="head"><span class="n">4</span><h3>Bag of words</h3><span class="ana">🛍️ A <b>shopping list</b>. Count how many times each word appears in the whole sentence.</span><span class="per" id="per4"></span></div>
-      <div><div class="viz" id="v4"></div><div class="verdict bad" id="vd4">✗ The order is lost: "dog bites man" = "man bites dog".</div></div>
+      <div class="head"><span class="em">🛍️</span><span class="n">4</span><h3>Bag of words</h3><span class="ana">a shopping list</span><span class="per" id="per4"></span></div>
+      <div><div class="viz" id="v4"></div><div class="verdict bad" id="vd4">✗ Order is lost: "dog bites man" = "man bites dog".</div></div>
     </div>
     <div class="rung best" style="--r:4">
-      <div class="head"><span class="n" style="background:var(--green)">5</span><h3>Embedding</h3><span class="ana">🗺️ A <b>place on a map of meaning</b>. Each word gets a short list of numbers, and similar words get similar lists.</span><span class="per" id="per5"></span></div>
-      <div><div class="viz" id="v5"></div><div class="verdict good">✓ Small, every number is used, and close numbers mean close meaning. This is what every modern text model uses.</div></div>
+      <div class="head"><span class="em">🗺️</span><span class="n" style="background:var(--green)">5</span><h3>Embedding</h3><span class="ana">a place on the map</span><span class="per" id="per5"></span></div>
+      <div><div class="viz" id="v5"></div><div class="verdict good">✓ Small, and similar words get similar numbers.</div></div>
     </div>
   </div>
-  <div class="look" style="margin-top:.8rem">👀 Read the five rows from top to bottom. Each one fixes the problem of the row above it.
-    Only row 5 shows <b>king</b> and <b>queen</b> with almost the same colours. That is the meaning, now in numbers.</div>
+  <div class="chipsrow">
+    <span class="wchip">🧩 <b>Token</b> = one piece of text</span>
+    <span class="wchip">📖 <b>Vocabulary</b> = the word list</span>
+    <span class="wchip">❓ <b>&lt;unk&gt;</b> = unknown word</span>
+    <span class="wchip">🔢 <b>Vector</b> = a list of numbers</span>
+  </div>
   <div class="grid2 adv" style="margin-top:.8rem">
     <div class="callout info"><h3>🎓 Detailed: TF-IDF, a smarter bag</h3><p class="small">A bag of words where each count is multiplied by how <b>rare</b> the word is across all documents:
       <code>tfidf = count × log(N / docs_with_word)</code>. Little words like <i>the</i> get almost 0, rare words like <i>prize</i> get a big weight. It is still a bag, so the order is still lost. TF-IDF with logistic regression is a strong, cheap baseline for spam.</p></div>
@@ -284,11 +296,11 @@
   </div>
 </section>
 
-<!-- ③ PEAK: the map -->
+<!-- ③ the map -->
 <section class="card" id="mapcard">
   <h2>③ Meaning becomes a place</h2>
-  <p>Every embedding is a point. Here are about 120 words from our mini model, drawn on a flat map. Your sentence from ② is <b>lit up</b>.
-    <b>Click any word</b> to see its closest neighbours.</p>
+  <p class="bigq">Similar words live close together.</p>
+  <p class="hint">👆 Click any word. Your sentence from ② is lit up.</p>
   <div class="maplab">
     <div class="mapbox">
       <div class="mapscroll"><svg id="map" viewBox="0 0 1000 640" role="img" aria-label="Map of word embeddings: similar words are close together"></svg></div>
@@ -300,7 +312,7 @@
         <h3>🔍 Clicked word</h3>
         <div class="bigword" id="pWord">cat</div>
         <div class="emb" id="pVec" style="margin:.45rem 0 .2rem"></div>
-        <div class="small muted" style="margin:.4rem 0 .2rem">Closest words (by similarity):</div>
+        <div class="small muted" style="margin:.4rem 0 .2rem">Closest words:</div>
         <div id="pNb"></div>
       </div>
       <div class="panel">
@@ -316,21 +328,23 @@
       </div>
     </div>
   </div>
-  <div class="look">👀 Same kind of word, same neighbourhood: animals top-left, food at the top, people on the left. Small words like <i>the</i> and <i>is</i> sit in the middle, because they go with everything.
-    The orange arrows show that a <b>direction</b> also means something: <b>man → king</b> is the "royal" step. Take the same step from <b>woman</b> and you land on <b>queen</b>.</div>
-  <div class="callout think" style="margin-bottom:0"><b>🧪 Honest note:</b> a real model's embedding has 300 to 3,000 numbers, and nobody gives them names. We built a <b>tiny hand-made</b> model with 14 numbers and named 12 of them
-    (🐾 animal, 👑 royal, ♀ female…) so you can read them. Then we flattened the 14 numbers to 2 so they fit on a screen. Real models find the same kind of map on their own, from millions of sentences.</div>
-  <p class="small muted adv" style="margin-top:.6rem">Similarity = cosine similarity in all 14 dimensions: <code>cos(a,b) = a·b / (|a|·|b|)</code>. In word maths we skip the three input words when we search for the nearest one; that is the standard trick (word2vec does it too), because <i>king − man + woman</i> is often still closest to <i>king</i> itself.
-    The map uses a fixed linear projection from 14 numbers to 2, then nudges overlapping labels apart a little, so map distances are only roughly right. Trust the similarity numbers.</p>
+  <div class="look">👀 <b>man → king</b> is a "royal" step. Same step from <b>woman</b> lands on <b>queen</b>.</div>
+  <div class="chipsrow"><span class="wchip">🧪 Tiny hand-made model: 14 numbers per word. Real ones: 300 to 3,000.</span></div>
+  <div class="adv">
+    <div class="callout think" style="margin:.8rem 0 0"><b>🧪 Honest note:</b> a real model's embedding has 300 to 3,000 numbers, and nobody gives them names. We built a <b>tiny hand-made</b> model with 14 numbers and named 12 of them
+      (🐾 animal, 👑 royal, ♀ female…) so you can read them. Then we flattened the 14 numbers to 2 so they fit on a screen. Real models find the same kind of map on their own, from millions of sentences.</div>
+    <p class="small muted" style="margin-top:.6rem">Similarity = cosine similarity in all 14 dimensions: <code>cos(a,b) = a·b / (|a|·|b|)</code>. In word maths we skip the three input words when we search for the nearest one; that is the standard trick (word2vec does it too), because <i>king − man + woman</i> is often still closest to <i>king</i> itself.
+      The map uses a fixed linear projection from 14 numbers to 2, then nudges overlapping labels apart a little, so map distances are only roughly right. Trust the similarity numbers.</p>
+  </div>
 </section>
 
-<!-- ④ PROOF: how a model learns the map -->
+<!-- ④ how a model learns the map -->
 <section class="card">
   <h2>④ Who decides where a word lives?</h2>
-  <p>Nobody does. The model learns it from text. The rule: <b>a word is known by the company it keeps.</b> Words that fit in the same sentences get pushed close together.</p>
+  <p class="bigq">The model learns it: words used in the same sentences end up close.</p>
   <div class="scrollx">
   <table class="company">
-    <tr><th class="s"></th><th>cat</th><th>kitten</th><th>dog</th><th>car</th><th>pizza</th></tr>
+    <tr><th class="s"></th><th>🐱<br>cat</th><th>🐈<br>kitten</th><th>🐶<br>dog</th><th>🚗<br>car</th><th>🍕<br>pizza</th></tr>
     <tr><th class="s">I fed my ___ some milk.</th><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
     <tr><th class="s">The ___ chased a mouse.</th><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
     <tr><th class="s">The ___ is sleeping on the sofa.</th><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
@@ -338,55 +352,48 @@
     <tr><th class="s">We ordered a hot ___.</th><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="y">✓</td></tr>
   </table>
   </div>
-  <div class="look">👀 <b>cat</b>, <b>kitten</b> and <b>dog</b> have the same column of ticks, so training gives them nearly the same numbers. <b>car</b> has a different pattern, so it ends up far away, even though it is spelled almost like <i>cat</i>.</div>
-  <div class="grid2" style="margin-top:.6rem">
-    <div>
-      <h3>📏 Real embedding sizes</h3>
-      <table class="plain small">
-        <tr><th>Model</th><th>Numbers per word</th></tr>
-        <tr><td>our mini map (③)</td><td>14</td></tr>
-        <tr><td>Notebook 07 spam LSTM</td><td>32</td></tr>
-        <tr><td>word2vec (Google, 2013)</td><td>300</td></tr>
-        <tr><td>BERT-base (2018)</td><td>768</td></tr>
-        <tr><td>OpenAI text-embedding-3-small / large</td><td>1,536 / 3,072</td></tr>
-      </table>
-    </div>
-    <div>
-      <h3>🔗 In Notebook 07</h3>
-      <p class="small">The spam model's first layer is an embedding table: <b>one row of 32 numbers for every word</b> in the vocabulary. They start random. During training, words that help to spot spam (<i>free</i>, <i>win</i>, <i>£</i>, <i>call</i>) slowly move to the same corner.</p>
-      <pre class="code adv"><span class="c"># word IDs (row 2)  →  embeddings (row 5)</span>
+  <div class="look">👀 Same ticks → same neighbourhood. <b>car</b> has different ticks, so it lives far away.</div>
+  <div class="rowlbl">📏 Numbers per word</div>
+  <div class="bignums">
+    <div class="bignum"><b style="color:var(--blue)">14</b><span>our mini map</span></div>
+    <div class="bignum"><b>32</b><span>Notebook 07 spam model</span></div>
+    <div class="bignum"><b>300</b><span>word2vec (2013)</span></div>
+    <div class="bignum"><b>768</b><span>BERT-base (2018)</span></div>
+    <div class="bignum"><b>3,072</b><span>OpenAI embedding-3-large</span></div>
+  </div>
+  <div class="adv" style="margin-top:.8rem">
+    <h3>🔗 In Notebook 07</h3>
+    <p class="small">The spam model's first layer is an embedding table: <b>one row of 32 numbers for every word</b> in the vocabulary. They start random. During training, words that help to spot spam (<i>free</i>, <i>win</i>, <i>£</i>, <i>call</i>) slowly move to the same corner. (OpenAI text-embedding-3-small uses 1,536.)</p>
+    <pre class="code"><span class="c"># word IDs (row 2)  →  embeddings (row 5)</span>
 emb = nn.Embedding(len(vocab), <span class="n">32</span>, padding_idx=<span class="n">0</span>)
 ids = torch.tensor([[<span class="n">0</span>, <span class="n">0</span>, <span class="n">57</span>, <span class="n">12</span>, <span class="n">3</span>]])  <span class="c"># 0 = &lt;pad&gt;</span>
 emb(ids).shape   <span class="c"># (1, 5, 32): 32 numbers per word</span></pre>
-      <p class="small adv">An embedding layer is the same as multiplying a one-hot vector (row 3) by a weight matrix, just much faster: it picks one row. So row 3 and row 5 are connected: <code>one_hot @ W == W[id]</code>.</p>
-    </div>
+    <p class="small">An embedding layer is the same as multiplying a one-hot vector (row 3) by a weight matrix, just much faster: it picks one row. So row 3 and row 5 are connected: <code>one_hot @ W == W[id]</code>.</p>
   </div>
 </section>
 
 <!-- ⑤ REMEMBER -->
 <section class="card">
-  <h2>🧠 Remember for life</h2>
+  <h2>🧠 Remember</h2>
   <div class="recap">
     <div><div class="em">✍️</div><b>Letters</b><span>the ink</span></div>
     <div><div class="em">🏷️</div><b>Word IDs</b><span>a name tag</span></div>
-    <div><div class="em">💡</div><b>One-hot</b><span>one light switch on</span></div>
+    <div><div class="em">💡</div><b>One-hot</b><span>one switch on</span></div>
     <div><div class="em">🛍️</div><b>Bag of words</b><span>a shopping list</span></div>
-    <div class="last"><div class="em">🗺️</div><b>Embedding</b><span>a place on the map of meaning</span></div>
+    <div class="last"><div class="em">🗺️</div><b>Embedding</b><span>a place on the map</span></div>
   </div>
-  <p style="font-size:1.1rem;text-align:center;margin:.8rem 0 0"><b>Close numbers = close meaning.</b> That is what an embedding gives a model, and it is the first layer of the RNN in Lesson 15.</p>
+  <p class="bigq" style="text-align:center;margin-top:.8rem">Close numbers = close meaning.</p>
 </section>
 
-<section class="callout try">
-  <h3>🎯 Challenges: guess first, then try</h3>
+<section class="callout think">
+  <h3>🤔 Quick quiz</h3>
   <ol class="challenges">
-    <li>In ②, type <b>dog bites man</b>, then <b>man bites dog</b>. Which of the five rows change, and which one stays exactly the same?
-      <details class="answer"><summary>Answer</summary>Rows 1, 2, 3 and 5 change, because they keep one entry per word, in order. Row 4 (bag of words) is <b>identical</b>: same words, same counts. That is why Lesson 15 needs a model that reads in order.</details></li>
-    <li>Type <b>a giraffe ate my homework</b>. What word ID do <i>giraffe</i>, <i>ate</i> and <i>homework</i> get, and why?
-      <details class="answer"><summary>Answer</summary>All three get <b>1 = &lt;unk&gt;</b>: they are not in our mini vocabulary, so the model cannot tell them apart. Real models fix this with a bigger vocabulary and sub-word tokens (switch to Detailed view in ②).</details></li>
-    <li>On the map, click <b>kitten</b>. Which word is its closest neighbour: <i>cat</i> or <i>puppy</i>? Can you explain why?
-      <details class="answer"><summary>Answer</summary><b>puppy</b> comes first (91%), then <b>cat</b> (87%). Look at the coloured numbers: kitten and puppy both have 🐾 animal <b>and</b> 🍼 young switched on. "Similar" depends on which numbers match.</details></li>
-    <li>Try <b>paris − france + japan</b>. What do you get? Now set the last word to <b>india</b>. What happens?
-      <details class="answer"><summary>Answer</summary>The first gives <b>tokyo</b>. With <b>india</b> it gives <b>delhi</b>, with <b>mumbai</b> a close second: the "capital of" step is a direction on the map, just like "royal".</details></li>
+    <li>Type <b>dog bites man</b>, then <b>man bites dog</b>. Which row stays the same?
+      <details class="answer"><summary>Answer</summary>🛍️ Bag of words. Same words, same counts, order lost.</details></li>
+    <li>Why do <i>giraffe</i> and <i>homework</i> both get ID 1?
+      <details class="answer"><summary>Answer</summary>They are not in the word list, so both become ❓ &lt;unk&gt;.</details></li>
+    <li>What does <b>paris − france + japan</b> give?
+      <details class="answer"><summary>Answer</summary><b>tokyo</b>. "Capital of" is a direction on the 🗺️ map.</details></li>
   </ol>
 </section>
 
@@ -456,7 +463,7 @@ function drawVs(){
   $('#wL').textContent=a&&b?`${same} of ${n} letter codes match`:'';
   if(VEC[a]&&VEC[b]){const m=Math.max(0,cos(VEC[a],VEC[b]));$('#mM').textContent=Math.round(m*100)+'%';$('#fM').style.transform=`scaleX(${m})`;
     $('#wM').textContent=m>.7?'close neighbours on the map of meaning':m>.35?'related, but not the same':'different neighbourhoods';}
-  else{$('#mM').textContent='?';$('#fM').style.transform='scaleX(0)';$('#wM').textContent=`"${!VEC[a]?a:b}" is not in our mini model. Try a word from the map in ③.`;}
+  else{$('#mM').textContent='?';$('#fM').style.transform='scaleX(0)';$('#wM').textContent=`"${!VEC[a]?a:b}" is not in our mini model.`;}
   $$('#vsPre .chip').forEach(c=>c.classList.toggle('on',c.dataset.a===a&&c.dataset.b===b));
 }
 ['#wA','#wB'].forEach(s=>$(s).addEventListener('input',drawVs));
@@ -475,16 +482,16 @@ function build(animate){
   // 2 IDs, padded at the front like Notebook 07
   const ids=ws.map(w=>unk(w)?1:ID[w]),padded=[...Array(MAXLEN-ids.length).fill(0),...ids];
   $('#v2').innerHTML=`<div class="cells" style="margin-bottom:.4rem">${ws.map((w,i)=>`<span class="cell ${ids[i]===1?'unk':'id'}">${esc(w)} → ${ids[i]}</span>`).join('')}</div>
-    <div class="small muted">Padded to ${MAXLEN} numbers (empty seats = 0 at the front, like in Notebook 07):</div>
+    <div class="small muted">Padded to ${MAXLEN} (empty = 0):</div>
     <div class="cells">${padded.map(x=>`<span class="cell ${x===0?'pad':x===1?'unk':'id'}">${x}</span>`).join('')}</div>`;
   $('#per2').textContent='numbers per word: 1';
   const nu=ws.filter(unk).length;
-  $('#vd2').innerHTML=nu?`✗ ${nu} word${nu>1?'s':''} not in the vocabulary → all become <b>1</b>, and the model can't tell them apart. And the numbers mean nothing: is word 40 "half of" word 80? No.`
-    :'✗ The numbers mean nothing: is word 40 "half of" word 80? No.';
+  $('#vd2').innerHTML=nu?`✗ ${nu} unknown word${nu>1?'s':''} → all become <b>1</b>. Just labels, no meaning.`
+    :'✗ Just labels: word 40 is not "half of" word 80.';
   // 3 one-hot
   const oh=id=>`<div class="oh" style="grid-template-columns:repeat(${V},minmax(0,1fr))">${Array.from({length:V},(_,k)=>`<i${k===id?' class="on"':''}></i>`).join('')}</div>`;
   $('#v3').innerHTML=ws.map((w,i)=>`<div class="wrow">${lbl(w)}<div class="oh-wrap">${oh(ids[i])}<small>#${ids[i]}</small></div></div>`).join('')
-    +`<div class="small muted">Each row has ${V} switches (one per word in our vocabulary). A real vocabulary has about 50,000.</div>`;
+    +`<div class="small muted">${V} switches per word. Real models: ~50,000.</div>`;
   $('#per3').textContent=`numbers per word: ${V} (real: ~50,000)`;
   // 4 bag of words
   const cnt={};ids.forEach((id,i)=>{const k=id===1?'<unk>':ws[i];cnt[k]=(cnt[k]||0)+1;});
@@ -493,11 +500,11 @@ function build(animate){
     <div class="counts">${Object.entries(cnt).map(([w,n])=>`<span>${esc(w)}: ${n}</span>`).join('')}</div>`;
   $('#per4').textContent=`numbers per sentence: ${V}`;
   const shuf=[...ws].reverse().join(' ');
-  $('#vd4').innerHTML=ws.length>1&&shuf!==ws.join(' ')?`✗ The order is lost: "<i>${esc(shuf)}</i>" gives exactly the same bag.`:'✗ The order is lost: "dog bites man" = "man bites dog".';
+  $('#vd4').innerHTML=ws.length>1&&shuf!==ws.join(' ')?`✗ Order is lost: "<i>${esc(shuf)}</i>" gives the same bag.`:'✗ Order is lost: "dog bites man" = "man bites dog".';
   // 5 embedding
   $('#v5').innerHTML=`<div class="embhead"><div></div><div class="emb">${DIMS.map(d=>`<i title="${d[1]}">${d[0]}</i>`).join('')}</div></div>`
     +ws.map(w=>`<div class="wrow">${lbl(unk(w)?w+' (unk)':w)}<div class="emb">${strip(unk(w)?UNK:VEC[w])}</div></div>`).join('')
-    +`<div class="legendbar"><span>−1</span><span class="grad"></span><span>+1</span><span>· hover a cell to see its number</span></div>`;
+    +`<div class="legendbar"><span>−1</span><span class="grad"></span><span>+1</span><span class="adv">· hover a cell to see its number</span></div>`;
   $('#per5').textContent='numbers per word: 14 (real: 300–3,000)';
   if(animate){const l=$('#ladder');l.classList.remove('build');void l.offsetWidth;l.classList.add('build');}
   highlightSentence();
@@ -543,7 +550,7 @@ function highlightSentence(){
   const known=SENT.filter(w=>VEC[w]),unk=SENT.filter(w=>!VEC[w]);
   known.forEach((w,i)=>{G[w].classList.add('hl');setTimeout(()=>ring(w),i*90);});
   map.classList.toggle('dim',known.length>0||!!SEL);
-  $('#unkLine').innerHTML=unk.length?`Not on the map (not in our mini vocabulary → &lt;unk&gt;): <b>${unk.map(esc).join(', ')}</b>`:'';
+  $('#unkLine').innerHTML=unk.length?`❓ Not on the map (&lt;unk&gt;): <b>${unk.map(esc).join(', ')}</b>`:'';
 }
 let SEL=null;
 function select(w){
@@ -575,7 +582,7 @@ function analogy(){
   $('#aRes').textContent=R;
   const diff=VEC[A].map((x,k)=>x-VEC[B][k]),big=diff.map((x,k)=>[x,k]).filter(([x])=>Math.abs(x)>=.3).sort((a,b)=>Math.abs(b[0])-Math.abs(a[0])).slice(0,2);
   const step=big.length?big.map(([x,k])=>`${DIMS[k][0]} ${DIMS[k][1]} ${x>0?'↑':'↓'}`).join(', '):'only small changes';
-  $('#aWhy').innerHTML=`<b>${esc(B)} → ${esc(A)}</b> is one step on the map (${step}). The same step from <b>${esc(C)}</b> lands next to <b>${esc(R)}</b> (similarity ${Math.round(s*100)}%).`;
+  $('#aWhy').innerHTML=`<b>${esc(B)} → ${esc(A)}</b> = ${step}. Same step from <b>${esc(C)}</b> → <b>${esc(R)}</b> (${Math.round(s*100)}% match).`;
   gArrows.innerHTML='';clearCls('an');[A,B,C,R].forEach(w=>G[w].classList.add('an'));map.classList.add('dim');
   const pa=POS[A],pb=POS[B],pc=POS[C],land=[pc[0]+pa[0]-pb[0],pc[1]+pa[1]-pb[1]];
   drawArrow(pb,pa,'a1',60);drawArrow(pc,land,'a2',700);
@@ -584,6 +591,10 @@ function analogy(){
 }
 ['#aA','#aB','#aC'].forEach(s=>$(s).addEventListener('change',analogy));
 $$('#anPre .chip').forEach(c=>c.onclick=()=>{const [a,b,cc]=c.dataset.q.split(',');$('#aA').value=a;$('#aB').value=b;$('#aC').value=cc;analogy();});
+
+// hero bars grow when visible (display only: short = close, long = far)
+const heroBars=[['#ab1','18%'],['#ab2','92%']];
+if('IntersectionObserver' in window){const hio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.style.width=heroBars.find(q=>$(q[0])===e.target)[1];hio.unobserve(e.target);}}),{threshold:.4});heroBars.forEach(([id])=>hio.observe($(id)));}else heroBars.forEach(([id,w])=>$(id).style.width=w);
 
 // start: everything filled in, nothing waiting for a click
 $('#aA').value='king';$('#aB').value='man';$('#aC').value='woman';

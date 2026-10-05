@@ -6,20 +6,67 @@
 <title>14 · Image segmentation — Training, Visualized</title>
 <link rel="stylesheet" href="style.css">
 <style>
+  .hero h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.025em;line-height:1.08;margin-bottom:.3em}
+  .sub{color:var(--muted);font-size:1.1rem;margin:.2rem 0 .8rem}
+  .bigq{font-size:clamp(1.3rem,3vw,1.75rem);letter-spacing:-.015em;line-height:1.2;font-weight:700;margin:0 0 .5rem}
   canvas.pix{image-rendering:pixelated}
-  .scene{aspect-ratio:4/3;cursor:crosshair;touch-action:none}
-  .seg{margin:.2rem 0 .5rem}
+  .scene{aspect-ratio:4/3}
+  .tap{cursor:crosshair;touch-action:pan-y}
+  .narrow{max-width:640px}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.7rem}
+  .wchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.92rem}
+  .stepcap{font-size:1.2rem;font-weight:700;min-height:2rem;margin:.5rem .2rem .3rem}
   .clslegend{display:flex;flex-wrap:wrap;gap:.35rem .8rem;font-size:.85rem;margin:.35rem .3rem}
   .clslegend i{display:inline-block;width:.8rem;height:.8rem;border-radius:3px;margin-right:.3rem;vertical-align:-1px}
-  .pixinfo{font-size:.95rem;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.45rem .7rem;margin:.4rem 0;min-height:2.4rem}
-  .trio{max-width:640px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin-top:.6rem}
-  .trio figure{margin:0;text-align:center;font-size:.8rem;color:var(--muted);line-height:1.3}
-  .trio canvas{width:100%;aspect-ratio:1;display:block;border-radius:8px;border:1px solid var(--line);margin-bottom:.2rem}
-  .uses{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:.6rem;margin:.5rem 0}
-  .uses div{background:var(--soft);border-radius:12px;padding:.6rem .8rem;font-size:.9rem}
-  .uses b{display:block;font-size:1rem}
-  .explain{min-height:7.5rem}
-  .stepno{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+  .btnrow{display:flex;flex-wrap:wrap;gap:.45rem;margin:.6rem 0 .3rem;align-items:center}
+  .btnrow .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .btnrow .btn.cut{border-color:var(--orange);background:#fff4e6;color:#d9480f}
+
+  /* hero: colouring book */
+  .book{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem;background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem;box-shadow:var(--shadow);max-width:52rem}
+  .book figure{margin:0;text-align:center}
+  .book svg{display:block;width:100%;height:auto;background:#fcfcfd;border:1px solid var(--line);border-radius:12px}
+  .book figcaption{font-weight:700;font-size:clamp(.8rem,2.2vw,1rem);margin-top:.35rem;line-height:1.3}
+  .book figcaption small{display:block;font-weight:500;color:var(--muted)}
+  .book .tagline{grid-column:1 / -1;font-size:1.05rem;font-weight:700;color:var(--blue);text-align:center;display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap}
+  .book .tagline .btn{font-size:.8rem;padding:.2rem .6rem}
+  .heroart.go .tag{animation:popin .5s .4s cubic-bezier(.3,1.5,.5,1) both;transform-box:fill-box;transform-origin:center}
+  .heroart.go .box{stroke-dasharray:520;animation:draw 1s 1.2s ease-out both}
+  .heroart.go .px{animation:pxin .25s ease-out both}
+  @keyframes popin{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+  @keyframes draw{from{stroke-dashoffset:520}to{stroke-dashoffset:0}}
+  @keyframes pxin{from{opacity:0}to{opacity:1}}
+
+  /* ② big pixel readout */
+  .readout{display:flex;align-items:center;gap:.8rem;background:#fff;border:2px solid var(--line);border-radius:14px;padding:.4rem .9rem;margin:.6rem 0;min-height:3.4rem;font-size:1.05rem;font-weight:600}
+  .readout .num{font:800 2.2rem/1 var(--mono);min-width:2.2rem;text-align:center}
+
+  /* ④ IoU */
+  .fvis{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;font-weight:800;font-size:1.15rem;margin:.2rem 0 .7rem}
+  .fvis .sq{display:inline-flex;align-items:center;gap:.3rem;border-radius:8px;padding:.15rem .55rem;color:#fff;font-size:.95rem}
+  .bigs{display:flex;flex-wrap:wrap;gap:.7rem;margin:.4rem 0}
+  .bignum{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.5rem .9rem;text-align:center;min-width:8rem}
+  .bignum b{display:block;font:800 2rem/1.1 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .bignum span{font-size:.85rem;color:var(--muted)}
+  .meter{position:relative;margin:1.6rem 0 .3rem;max-width:34rem}
+  .meter .bar{display:grid;grid-template-columns:50fr 25fr 15fr 10fr;height:1.4rem;border-radius:99px;overflow:hidden}
+  .meter .bar i{display:block}
+  .meter .lbl{display:grid;grid-template-columns:50fr 25fr 15fr 10fr;font-size:.75rem;font-weight:700;color:var(--muted);margin-top:.2rem}
+  .meter .lbl span{white-space:nowrap;overflow:hidden;text-overflow:clip}
+  .meter .mark{position:absolute;top:-1.35rem;left:0;transform:translateX(-50%);font-size:1.1rem;transition:left .35s ease-out;line-height:1}
+  .slide{display:flex;align-items:center;gap:.6rem;max-width:34rem;margin:.4rem 0;font-weight:600;font-size:.95rem}
+  .slide input{flex:1;accent-color:var(--blue)}
+  .advctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:.4rem 1rem;max-width:44rem}
+
+  /* cards */
+  .when{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:.8rem}
+  .wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;text-align:center}
+  .wcard .pic{font-size:2.4rem;line-height:1.2}
+  .wcard .if{font-weight:600;margin:.3rem 0 .5rem;min-height:2.6rem}
+  .wcard .then{display:inline-block;font-weight:800;border-radius:999px;padding:.3rem .9rem}
+  .bignums{display:flex;flex-wrap:wrap;gap:.7rem;margin:.4rem 0 1rem}
+
+  @media (prefers-reduced-motion:reduce){.heroart *,.meter .mark{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -49,203 +96,173 @@
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 14 of 15 · ≈ 35 min</div>
-  <h1>Image segmentation: a label for every pixel</h1>
-  <p class="one-liner">A classifier says <b>what</b> is in a picture. A segmentation model says what <b>every single pixel</b> is: "this pixel is person, this one is road".
-  The answer is a second picture, the <b>mask</b>, with the same size as the photo. This page shows how such a model is built (an <b>encoder–decoder</b>, like U-Net)
-  and how we check if its mask is any good (<b>IoU</b>).</p>
-</section>
-<section class="start">
-  <h2>👋 New here? The 30-second version</h2>
-  <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p>A colouring book. Classification is saying "this page shows a person". Segmentation is <b>colouring in</b> the person, carefully, right up to the lines.
-      You need to know <b>what</b> it is <i>and</i> <b>where</b> its edges are.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, switch between the four tasks.</li>
-      <li>In ③, press <b>Next ▶</b> to walk through the model, then tick <b>✂️ Remove skip connections</b>.</li>
-      <li>In ④, press <b>🚫 All background</b> and compare accuracy with IoU.</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>The model first <b>shrinks</b> the picture (to understand it) and then <b>grows</b> it back (to draw the mask). Without the "skip" bridges, the mask becomes a <b>blob</b>.
-      And a mask can be 95% "accurate" while missing every person.</p></div>
+  <div class="kicker">Lesson 14 of 15 · ≈ 25 min</div>
+  <h1>Image segmentation: colour every pixel</h1>
+  <p class="sub">The model doesn't just say what's in a photo. It colours in exactly where it is.</p>
+  <div class="book heroart" id="book">
+    <figure><svg viewBox="0 0 200 170" id="bk1" aria-label="A cat drawing with a label: cat"></svg><figcaption>🏷️ "There's a cat"<small>classification</small></figcaption></figure>
+    <figure><svg viewBox="0 0 200 170" id="bk2" aria-label="A cat drawing with a box around it"></svg><figcaption>📦 "It's in this box"<small>detection</small></figcaption></figure>
+    <figure><svg viewBox="0 0 200 170" id="bk3" aria-label="A cat drawing coloured in, pixel by pixel"></svg><figcaption>🎨 "These pixels are cat"<small>segmentation</small></figcaption></figure>
+    <div class="tagline">🖍️ Like a colouring book, right up to the lines. <button class="btn" id="replay" type="button">↻ Replay</button></div>
   </div>
-  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Segmentation</b> = give every pixel a class</span><span><b>Mask</b> = a picture of class numbers (0 = background, 1 = person…)</span>
-    <span><b>Encoder</b> = the part that shrinks the picture and understands it</span><span><b>Decoder</b> = the part that grows it back to full size</span>
-    <span><b>Skip connection</b> = a bridge that copies sharp details from encoder to decoder</span><span><b>Upsampling</b> = making a small map bigger</span>
-    <span><b>IoU</b> = overlap ÷ union: how well two masks match (0 to 1)</span><span><b>Argmax</b> = pick the class with the highest score</span></div>
 </section>
 
 <section class="card">
-  <h2>① Four vision tasks, one street</h2>
-  <p>Same photo, four different questions. Each one asks for <b>more detail</b> than the one before.</p>
+  <h2>① Four questions, one street</h2>
+  <p class="bigq">Each question wants more detail than the last.</p>
   <div class="seg" id="taskSeg">
-    <button data-t="cls" class="on">🏷️ Classification</button><button data-t="det">📦 Detection</button><button data-t="sem">🎨 Semantic segmentation</button><button data-t="ins">🧩 Instance segmentation</button>
+    <button data-t="cls" class="on">🏷️ Classify</button><button data-t="det">📦 Detect</button><button data-t="sem">🎨 Segment</button><button data-t="ins">🧩 Instances</button>
   </div>
+  <button class="btn primary" id="taskPlay" style="margin-left:.4rem">▶ Play all</button>
+  <div class="stepcap" id="taskCap"></div>
+  <div class="canvas-box narrow"><canvas id="taskc" class="scene"></canvas><div class="clslegend" id="taskLegend"></div></div>
+  <div class="explain adv" id="taskOut" style="margin-top:.6rem;min-height:0"></div>
+</section>
+
+<section class="card">
+  <h2>② The mask is just numbers</h2>
+  <p class="bigq">👆 Tap any pixel. Every pixel gets one class number.</p>
+  <div class="btnrow" id="gridBtns">
+    <button class="btn" data-n="16">🟫 Big pixels</button><button class="btn on" data-n="32">🔲 Medium</button><button class="btn" data-n="64">🔬 Tiny pixels</button>
+  </div>
+  <div class="readout" id="pixInfo">👆 Tap a pixel…</div>
   <div class="grid2">
-    <div class="canvas-box"><div class="canvas-title" id="taskTitle">Classification</div><canvas id="taskc" class="scene" style="cursor:default"></canvas>
-      <div class="clslegend" id="taskLegend"></div></div>
-    <div class="explain" id="taskExplain"></div>
+    <div class="canvas-box"><div class="canvas-title">📷 The photo</div><canvas id="gridPhoto" class="scene pix tap"></canvas></div>
+    <div class="canvas-box"><div class="canvas-title">🖍️ The mask (numbers)</div><canvas id="gridNum" class="scene tap"></canvas></div>
+  </div>
+  <div class="clslegend" id="gridLegend"></div>
+  <div class="look">👀 Edge pixels are half person, half road, but get only <b>one</b> number.</div>
+  <div class="adv" style="margin-top:.6rem">
+    <div class="ctl" style="max-width:24rem"><label>Mask opacity on the photo <output id="opOut">60%</output></label><input type="range" id="op" min="0" max="100" value="60"></div>
+    <div class="small muted" id="pixCount"></div>
+    <div class="small muted">In PyTorch the mask is a tensor of shape <code>[H, W]</code> with dtype <code>long</code>. Colours are only for us humans.</div>
   </div>
 </section>
 
 <section class="card">
-  <h2>② A label for every pixel: the mask is just numbers</h2>
-  <p>Here the street is shrunk to a small grid of pixels. <b>Hover or tap</b> any pixel. The mask on the right is a <b>second image</b>, but instead of colours it stores one
-  <b>class number</b> per pixel. That grid of numbers is exactly what a segmentation model must output (and what we give it as the "right answer" when training).</p>
-  <div class="lab">
-    <aside class="controls">
-      <h3>Settings</h3>
-      <div class="ctl"><label>Mask opacity on the photo <output id="opOut">60%</output></label><input type="range" id="op" min="0" max="100" value="60"></div>
-      <div class="ctl"><label>Grid size</label><select id="gridN"><option value="16">16 × 12 (very coarse)</option><option value="32" selected>32 × 24</option><option value="64">64 × 48 (finer)</option></select></div>
-      <div class="pixinfo" id="pixInfo">Hover a pixel…</div>
-      <div class="small muted" id="pixCount"></div>
-      <div class="adv small muted" style="margin-top:.4rem">In PyTorch the mask is a tensor of shape <code>[H, W]</code> with dtype <code>long</code> (whole numbers), not a colour image. Colours are only for us humans.</div>
-    </aside>
-    <div class="stage">
-      <div class="grid2">
-        <div class="canvas-box"><div class="canvas-title">The photo (with the mask on top)</div><canvas id="gridPhoto" class="scene pix"></canvas></div>
-        <div class="canvas-box"><div class="canvas-title">The mask: one class number per pixel</div><canvas id="gridNum" class="scene"></canvas></div>
-      </div>
-      <div class="clslegend" id="gridLegend"></div>
-      <div class="look">👀 Look at the edge of the person: with a coarse grid, one pixel can be half person, half road, but it can only get <b>one</b> number. Finer grids give sharper masks, but more numbers to predict.</div>
-    </div>
+  <h2>③ How the model works: shrink, then grow back</h2>
+  <p class="bigq">🔽 Shrink to understand WHAT. 🔼 Grow back to draw WHERE.</p>
+  <div class="canvas-box" style="overflow-x:auto"><canvas id="unetc" class="pix" style="min-width:560px"></canvas></div>
+  <div class="btnrow">
+    <button class="btn" id="uBack">◀</button><button class="btn" id="uNext">Next ▶</button>
+    <button class="btn primary" id="uPlay">▶ Play all</button>
+    <button class="btn" id="uCut">✂️ Cut the bridges</button>
+    <span class="small muted" id="uStepNo"></span>
   </div>
-</section>
-
-<section class="card">
-  <h2>③ How the model works: shrink, then grow back (U-Net)</h2>
-  <p>Our task: <b>person vs background</b> (2 classes), like the notebook. Press <b>Next ▶</b> to follow a picture through the model.</p>
-  <div class="lab">
-    <aside class="controls">
-      <h3>Walk through</h3>
-      <div class="btn-row"><button class="btn ghost" id="uBack">◀ Back</button><button class="btn primary" id="uNext">Next ▶</button></div>
-      <div class="btn-row"><button class="btn" id="uPlay">▶ Play all</button><button class="btn ghost" id="uReset">⟲ Start over</button></div>
-      <label class="check"><input type="checkbox" id="noSkip"> ✂️ Remove skip connections</label>
-      <div class="stepno" id="uStepNo"></div>
-      <h3>Why the U shape?</h3>
-      <p class="small">🔽 Going <b>down</b>, the maps get smaller but deeper: each number sees a bigger part of the picture → the model understands <b>WHAT</b>.<br>
-      🔼 Going <b>up</b>, maps get bigger again → the model can say <b>WHERE</b>.<br>🌉 Skip bridges bring back the sharp details that were lost on the way down.</p>
-    </aside>
-    <div class="stage">
-      <div class="canvas-box"><div class="canvas-title">Encoder–decoder with skip connections (U-Net). Size = pixels per side · ch = number of feature maps</div><canvas id="unetc" class="pix"></canvas></div>
-      <div class="explain" id="uExplain" style="margin-top:.5rem"></div>
-      <div class="trio">
-        <figure><canvas id="tTrue" class="pix"></canvas>True mask (the answer)</figure>
-        <figure><canvas id="tSkip" class="pix"></canvas>Expected: <b>with</b> skip connections</figure>
-        <figure><canvas id="tNoSkip" class="pix"></canvas>Expected: <b>without</b> skips</figure>
-      </div>
-      <div class="look">👀 These two outputs are drawn to show the <b>expected</b> behaviour (not a real trained model). Without skips the decoder only has the tiny 16 × 16 map: legs melt together,
-        the two people blur, edges go round. With skips the edges come back.</div>
-    </div>
+  <div class="stepcap" id="uExplain"></div>
+  <div class="trio grid3" style="max-width:640px;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin-top:.6rem">
+    <figure style="margin:0;text-align:center;font-size:.85rem;font-weight:600"><canvas id="tTrue" class="pix" style="width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line)"></canvas>✅ True mask</figure>
+    <figure style="margin:0;text-align:center;font-size:.85rem;font-weight:600"><canvas id="tSkip" class="pix" style="width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line)"></canvas>🌉 With bridges</figure>
+    <figure style="margin:0;text-align:center;font-size:.85rem;font-weight:600"><canvas id="tNoSkip" class="pix" style="width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line)"></canvas>✂️ No bridges = blob</figure>
   </div>
-  <div class="grid2" style="margin-top:1rem">
+  <div class="small muted" style="margin-top:.3rem">Drawn to show the expected effect, not a trained model.</div>
+  <div class="chipsrow">
+    <span class="wchip">🔽 <b>Encoder</b> = shrinks, learns WHAT</span>
+    <span class="wchip">🔼 <b>Decoder</b> = grows back, says WHERE</span>
+    <span class="wchip">🌉 <b>Skip bridge</b> = copies sharp edges across</span>
+    <span class="wchip">🎁 Encoder can be <b>pretrained</b> (Lesson 11)</span>
+  </div>
+  <div class="grid2 adv" style="margin-top:1rem">
     <div>
       <h3>📏 How is it trained?</h3>
-      <p>Just like a classifier, but <b>once per pixel</b>. For every pixel, the model gives a probability for each class. The loss is the <b>cross-entropy</b> of each pixel
-      (Lesson 5), <b>averaged over all pixels</b>. A 128 × 128 picture = 16,384 small classification problems at once.</p>
-      <p>🎁 The encoder is a normal classification CNN. So we can use a <b>pretrained backbone</b> (Lesson 11), such as MobileNetV3 or ResNet trained on ImageNet, and only teach the decoder.</p>
+      <p class="small">Like a classifier, but <b>once per pixel</b>: cross-entropy of every pixel (Lesson 5), averaged over all pixels. A 128 × 128 picture = 16,384 small classification problems at once.
+      The encoder is a normal classification CNN, so a <b>pretrained backbone</b> (MobileNetV3, ResNet) can be reused and only the decoder taught.</p>
     </div>
-    <div class="adv">
-      <h3>🎓 Detailed: the Dice loss</h3>
-      <p>If people cover only 5% of the pixels, plain cross-entropy is mostly about background. The <b>Dice loss</b> looks at the overlap of the person mask directly:</p>
+    <div>
+      <h3>🎓 The Dice loss</h3>
+      <p class="small">If people cover only 5% of the pixels, plain cross-entropy is mostly about background. Dice looks at the overlap directly:</p>
       <div class="explain" style="min-height:0"><span class="formula">Dice      = 2·|P ∩ T| / (|P| + |T|)
-Dice loss = 1 − Dice
-P = predicted mask (soft), T = true mask</span></div>
-      <p class="small">It is often used together: <code>loss = CE + Dice loss</code>. Real U-Nets use two 3×3 convs + BatchNorm + ReLU per block, max-pooling (or stride 2) to go down,
-      transposed convolutions or bilinear upsampling to go up, and <code>torch.cat</code> for the skips. DeepLabV3 and LR-ASPP are lighter "encoder + small decoder" designs of the same idea.</p>
+Dice loss = 1 − Dice</span></div>
+      <p class="small">Often <code>loss = CE + Dice loss</code>. Real U-Nets: two 3×3 conv + BatchNorm + ReLU per block, max-pool to go down, transposed conv or bilinear upsampling to go up,
+      <code>torch.cat</code> for the skips. DeepLabV3 and LR-ASPP are lighter "encoder + small decoder" designs.</p>
     </div>
   </div>
 </section>
 
 <section class="card">
-  <h2>④ Is the mask any good? IoU and Dice</h2>
-  <p>The true mask of the two people is fixed. The <b>predicted</b> mask is yours: move it, grow it, shrink it. Watch the three scores.</p>
-  <div class="lab">
-    <aside class="controls">
-      <h3>Quick picks</h3>
-      <div class="btn-row">
-        <button class="btn" data-p="perfect">🎯 Perfect</button><button class="btn" data-p="blob">🫧 Rough blob</button>
-        <button class="btn" data-p="none">🚫 All background</button><button class="btn" data-p="all">🟥 All person</button>
+  <h2>④ Is the mask any good?</h2>
+  <p class="bigq">📏 IoU = how much the guess overlaps the real person.</p>
+  <div class="fvis">IoU =
+    <span class="sq" style="background:#2f9e44">🟩 found</span> ÷ (
+    <span class="sq" style="background:#2f9e44">found</span> +
+    <span class="sq" style="background:#e03131">wrong</span> +
+    <span class="sq" style="background:#2f6fed">missed</span> )</div>
+  <div class="btnrow" id="preBtns">
+    <button class="btn on" data-p="perfect">🎯 Perfect</button><button class="btn" data-p="blob">🫧 Rough blob</button>
+    <button class="btn" data-p="none">🚫 No person anywhere</button><button class="btn" data-p="all">🟥 Everything is person</button>
+  </div>
+  <div class="grid2" style="align-items:start">
+    <div class="canvas-box"><canvas id="iouc" class="scene pix"></canvas>
+      <div class="legend"><span><i style="background:#2f9e44"></i>found</span><span><i style="background:#e03131"></i>wrong</span><span><i style="background:#2f6fed"></i>missed</span></div></div>
+    <div>
+      <div class="slide">↔️ Slide the guess <input type="range" id="sx" min="-40" max="40" value="0"> <output id="sxOut">0</output></div>
+      <div class="bigs">
+        <div class="bignum"><b id="sIoU" style="color:var(--blue)">–</b><span>📏 IoU</span></div>
+        <div class="bignum"><b id="sAcc" style="color:var(--orange)">–</b><span>🎯 Pixel accuracy</span></div>
+        <div class="bignum adv"><b id="sDice">–</b><span>Dice</span></div>
+        <div class="bignum adv"><b id="sMIoU">–</b><span>Mean IoU (2 classes)</span></div>
       </div>
-      <h3>Or move it yourself</h3>
+      <div class="meter"><span class="mark" id="iouMark">🔻</span>
+        <div class="bar"><i style="background:#ffc9c9"></i><i style="background:#ffec99"></i><i style="background:#b2f2bb"></i><i style="background:#69db7c"></i></div>
+        <div class="lbl"><span>❌ poor</span><span>➖ okay</span><span title="good">✅</span><span title="excellent">🌟</span></div>
+      </div>
+      <div class="banner info" id="iouVerdict">–</div>
+      <div class="small muted adv" id="sCounts"></div>
+    </div>
+  </div>
+  <div class="adv" style="margin-top:.8rem">
+    <div class="advctl">
       <div class="ctl"><label>Predicted shape</label><select id="pShape"><option value="exact">person shape</option><option value="blob">rough blob (ellipse)</option><option value="box">box</option><option value="none">nothing (all background)</option><option value="all">everything is person</option></select></div>
-      <div class="ctl"><label>Shift left / right <output id="sxOut">0</output></label><input type="range" id="sx" min="-40" max="40" value="0"></div>
       <div class="ctl"><label>Shift up / down <output id="syOut">0</output></label><input type="range" id="sy" min="-40" max="40" value="0"></div>
       <div class="ctl"><label>Size <output id="szOut">100%</output></label><input type="range" id="sz" min="50" max="160" value="100"></div>
-    </aside>
-    <div class="stage">
-      <div class="canvas-box"><div class="canvas-title">True mask vs your predicted mask</div><canvas id="iouc" class="scene pix" style="cursor:default"></canvas>
-        <div class="legend"><span><i style="background:#2f9e44"></i>correct person (TP)</span><span><i style="background:#e03131"></i>said person, is background (FP)</span><span><i style="background:#2f6fed"></i>missed person (FN)</span><span>faded = correct background (TN)</span></div></div>
-      <div class="stats">
-        <div class="stat blue"><b id="sIoU">–</b><span>IoU (person)</span></div>
-        <div class="stat"><b id="sDice">–</b><span>Dice (person)</span></div>
-        <div class="stat orange"><b id="sAcc">–</b><span>Pixel accuracy</span></div>
-        <div class="stat adv"><b id="sMIoU">–</b><span>Mean IoU (2 classes)</span></div>
-      </div>
-      <div class="small muted adv" id="sCounts"></div>
-      <div class="banner info" id="iouVerdict">–</div>
-      <div class="explain"><b>How the scores work</b>
-        <span class="formula">IoU  = green ÷ (green + red + blue)
-Dice = 2·green ÷ (2·green + red + blue)
-Pixel accuracy = correct pixels ÷ all pixels</span>
-        ⚠️ Pixel accuracy counts the faded background too. People are only about 5% of this picture, so a model that says <b>"no person anywhere"</b> still gets ≈ 95%. IoU ignores the easy background and asks: <b>did you find the person?</b></div>
     </div>
+    <div class="explain" style="min-height:0"><span class="formula">IoU  = TP ÷ (TP + FP + FN)
+Dice = 2·TP ÷ (2·TP + FP + FN)
+Pixel accuracy = (TP + TN) ÷ all pixels</span>
+      Pixel accuracy counts the easy background too. People are ≈ 5% of this picture, so "no person anywhere" still scores ≈ 95%. Rules of thumb: IoU &lt; 0.5 poor, 0.5–0.75 okay, &gt; 0.75 good, &gt; 0.9 excellent. Dice is always a bit higher than IoU.</div>
   </div>
-  <div class="tbl-wrap" style="margin-top:.8rem"><table class="plain">
-    <tr><th>IoU for a class</th><th>Rough meaning</th></tr>
-    <tr><td>below 0.5</td><td>❌ Poor: the mask is often in the wrong place or the wrong shape</td></tr>
-    <tr><td>0.5 – 0.75</td><td>➖ Okay: finds the object, edges are rough</td></tr>
-    <tr><td>above 0.75</td><td>✅ Good: close to a careful human drawing</td></tr>
-    <tr><td>above 0.9</td><td>🌟 Excellent (and hard: even two humans rarely agree this much)</td></tr>
-  </table></div>
-  <p class="small muted">Rules of thumb only; what counts as "good" depends on the task. Dice is always a bit higher than IoU for the same mask.</p>
 </section>
 
 <section class="card">
-  <h2>⑤ The case study: finding people in street photos (Notebook 06)</h2>
-  <div class="banner info">ℹ️ This section describes what we <b>expect</b> to happen in the notebook. These are typical tendencies, not measured numbers. Run the notebook to see your own.</div>
-  <div class="grid2">
-    <div>
-      <ol class="steps">
-        <li><b>📦 The data: Penn-Fudan pedestrians</b>An open-source dataset: 170 street photos, and for each one a mask with the people drawn in. That is <b>very few</b> pictures for deep learning.</li>
-        <li><b>🔄 Augment picture and mask together</b>If you flip the photo, you <b>must</b> flip the mask the same way (try it in the flip demo). Same for crops and rotations. Colour changes only touch the photo.</li>
-        <li><b>🎁 Pretrained model, out of the box</b>Load a torchvision model (LR-ASPP MobileNetV3 or DeepLabV3) that was trained on COCO with the 21 VOC classes. It already knows "person": expect good masks with no training at all.</li>
-        <li><b>🧱 Our own small U-Net, from scratch</b>Random weights, 170 pictures. Expect it to find roughly where people are, but with <b>blobby</b> edges and a clearly lower IoU. It has too few examples to learn good features (Lesson 11).</li>
-        <li><b>🔧 Fine-tune the pretrained model</b>Replace its last layer with a 2-class head (person vs background) and train gently. Expect the <b>best</b> result: pretrained features + our exact task.</li>
-        <li><b>📏 Measure with IoU</b>On test photos the model never saw. Not pixel accuracy (see ④).</li>
-      </ol>
-    </div>
-    <div>
-      <div class="canvas-box"><div class="canvas-title">Augmentation: the mask must follow the photo</div><canvas id="flipc" class="scene" style="cursor:default"></canvas></div>
-      <div class="btn-row"><button class="btn" id="fOrig">↺ Original</button><button class="btn" id="fBoth">🔄 Flip both</button><button class="btn" id="fImg">⚠️ Flip only the photo</button></div>
-      <div class="banner good" id="flipMsg">Photo and mask match.</div>
-      <div class="tbl-wrap"><table class="plain">
-        <tr><th>Model</th><th>Expected result on 170 photos</th></tr>
-        <tr><td>Pretrained, no training</td><td>✅ Already good at "person" (learned from COCO)</td></tr>
-        <tr><td>Small U-Net from scratch</td><td>➖ Blobby masks, lowest IoU</td></tr>
-        <tr><td>Pretrained + fine-tuned</td><td>🌟 Usually the best IoU and the sharpest edges</td></tr>
-      </table></div>
-    </div>
-  </div>
-  <h3 style="margin-top:1rem">🌍 Where is segmentation used?</h3>
-  <div class="uses">
-    <div><b>🚗 Self-driving cars</b>Which pixels are road, lane, car, person? Needed to plan where to drive.</div>
-    <div><b>🩻 Medical scans</b>Outline a tumour or an organ in an MRI / CT scan, to measure its size.</div>
-    <div><b>🤳 Photo apps</b>Background blur and "remove background": segment the person, keep only those pixels.</div>
-    <div><b>🛰️ Satellite maps</b>Colour in buildings, roads, water and fields from space photos.</div>
-  </div>
+  <h2>⑤ Flip the photo? Flip the mask too!</h2>
+  <p class="bigq">🔄 Augmentation must move photo and mask together.</p>
+  <div class="btnrow"><button class="btn" id="fOrig">↺ Original</button><button class="btn" id="fBoth">🔄 Flip both</button><button class="btn" id="fImg">⚠️ Flip only the photo</button></div>
+  <div class="canvas-box narrow"><canvas id="flipc" class="scene"></canvas></div>
+  <div class="banner good narrow" id="flipMsg">Photo and mask match.</div>
 </section>
 
-<section class="callout try">
-  <h3>🧪 Try this (guess first, then check!)</h3>
-  <ol class="challenges">
-    <li><b>The lazy model.</b> In ④, press 🚫 All background. Guess the pixel accuracy and the IoU before you look.
-      <details class="answer"><summary>Answer</summary>Pixel accuracy ≈ 95%, IoU = 0. The people are only ≈ 5% of the pixels, so "background everywhere" is right almost everywhere, and useless.
-      That's why segmentation is measured with IoU (or Dice) per class, not with pixel accuracy. Same lesson as imbalanced data in Lesson 9.</details></li>
-    <li><b>A small mistake.</b> In ④, keep the person shape and shift it only 6 pixels to the right. How much does IoU drop? Now try the same with the size slider.
-      <details class="answer"><summary>Answer</summary>IoU drops a lot, to about 0.5, even though the mask "looks almost right". People are thin (arms, legs), so a small shift moves much of the mask off the person.
-      Thin objects are hard: every pixel of edge error counts. Notice Dice is always higher than IoU for the same mask.</details></li>
-    <li><b>Cut the bridges.</b> In ③, go to step 6 (skip connections) and tick ✂️ Remove skip connections. What happens to the legs and the two people?
-      <details class="answer"><summary>Answer</summary>The decoder only has the 16 × 16 bottleneck. One cell covers 8 × 8 pixels, so the gap between the legs (and the edges) is simply not stored any more.
-      Upsampling can't bring back detail that is gone: you get round blobs. Skip connections copy the sharp, full-size encoder maps across, so the decoder knows <b>where</b> the edges are.</details></li>
+<section class="card">
+  <h2>🌍 Day 2, Notebook 06: find people in street photos</h2>
+  <div class="bignums">
+    <div class="bignum"><b style="color:var(--blue)">170</b><span>📷 street photos (Penn-Fudan)</span></div>
+    <div class="bignum"><b style="color:var(--pink)">2</b><span>🎨 classes: person, background</span></div>
+    <div class="bignum"><b style="color:var(--purple)">50,176</b><span>🧮 answers per 224 × 224 photo</span></div>
+  </div>
+  <p class="bigq">Which model wins?</p>
+  <div class="when">
+    <div class="wcard"><div class="pic">🎁</div><div class="if">Pretrained, no training at all</div><span class="then" style="background:#e7f0ff;color:var(--blue)">✅ Already good</span></div>
+    <div class="wcard"><div class="pic">🧱</div><div class="if">Our own small U-Net, from scratch</div><span class="then" style="background:#fff4e6;color:#d9480f">➖ Blobby edges</span></div>
+    <div class="wcard"><div class="pic">🎁🔧</div><div class="if">Pretrained + fine-tuned on our photos</div><span class="then" style="background:#ebfbee;color:var(--green)">🌟 Usually the best</span></div>
+  </div>
+  <div class="small muted" style="margin-top:.5rem">Expected results. Run the notebook to see your own numbers.</div>
+  <ol class="steps adv small" style="margin-top:.9rem">
+    <li><b>📦 Penn-Fudan pedestrians</b>170 street photos, each with a mask of the people. Very few for deep learning.</li>
+    <li><b>🔄 Augment photo and mask together</b>Flips, crops, rotations hit both. Colour changes only touch the photo.</li>
+    <li><b>🎁 Pretrained out of the box</b>LR-ASPP MobileNetV3 or DeepLabV3, trained on COCO with the 21 VOC classes. It already knows "person".</li>
+    <li><b>🧱 Small U-Net from scratch</b>Random weights, 170 photos: finds roughly where people are, with blobby edges and lower IoU (Lesson 11).</li>
+    <li><b>🔧 Fine-tune</b>Replace the last layer with a 2-class head and train gently: pretrained features + our exact task.</li>
+    <li><b>📏 Measure with IoU</b>On test photos the model never saw. Not pixel accuracy (see ④).</li>
   </ol>
+</section>
+
+<section class="card">
+  <h2>Where is it used?</h2>
+  <div class="when">
+    <div class="wcard"><div class="pic">🚗</div><div class="if">Self-driving: road, lane, person</div></div>
+    <div class="wcard"><div class="pic">🩻</div><div class="if">Doctors: outline a tumour</div></div>
+    <div class="wcard"><div class="pic">🤳</div><div class="if">Phones: blur the background</div></div>
+    <div class="wcard"><div class="pic">🛰️</div><div class="if">Maps: buildings, roads, water</div></div>
+  </div>
 </section>
 
 <section class="card adv">
@@ -273,16 +290,14 @@ opt = torch.optim.Adam(model.parameters(), lr=<span class="n">3e-4</span>)   <sp
 </section>
 
 <section class="callout think">
-  <h3>🤔 Check yourself</h3>
+  <h3>🤔 Quick quiz</h3>
   <ol class="challenges">
-    <li>A segmentation model works on 256 × 256 photos with 3 classes (background, road, car). What is the shape of its raw output, and of the final mask?
-      <details class="answer"><summary>Answer</summary>Raw output: 3 × 256 × 256 scores (one score per class per pixel). After argmax per pixel: a 256 × 256 mask of class numbers 0, 1 or 2.</details></li>
-    <li>You flip your training photos left–right for augmentation, but forget to flip the masks. What happens?
-      <details class="answer"><summary>Answer</summary>The labels are wrong for every flipped photo: the mask says "person" where there is road. The model learns from contradicting answers and gets worse, not better. Geometric changes must hit photo and mask together.</details></li>
-    <li>Why does a segmentation model first shrink the picture, if it has to output a full-size mask anyway?
-      <details class="answer"><summary>Answer</summary>Shrinking lets each number "see" a big part of the picture, so the model can understand what things are (a person, not just a red patch). It is also much cheaper. The decoder and skip connections then recover the exact positions.</details></li>
-    <li>You want to count how many people are in a crowd photo. Semantic or instance segmentation?
-      <details class="answer"><summary>Answer</summary>Instance segmentation: it gives each person their own mask. Semantic segmentation colours all people the same, so touching people merge into one blob and you can't count them.</details></li>
+    <li>🚫 "No person anywhere" scores 95% pixel accuracy. Good model?
+      <details class="answer"><summary>Answer</summary>No. 📏 IoU = 0: it found nobody. That's why we use IoU.</details></li>
+    <li>You flip a photo but forget to flip its mask. What happens?
+      <details class="answer"><summary>Answer</summary>The answers are wrong: the model is taught that road is a person.</details></li>
+    <li>To count people in a crowd: 🎨 semantic or 🧩 instance?
+      <details class="answer"><summary>Answer</summary>🧩 Instance: each person gets their own mask, so you can count them.</details></li>
   </ol>
 </section>
 
@@ -301,6 +316,22 @@ function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingCl
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
 const pct=v=>(v*100).toFixed(1)+'%';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// ================= hero: colouring book cat =================
+(function(){const NS='http://www.w3.org/2000/svg';
+  const inTri=(x,y,a,b,c)=>{const s=(p,q,r)=>(p[0]-r[0])*(q[1]-r[1])-(q[0]-r[0])*(p[1]-r[1]);const d1=s([x,y],a,b),d2=s([x,y],b,c),d3=s([x,y],c,a);return !((d1<0||d2<0||d3<0)&&(d1>0||d2>0||d3>0));};
+  const E1=[[74,46],[78,14],[98,34]],E2=[[126,46],[122,14],[102,34]];
+  const inCat=(x,y)=>Math.hypot(x-100,y-60)<=30||((x-100)/46)**2+((y-122)/34)**2<=1||inTri(x,y,...E1)||inTri(x,y,...E2);
+  const outline=`<g fill="#fff" stroke="#495057" stroke-width="3" stroke-linejoin="round"><ellipse cx="100" cy="122" rx="46" ry="34"/><polygon points="${E1.join(' ')}"/><polygon points="${E2.join(' ')}"/><circle cx="100" cy="60" r="30"/></g>
+    <g fill="#495057"><circle cx="89" cy="56" r="3.5"/><circle cx="111" cy="56" r="3.5"/><path d="M96,66 L104,66 L100,71 Z"/></g>`;
+  const lines=`<g fill="none" stroke="#495057" stroke-width="3" stroke-linejoin="round"><ellipse cx="100" cy="122" rx="46" ry="34"/><polygon points="${E1.join(' ')}"/><polygon points="${E2.join(' ')}"/><path d="M71,68 A30,30 0 1,1 129,68"/></g>
+    <g fill="#1c2230"><circle cx="89" cy="56" r="3.5"/><circle cx="111" cy="56" r="3.5"/><path d="M96,66 L104,66 L100,71 Z"/></g>`;
+  $('#bk1').innerHTML=outline+`<g class="tag"><rect x="122" y="8" width="70" height="30" rx="15" fill="#2f6fed"/><text x="157" y="29" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">🏷️ cat</text></g>`;
+  $('#bk2').innerHTML=outline+`<rect class="box" x="48" y="10" width="104" height="150" rx="4" fill="none" stroke="#f08c00" stroke-width="4"/><g class="tag" style="animation-delay:2s"><rect x="48" y="0" width="44" height="18" fill="#f08c00"/><text x="70" y="14" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">cat</text></g>`;
+  const st=9;let px='',k=0;for(let y=4;y<166;y+=st)for(let x=46;x<156;x+=st)if(inCat(x+st/2,y+st/2)){px+=`<rect class="px" x="${x}" y="${y}" width="${st-1}" height="${st-1}" rx="1" fill="#d6336c" style="animation-delay:${(2.2+k*0.012).toFixed(3)}s"/>`;k++;}
+  $('#bk3').innerHTML=`<rect x="0" y="0" width="200" height="170" fill="#fcfcfd"/>`+px+lines;
+  const book=$('#book');book.classList.add('go');
+  $('#replay').onclick=()=>{book.classList.remove('go');void book.offsetWidth;book.classList.add('go');};})();
 
 // ================= the procedural street scene =================
 // logical size 320 × 240; class ids: 0 background, 1 person, 2 car, 3 road, 4 tree
@@ -355,21 +386,14 @@ function bbox(test){let x0=1e9,y0=1e9,x1=-1,y1=-1;for(let j=0;j<RH;j++)for(let i
   return [x0/R,y0/R,(x1+1)/R,(y1+1)/R];}
 const BOX={p1:bbox(k=>INST[k]===1),p2:bbox(k=>INST[k]===2),car:bbox(k=>INST[k]===3),tree:bbox(k=>CLS[k]===4)};
 
+
 // ================= ① four tasks =================
-const TASK={cur:'cls'};
+const TASK={cur:'cls',timer:null};
 const TASKTXT={
- cls:{t:'🏷️ Classification: one answer for the whole picture',h:`<b>Question:</b> "What is in this picture?"<br><b>Answer:</b> one label, e.g. <b>🚶 person</b>.
-   <p>It does <b>not</b> say where the person is, or how many there are. That's what Lessons 10 and 11 did.</p>
-   <p class="adv"><b>Output shape:</b> one score per class, e.g. <b>10 numbers</b> for 10 classes (CIFAR-10), or 1,000 for ImageNet. Softmax + argmax → one class.</p>`},
- det:{t:'📦 Detection: a box around each object',h:`<b>Question:</b> "What is here, and roughly where?"<br><b>Answer:</b> a <b>box</b> + a label for each object: 2 people, 1 car, 1 tree.
-   <p>Boxes are fast and good for counting, but a box also contains lots of road and sky: it doesn't give the exact shape.</p>
-   <p class="adv"><b>Output shape:</b> a list of N boxes, each <code>[x1, y1, x2, y2]</code> + class + confidence. N changes from picture to picture (e.g. Faster R-CNN, YOLO).</p>`},
- sem:{t:'🎨 Semantic segmentation: a class for every pixel',h:`<b>Question:</b> "What is every pixel?"<br><b>Answer:</b> a colour (class) for <b>every pixel</b>: person, car, road, tree, background.
-   <p>Exact shapes. But both people get the <b>same</b> colour: it does not tell them apart. This is what this lesson (and Notebook 06) is about.</p>
-   <p class="adv"><b>Output shape:</b> C × H × W scores (C classes), then argmax per pixel → an <b>H × W map of class ids</b>. Here 5 × 240 × 320 → 240 × 320 numbers.</p>`},
- ins:{t:'🧩 Instance segmentation: every object its own mask',h:`<b>Question:</b> "Which pixels belong to <i>which</i> object?"<br><b>Answer:</b> a separate mask for <b>each</b> person and each car.
-   <p>Now we can count the people, even if they touch. "Stuff" without a count (road, sky) is usually left out.</p>
-   <p class="adv"><b>Output shape:</b> N objects, each with an H × W mask + class + confidence (e.g. Mask R-CNN = detection + a small mask per box).</p>`}};
+ cls:{c:'🏷️ One word for the whole photo: "person". But where?',o:'<b>Output shape:</b> one score per class, e.g. 10 numbers for CIFAR-10, 1,000 for ImageNet. Softmax + argmax → one class.'},
+ det:{c:'📦 A box around each thing. Boxes also catch road and sky.',o:'<b>Output shape:</b> a list of N boxes, each <code>[x1, y1, x2, y2]</code> + class + confidence. N changes per picture (Faster R-CNN, YOLO).'},
+ sem:{c:'🎨 Every pixel gets a class colour. Both people get the same pink.',o:'<b>Output shape:</b> C × H × W scores, then argmax per pixel → an H × W map of class ids. Here 5 × 240 × 320 → 240 × 320 numbers.'},
+ ins:{c:'🧩 Every object gets its own colour. Now you can count people.',o:'<b>Output shape:</b> N objects, each with an H × W mask + class + confidence (Mask R-CNN = detection + a small mask per box). Road and sky are usually left out.'}};
 function legendHTML(ids,extra=''){return ids.map(c=>`<span><i style="background:${css(COL[c])}"></i>${c} = ${EMO[c]} ${NAMES[c]}</span>`).join('')+extra;}
 function chip(ctx,x,y,txt,col,k){ctx.font=`600 ${Math.max(11,12*k)}px Segoe UI, sans-serif`;const w=ctx.measureText(txt).width+10,h=Math.max(15,17*k);
   ctx.fillStyle=col;ctx.fillRect(x,y-h,w,h);ctx.fillStyle='#fff';ctx.textAlign='left';ctx.fillText(txt,x+5,y-h*.28);}
@@ -381,9 +405,13 @@ function drawTask(){const {ctx,w,h}=setupCanvas($('#taskc')),k=w/LW,t=TASK.cur;c
   if(t==='sem'){ctx.globalAlpha=.62;ctx.drawImage(semC,0,0,w,h);ctx.globalAlpha=1;}
   if(t==='ins'){ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillRect(0,0,w,h);ctx.globalAlpha=.75;ctx.drawImage(insC,0,0,w,h);ctx.globalAlpha=1;
     chip(ctx,BOX.p1[0]*k,BOX.p1[1]*k,'person #1','#d6336c',k);chip(ctx,BOX.p2[0]*k+14*k,BOX.p2[1]*k-2,'person #2','#f08c00',k);chip(ctx,BOX.car[0]*k,BOX.car[1]*k,'car #1','#2f6fed',k);}
-  $('#taskTitle').textContent=TASKTXT[t].t;put($('#taskExplain'),TASKTXT[t].h);
-  put($('#taskLegend'),t==='sem'?legendHTML([0,1,2,3,4]):t==='ins'?'<span><i style="background:#d6336c"></i>person #1</span><span><i style="background:#f08c00"></i>person #2</span><span><i style="background:#2f6fed"></i>car #1</span><span>road, sky, tree: not counted</span>':'');}
-document.querySelectorAll('#taskSeg button').forEach(b=>b.onclick=()=>{TASK.cur=b.dataset.t;document.querySelectorAll('#taskSeg button').forEach(x=>x.classList.toggle('on',x===b));drawTask();});
+  $('#taskCap').textContent=TASKTXT[t].c;put($('#taskOut'),TASKTXT[t].o);
+  put($('#taskLegend'),t==='sem'?legendHTML([0,1,2,3,4]):t==='ins'?'<span><i style="background:#d6336c"></i>person #1</span><span><i style="background:#f08c00"></i>person #2</span><span><i style="background:#2f6fed"></i>car #1</span>':'');}
+function setTask(t){TASK.cur=t;document.querySelectorAll('#taskSeg button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));drawTask();}
+function taskStop(){if(TASK.timer){clearInterval(TASK.timer);TASK.timer=null;$('#taskPlay').textContent='▶ Play all';}}
+document.querySelectorAll('#taskSeg button').forEach(b=>b.onclick=()=>{taskStop();setTask(b.dataset.t);});
+$('#taskPlay').onclick=()=>{if(TASK.timer){taskStop();return;}const order=['cls','det','sem','ins'];let i=0;setTask(order[0]);$('#taskPlay').textContent='⏸ Pause';
+  TASK.timer=setInterval(()=>{i++;if(i>=order.length){taskStop();return;}setTask(order[i]);},2600);};
 
 // ================= ② the mask is numbers =================
 const G={n:32,cell:[15,4],cache:{}};
@@ -405,15 +433,17 @@ function drawGrid(){const n=G.n,L=lowres(n),m=L.m,op=+$('#op').value/100;$('#opO
     for(let j=0;j<m;j++)for(let i=0;i<n;i++){const v=L.cls[j*n+i],c=COL[v];ctx.fillStyle=`rgba(${c[0]},${c[1]},${c[2]},${v?0.42:0.14})`;ctx.fillRect(i*cw,j*chh,cw+.5,chh+.5);
       if(fs>=6.5){ctx.fillStyle=v?'#1c2230':'#868e96';ctx.fillText(v,i*cw+cw/2,j*chh+chh/2+.5);}}
     ctx.strokeStyle='#ffd43b';ctx.lineWidth=3;ctx.strokeRect(ci*cw,cj*chh,cw,chh);ctx.strokeStyle='#1c2230';ctx.lineWidth=1;ctx.strokeRect(ci*cw-2,cj*chh-2,cw+4,chh+4);
-    if(fs<6.5){ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(4,h-22,w-8,18);ctx.fillStyle='#5d6678';ctx.font='11px Segoe UI, sans-serif';ctx.fillText('(too small to print the numbers: each colour = one number)',w/2,h-13);}}
-  const v=L.cls[cj*n+ci];put($('#pixInfo'),`📍 Row <b>${cj}</b>, column <b>${ci}</b> → mask value <b style="font-size:1.15rem;color:${css(COL[v])}">${v}</b> = ${EMO[v]} ${NAMES[v]}`);
+    if(fs<6.5){ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(4,h-22,w-8,18);ctx.fillStyle='#5d6678';ctx.font='11px Segoe UI, sans-serif';ctx.fillText('too small to print: each colour = one number',w/2,h-13);}}
+  const v=L.cls[cj*n+ci];put($('#pixInfo'),`<span class="num" style="color:${css(COL[v])}">${v}</span><span>= ${EMO[v]} ${NAMES[v]}</span>`);
+  $('#pixInfo').style.borderColor=css(COL[v]);
   const cnt=[0,0,0,0,0];for(const x of L.cls)cnt[x]++;const N=n*m;
-  put($('#pixCount'),`This mask = ${n} × ${m} = <b>${N.toLocaleString()}</b> numbers.<br>`+cnt.map((c,i)=>`${EMO[i]} ${i}: ${Math.round(c/N*100)}%`).join(' · '));}
+  put($('#pixCount'),`This mask = ${n} × ${m} = <b>${N.toLocaleString()}</b> numbers. `+cnt.map((c,i)=>`${EMO[i]} ${i}: ${Math.round(c/N*100)}%`).join(' · '));}
 function gridPointer(e){const cv=e.currentTarget,r=cv.getBoundingClientRect(),n=G.n,m=n*3/4;
   const i=clamp(Math.floor((e.clientX-r.left)/r.width*n),0,n-1),j=clamp(Math.floor((e.clientY-r.top)/r.height*m),0,m-1);if(i!==G.cell[0]||j!==G.cell[1]){G.cell=[i,j];drawGrid();}}
 ['#gridPhoto','#gridNum'].forEach(id=>{$(id).addEventListener('pointermove',gridPointer);$(id).addEventListener('pointerdown',gridPointer);});
 $('#op').addEventListener('input',drawGrid);
-$('#gridN').addEventListener('input',()=>{const old=G.n,n=+$('#gridN').value;G.cell=[Math.floor(G.cell[0]*n/old),Math.floor(G.cell[1]*n/old)];G.n=n;drawGrid();});
+document.querySelectorAll('#gridBtns [data-n]').forEach(b=>b.onclick=()=>{const old=G.n,n=+b.dataset.n;G.cell=[Math.floor(G.cell[0]*n/old),Math.floor(G.cell[1]*n/old)];G.n=n;
+  document.querySelectorAll('#gridBtns [data-n]').forEach(x=>x.classList.toggle('on',x===b));drawGrid();});
 put($('#gridLegend'),legendHTML([0,1,2,3,4]));
 
 // ================= ③ U-Net =================
@@ -448,33 +478,32 @@ const UCOLS=[{lv:0,sz:'128²',ch:'3 ch'},{lv:0,sz:'128²',ch:'16 ch'},{lv:1,sz:'
 const REVEAL=[0,1,2,2,3,4,4,4,6],STACK=[0,2,3,4,5,4,3,2,0];
 const HL=[[0],[1],[2,3],[4],[5,6,7],[5,6,7],[8],[8],[8]];
 const U={step:0,timer:null};
-const skipsOn=()=>!$('#noSkip').checked;
 function wrongCount(){const f=skipsOn()?FINAL.skip:FINAL.noskip;let c=0;for(let k=0;k<N*N;k++)if(f[k]!==M128[k])c++;return c;}
+U.cut=false;U.step=7;
+const skipsOn=()=>!U.cut;
 const USTEPS=[
- ()=>`📷 <b>The picture goes in.</b> 128 × 128 pixels, 3 colour channels (red, green, blue). Our goal: a mask of the <b>same size</b>, with "person" or "background" for every pixel.<span class="adv"> Tensor shape <code>[1, 3, 128, 128]</code>.</span>`,
- ()=>`🔍 <b>Encoder, block 1.</b> Convolutions (Lesson 10) look for small things: edges and colour changes. Same size, but now <b>16 feature maps</b> (channels). The grey map shows one of them: an edge detector.<span class="adv"> Shape <code>[1, 16, 128, 128]</code>.</span>`,
- ()=>`⬇️ <b>The encoder keeps shrinking.</b> Each block <b>halves</b> the size (pooling) and <b>doubles</b> the channels: 64 × 64 × 32, then 32 × 32 × 64. Each number now "sees" a bigger patch: legs, heads, wheels. The purple maps light up where "person-like" things are.`,
- ()=>`🧠 <b>The bottleneck: 16 × 16 × 128.</b> Tiny but deep. It knows <b>WHAT</b> is in the picture ("a person, about here") but has lost <b>WHERE</b> exactly the edges are: one cell covers 8 × 8 pixels.
-   <br>🎁 Everything up to here is a normal classification CNN, so it can be a <b>pretrained backbone</b> (Lesson 11) like MobileNetV3 or ResNet.`,
- ()=>`⬆️ <b>The decoder grows it back.</b> <b>Upsampling</b> doubles the size at each step: 16 → 32 → 64 → 128. But it can't invent detail that was thrown away: on its own, the result is a <b>blurry blob</b>.<span class="adv"> Bilinear upsampling or a transposed convolution (<code>nn.ConvTranspose2d</code>, stride 2).</span>`,
- ()=>skipsOn()?`🌉 <b>Skip connections.</b> Copy the sharp encoder maps of the same size across the U and glue them onto the decoder maps. Now the decoder knows <b>WHAT</b> (from below) and <b>WHERE</b> (from the side): sharp edges, separate legs.<span class="adv"> Glue = <code>torch.cat([up, skip], dim=1)</code>, then a conv block mixes them.</span>`
-   :`✂️ <b>Skip connections are switched off.</b> The decoder only has the blurry bottleneck: the legs melt together and the edges are soft. Untick the box to bring the bridges back.`,
- ()=>`🎯 <b>A 1 × 1 convolution gives a score per class, per pixel.</b> For each of the 128 × 128 pixels: a <b>person</b> score (top) and a <b>background</b> score (bottom). That's 2 × 128 × 128 numbers.<span class="adv"> These are logits; softmax per pixel turns them into probabilities that add up to 1.</span>`,
- ()=>`✅ <b>Argmax per pixel = the mask.</b> Each pixel takes the class with the highest score: <b>1 = person</b> (pink) or <b>0 = background</b>. Result: 128 × 128 class numbers, the mask from ②.`,
- ()=>`📏 <b>Training: the loss.</b> Compare with the true mask, pixel by pixel. <b style="color:#f08c00">Orange</b> = wrong pixels: <b>${wrongCount().toLocaleString()}</b> of 16,384 ${skipsOn()?'(only along the edges)':'(lots, around every edge and between the legs)'}.
-   The loss = cross-entropy of every pixel, <b>averaged over all pixels</b>. Backprop + gradient descent then adjust all the weights, like any other network.`];
+ ()=>`📷 A photo goes in: 128 × 128 pixels.<span class="adv small muted"> Tensor shape [1, 3, 128, 128].</span>`,
+ ()=>`🔽 The first layer finds edges.<span class="adv small muted"> 16 feature maps, shape [1, 16, 128, 128] (Lesson 10).</span>`,
+ ()=>`🔽 Shrink, shrink: each square now sees a bigger patch.<span class="adv small muted"> Each block halves the size (pooling) and doubles the channels: 64² × 32, 32² × 64.</span>`,
+ ()=>`🧠 The tiny middle knows WHAT (a person), but forgot exactly WHERE.<span class="adv small muted"> Bottleneck 16 × 16 × 128: one cell covers 8 × 8 pixels. This part can be a pretrained backbone.</span>`,
+ ()=>`🔼 Grow it back… but on its own, it's a blurry blob.<span class="adv small muted"> Bilinear upsampling or nn.ConvTranspose2d (stride 2): 16 → 32 → 64 → 128.</span>`,
+ ()=>skipsOn()?`🌉 Bridges copy the sharp details across. Edges come back!<span class="adv small muted"> torch.cat([up, skip], dim=1), then a conv block mixes them.</span>`
+   :`✂️ No bridges: the legs melt together. Press the button again to fix it.`,
+ ()=>`🎯 Every pixel gets two scores: person (top) or background (bottom).<span class="adv small muted"> 1 × 1 conv → logits [1, 2, 128, 128]; softmax per pixel.</span>`,
+ ()=>`✅ Pick the bigger score for each pixel = the mask.<span class="adv small muted"> argmax(dim=1) → [128, 128] class numbers.</span>`,
+ ()=>`📏 <span style="color:#f08c00">Orange</span> = wrong pixels: ${wrongCount().toLocaleString()} of 16,384. Training shrinks this.<span class="adv small muted"> Loss = cross-entropy of every pixel, averaged; then backprop + gradient descent.</span>`];
 function drawUnet(){const cv=$('#unetc'),w0=cv.getBoundingClientRect().width,colW=w0/9,base=clamp(colW-10,24,72),SC=[1,.8,.62,.46];
   const y0=18+base/2,dy=base*.55+36,H=Math.round(y0+3*dy+base*SC[3]/2+56);cv.style.height=H+'px';
   const {ctx,w}=setupCanvas(cv),s=U.step,sk=skipsOn();ctx.clearRect(0,0,w,H);ctx.imageSmoothingEnabled=false;
   const X=k=>(k+.5)*colW,Y=lv=>y0+lv*dy,S=k=>base*SC[UCOLS[k].lv];
   const vis=k=>REVEAL[k]<=s;
-  ctx.font='600 11px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillStyle='#2f6fed';ctx.fillText('⬇ ENCODER: what',X(2),H-8);ctx.fillStyle='#2f9e44';ctx.fillText('DECODER: where ⬆',X(6.2),H-8);
+  ctx.font='700 12px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillStyle='#2f6fed';ctx.fillText('🔽 ENCODER: what',X(2),H-8);ctx.fillStyle='#2f9e44';ctx.fillText('DECODER: where 🔼',X(6.2),H-8);
   for(let k=0;k<8;k++){if(!vis(k+1))continue;const a=UCOLS[k],b=UCOLS[k+1],x1=X(k)+S(k)/2+2,y1=Y(a.lv),x2=X(k+1)-S(k+1)/2-6,y2=Y(b.lv);
     ctx.strokeStyle=k<4?'#2f6fed':'#2f9e44';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
     const an=Math.atan2(y2-y1,x2-x1);ctx.beginPath();ctx.moveTo(x2+4*Math.cos(an),y2+4*Math.sin(an));ctx.lineTo(x2-5*Math.cos(an-.5),y2-5*Math.sin(an-.5));ctx.lineTo(x2-5*Math.cos(an+.5),y2-5*Math.sin(an+.5));ctx.fill();}
   if(s>=5)for(const [a,b] of [[1,7],[2,6],[3,5]]){const lv=UCOLS[a].lv,y=Y(lv)-S(a)*.3,x1=X(a)+S(a)/2+3,x2=X(b)-S(b)/2-3;
     ctx.save();ctx.setLineDash(sk?[6,4]:[3,4]);ctx.strokeStyle=sk?'#f08c00':'#ced4da';ctx.lineWidth=sk?2.5:2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.restore();
-    if(sk){ctx.fillStyle='#f08c00';ctx.beginPath();ctx.moveTo(x2+3,y);ctx.lineTo(x2-5,y-4);ctx.lineTo(x2-5,y+4);ctx.fill();}
+    if(sk){ctx.fillStyle='#f08c00';ctx.beginPath();ctx.moveTo(x2+3,y);ctx.lineTo(x2-5,y-4);ctx.lineTo(x2-5,y+4);ctx.fill();ctx.font='14px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('🌉',(x1+x2)/2,y-5);}
     else{ctx.font='14px Segoe UI, sans-serif';ctx.textAlign='center';ctx.fillText('✂️',(x1+x2)/2,y+5);}}
   for(let k=0;k<9;k++){const c=UCOLS[k],x=X(k),y=Y(c.lv),sz=S(k),l=x-sz/2,t=y-sz/2;
     if(!vis(k)){ctx.strokeStyle='#e2e4e9';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.strokeRect(l,t,sz,sz);ctx.setLineDash([]);continue;}
@@ -493,7 +522,8 @@ function drawUnet(){const cv=$('#unetc'),w0=cv.getBoundingClientRect().width,col
     const on=HL[s].includes(k);ctx.strokeStyle=on?'#2f6fed':'#adb5bd';ctx.lineWidth=on?3:1;ctx.strokeRect(l,t,sz,sz);
     ctx.fillStyle=on?'#1c2230':'#5d6678';ctx.font=`${on?700:600} 10.5px Segoe UI, sans-serif`;ctx.textAlign='center';
     ctx.fillText(k===0?'photo':k===8?(s===6?'scores':'mask'):c.sz,x,t+sz+12);ctx.font='10px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.fillText(k===0||k===8?c.sz:c.ch,x,t+sz+23);}
-  put($('#uExplain'),USTEPS[s]());$('#uStepNo').textContent=`Step ${s+1} of ${USTEPS.length}`;$('#uBack').disabled=s===0;$('#uNext').disabled=s===USTEPS.length-1;}
+  put($('#uExplain'),USTEPS[s]());$('#uStepNo').textContent=`Step ${s+1} / ${USTEPS.length}`;$('#uBack').disabled=s===0;$('#uNext').disabled=s===USTEPS.length-1;
+  const cb=$('#uCut');cb.classList.toggle('cut',U.cut);cb.textContent=U.cut?'🌉 Put the bridges back':'✂️ Cut the bridges';}
 function drawTrio(){const cfg=[['#tTrue',M128],['#tSkip',FINAL.skip],['#tNoSkip',FINAL.noskip]];
   for(const [id,m] of cfg){const {ctx,w,h}=setupCanvas($(id));ctx.imageSmoothingEnabled=true;ctx.drawImage(photo,CX0*R,0,CW*R,CW*R,0,0,w,h);ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(0,0,w,h);
     const c=document.createElement('canvas');c.width=N;c.height=N;const id2=new ImageData(N,N);for(let k=0;k<N*N;k++)if(m[k]){id2.data[4*k]=214;id2.data[4*k+1]=51;id2.data[4*k+2]=108;id2.data[4*k+3]=235;}
@@ -501,10 +531,9 @@ function drawTrio(){const cfg=[['#tTrue',M128],['#tSkip',FINAL.skip],['#tNoSkip'
 function uStop(){if(U.timer){clearInterval(U.timer);U.timer=null;$('#uPlay').textContent='▶ Play all';}}
 $('#uNext').onclick=()=>{uStop();U.step=Math.min(USTEPS.length-1,U.step+1);drawUnet();};
 $('#uBack').onclick=()=>{uStop();U.step=Math.max(0,U.step-1);drawUnet();};
-$('#uReset').onclick=()=>{uStop();U.step=0;drawUnet();};
-$('#uPlay').onclick=()=>{if(U.timer){uStop();return;}if(U.step>=USTEPS.length-1)U.step=0;drawUnet();$('#uPlay').textContent='⏸ Pause';
-  U.timer=setInterval(()=>{if(U.step>=USTEPS.length-1){uStop();return;}U.step++;drawUnet();},2200);};
-$('#noSkip').addEventListener('input',drawUnet);
+$('#uPlay').onclick=()=>{if(U.timer){uStop();return;}U.step=0;drawUnet();$('#uPlay').textContent='⏸ Pause';
+  U.timer=setInterval(()=>{if(U.step>=USTEPS.length-1){uStop();return;}U.step++;drawUnet();},2600);};
+$('#uCut').onclick=()=>{U.cut=!U.cut;if(U.cut&&U.step<5){uStop();U.step=5;}drawUnet();};
 
 // ================= ④ IoU playground =================
 const TRUEP=new Uint8Array(LW*LH);
@@ -529,18 +558,21 @@ function drawIoU(){const shape=$('#pShape').value,dx=+$('#sx').value,dy=+$('#sy'
   const {ctx,w,h}=setupCanvas($('#iouc'));ctx.imageSmoothingEnabled=true;ctx.drawImage(photo,0,0,w,h);ctx.imageSmoothingEnabled=false;ctx.drawImage(iouC,0,0,w,h);
   const Nn=LW*LH,iou=tp/(tp+fp+fn),dice=2*tp/(2*tp+fp+fn),acc=(tp+tn)/Nn,biou=tn/(tn+fp+fn||1);
   $('#sIoU').textContent=iou.toFixed(2);$('#sDice').textContent=dice.toFixed(2);$('#sAcc').textContent=pct(acc);$('#sMIoU').textContent=((iou+biou)/2).toFixed(2);
+  $('#iouMark').style.left=(clamp(iou,.02,.98)*100)+'%';
   $('#sCounts').textContent=`TP ${tp.toLocaleString()} · FP ${fp.toLocaleString()} · FN ${fn.toLocaleString()} · TN ${tn.toLocaleString()} (of ${Nn.toLocaleString()} pixels). Background IoU = ${biou.toFixed(2)}.`;
   const v=$('#iouVerdict');let cls,txt;
-  if(shape==='none'){cls='bad';txt=`🚫 Pixel accuracy says ${pct(acc)}, but not a single person pixel was found: IoU = 0. Accuracy lies here!`;}
-  else if(shape==='all'){cls='bad';txt=`🟥 Every person pixel is "found", but almost everything else is wrong: IoU ${iou.toFixed(2)}, accuracy only ${pct(acc)}.`;}
-  else if(iou>=.9){cls='good';txt=`🌟 Excellent match (IoU ${iou.toFixed(2)}).`;}
-  else if(iou>=.75){cls='good';txt=`✅ Good mask (IoU ${iou.toFixed(2)}).`;}
-  else if(iou>=.5){cls='info';txt=`➖ Okay: the people are found, edges are rough (IoU ${iou.toFixed(2)}). Pixel accuracy still says ${pct(acc)}.`;}
-  else {cls='bad';txt=`❌ Poor mask (IoU ${iou.toFixed(2)}), even though pixel accuracy says ${pct(acc)}.`;}
+  if(shape==='none'){cls='bad';txt=`🚫 Accuracy ${pct(acc)}, but it found nobody. IoU = 0. Accuracy lies!`;}
+  else if(shape==='all'){cls='bad';txt=`🟥 Finds every person, but marks everything else too. IoU ${iou.toFixed(2)}.`;}
+  else if(iou>=.9){cls='good';txt=`🌟 Excellent match.`;}
+  else if(iou>=.75){cls='good';txt=`✅ Good mask.`;}
+  else if(iou>=.5){cls='info';txt=`➖ Okay: people found, edges rough.`;}
+  else {cls='bad';txt=`❌ Poor mask, even though accuracy says ${pct(acc)}.`;}
   v.className='banner '+cls;v.textContent=txt;}
 const PRE={perfect:['exact',0,0,100],blob:['blob',0,0,100],none:['none',0,0,100],all:['all',0,0,100]};
-document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const p=PRE[b.dataset.p];$('#pShape').value=p[0];$('#sx').value=p[1];$('#sy').value=p[2];$('#sz').value=p[3];drawIoU();});
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const p=PRE[b.dataset.p];$('#pShape').value=p[0];$('#sx').value=p[1];$('#sy').value=p[2];$('#sz').value=p[3];
+  document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('on',x===b));drawIoU();});
 ['#pShape','#sx','#sy','#sz'].forEach(id=>$(id).addEventListener('input',drawIoU));
+$('#pShape').addEventListener('input',()=>document.querySelectorAll('[data-p]').forEach(x=>x.classList.remove('on')));
 
 // ================= ⑤ flip demo =================
 const FL={mode:'orig'};
@@ -550,8 +582,8 @@ function drawFlip(){const {ctx,w,h}=setupCanvas($('#flipc')),m=FL.mode;ctx.image
   ctx.font='600 12px Segoe UI, sans-serif';ctx.textAlign='left';ctx.fillStyle='rgba(28,34,48,.75)';ctx.fillRect(6,6,Math.min(w-12,250),20);ctx.fillStyle='#fff';
   ctx.fillText(m==='orig'?'photo: original · mask: original':m==='both'?'photo: flipped · mask: flipped':'photo: flipped · mask: NOT flipped',12,20);
   let agree=0,tot=0;for(let j=0;j<RH;j+=2)for(let i=0;i<RW;i+=2){if(CLS[j*RW+i]!==1)continue;tot++;if(CLS[j*RW+(RW-1-i)]===1)agree++;}
-  const msg=$('#flipMsg');if(m==='img'){msg.className='banner bad';msg.textContent=`⚠️ Bug! Only ${Math.round(agree/tot*100)}% of the "person" mask is still on a person. The model is now taught that road and sky are people.`;}
-  else{msg.className='banner good';msg.textContent=m==='both'?'✅ Both flipped: still a correct training example, and a new one for free.':'Photo and mask match.';}
+  const msg=$('#flipMsg');if(m==='img'){msg.className='banner bad narrow';msg.textContent=`⚠️ Bug! Only ${Math.round(agree/tot*100)}% of the pink mask is still on a person.`;}
+  else{msg.className='banner good narrow';msg.textContent=m==='both'?'✅ Still correct, and a new training photo for free.':'✅ Photo and mask match.';}
   ['#fOrig','#fBoth','#fImg'].forEach((id,k)=>{const on=['orig','both','img'][k]===m,b=$(id);b.classList.toggle('primary',on&&k<2);b.classList.toggle('warn',on&&k===2);});}
 $('#fOrig').onclick=()=>{FL.mode='orig';drawFlip();};$('#fBoth').onclick=()=>{FL.mode='both';drawFlip();};$('#fImg').onclick=()=>{FL.mode='img';drawFlip();};
 

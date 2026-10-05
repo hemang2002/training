@@ -3,22 +3,125 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>8 · Quantization &amp; pruning — Training, Visualized</title>
+<title>12 · Quantization &amp; pruning — Training, Visualized</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .qsteps{font-family:var(--mono);font-size:.9rem;line-height:1.9}
-  .qsteps b{color:var(--blue)}
+  .hero h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.025em;line-height:1.08;margin-bottom:.3em}
+  .sub{color:var(--muted);font-size:1.1rem;margin:.2rem 0 .8rem}
+  .bigq{font-size:clamp(1.3rem,3vw,1.75rem);letter-spacing:-.015em;line-height:1.2;font-weight:700;margin:0 0 .5rem}
+  .cap1{font-size:1.02rem;color:var(--muted);margin:.4rem .2rem}
+  canvas.pix{image-rendering:pixelated}
+
+  /* hero analogy */
+  .analogy{display:flex;flex-direction:column;gap:.8rem;background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem 1.2rem;box-shadow:var(--shadow);max-width:52rem}
+  .arow{display:grid;grid-template-columns:7rem minmax(0,1fr) auto;gap:.8rem;align-items:center}
+  .arow .who{font-size:2.2rem;white-space:nowrap;text-align:center;line-height:1}
+  .arow .big{font-size:1.35rem;font-weight:800;letter-spacing:-.01em}
+  .arow .big s{color:var(--muted);font-weight:600}
+  .arow .lbl{font-size:.92rem;color:var(--muted)}
+  .arow .pill2{font-weight:800;border-radius:999px;padding:.25rem .8rem;white-space:nowrap;font-size:.92rem}
+  .analogy .tag{font-size:1.05rem;font-weight:700;color:var(--blue);text-align:center}
+  .tree{display:inline-block}
+  .tree.trim{animation:trim 2.6s ease-in-out infinite}
+  @keyframes trim{0%,40%{transform:scale(1)}55%{transform:scale(.82)}100%{transform:scale(.82)}}
+  @media (max-width:560px){.arow{grid-template-columns:4.2rem minmax(0,1fr)}.arow .pill2{grid-column:2;justify-self:start}.arow .who{font-size:1.8rem}}
+
+  /* bit boxes + size bars */
+  .bitrow{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr);gap:.8rem;align-items:center;margin:.35rem 0}
+  .bitrow .l b{display:block}.bitrow .l small{color:var(--muted)}
+  .bits{display:flex;flex-wrap:wrap;gap:3px}
+  .bits i{width:14px;height:20px;border-radius:3px;background:var(--blue);opacity:.85}
+  .bits.g i{background:var(--green)}
+  .rw{display:flex;flex-direction:column;gap:.6rem;max-width:52rem}
+  .rw .r{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr);gap:.8rem;align-items:center}
+  .rw .r .l b{display:block}.rw .r .l small{color:var(--muted)}
+  .rw .bar{height:2rem;background:var(--soft);border-radius:10px;overflow:hidden;position:relative}
+  .rw .bar i{display:block;height:100%;border-radius:10px;width:0;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+  .rw .bar span{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);font-weight:700;font-size:.9rem;white-space:nowrap}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.7rem}
+  .wchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.92rem}
+
+  /* big numbers */
+  .bignums{display:flex;flex-wrap:wrap;gap:.6rem;margin:.7rem 0}
+  .bignum{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.45rem .9rem;text-align:center;min-width:7.5rem;flex:1 1 7.5rem}
+  .bignum b{display:block;font:800 1.6rem/1.15 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .bignum span{font-size:.82rem;color:var(--muted)}
+
+  /* rounding */
+  .slidebox{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem 1rem;margin:.3rem 0}
+  .slidebox label{font-weight:700;font-size:1.1rem}
+  .slidebox input[type=range]{flex:1 1 14rem;max-width:26rem;accent-color:var(--blue)}
+  .slidebox output{font-weight:800;color:var(--blue)}
   .twin{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;max-width:720px}
-  .twin canvas{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line);display:block}
-  .prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
-  .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
+  .twin canvas{width:100%;aspect-ratio:1;border-radius:10px;border:1px solid var(--line);display:block}
   .twin canvas#photoO,.twin canvas#photoQ{aspect-ratio:4/3;image-rendering:pixelated}
-  .scen{display:flex;flex-direction:column;gap:.35rem;margin:.5rem 0}
-  .scen .btn{text-align:left;font-size:.86rem;padding:.4rem .6rem}
+  .tw-l{font-weight:700;font-size:.95rem;text-align:center;margin-bottom:.2rem}
+  .prog{height:10px;background:var(--soft);border-radius:6px;overflow:hidden;max-width:40rem}
+  .prog i{display:block;height:100%;width:0;background:var(--blue);transition:width .1s}
+
+  /* pruning diagram */
+  .diagram{background:#fcfcfd;border:1px solid var(--line);border-radius:18px;padding:.4rem;overflow-x:auto}
+  svg#pr{display:block;width:100%;min-width:560px;height:auto;font-family:var(--sans)}
+  #pr line{stroke:#2f6fed;stroke-linecap:round;transition:stroke .5s,opacity .7s}
+  #pr circle{fill:#1c2230}
+  #pr .lbl{font-size:16px;font-weight:700;fill:#5d6678;text-anchor:middle}
+  #pr .cnt{font-size:22px;font-weight:800;fill:#1c2230;text-anchor:middle}
+  #pr .sc{font-size:34px;opacity:0;transition:opacity .4s;text-anchor:middle;dominant-baseline:central}
+  #pr .spark{font-size:30px;opacity:0;text-anchor:middle;dominant-baseline:central}
+  #pr.find line.weak{stroke:#e03131;stroke-dasharray:6 5;animation:blink .8s ease-in-out infinite alternate}
+  #pr.cut line.weak{opacity:0;animation:none}
+  #pr.cut .sc{opacity:1}
+  #pr.heal line:not(.weak){stroke:#2f9e44;animation:glow 1s ease-in-out infinite alternate}
+  #pr.heal .spark{opacity:1;animation:pop .9s ease-in-out infinite alternate}
+  @keyframes blink{from{opacity:1}to{opacity:.35}}
+  @keyframes glow{from{opacity:.7}to{opacity:1}}
+  @keyframes pop{from{transform:scale(.85)}to{transform:scale(1.15)}}
+  #pr .spark{transform-box:fill-box;transform-origin:center}
+  .steps4{display:flex;flex-wrap:wrap;gap:.45rem;margin:.7rem 0 .4rem}
+  .steps4 .btn{display:flex;align-items:center;gap:.4rem}
+  .steps4 .btn .n{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--soft);font-size:.8rem;font-weight:800}
+  .steps4 .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .steps4 .btn.on .n{background:var(--blue);color:#fff}
+  .stepcap{font-size:1.2rem;font-weight:700;min-height:2rem;margin:.3rem .2rem}
+
+  /* demo */
+  .scen{display:flex;flex-wrap:wrap;gap:.45rem;margin:.6rem 0}
+  .scen .btn{font-size:.95rem;padding:.5rem .9rem}
   .scen .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .demo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:start}
+  @media (max-width:860px){.demo{grid-template-columns:1fr}}
+  .ctlbox{background:var(--soft);border-radius:14px;padding:.6rem .9rem}
+  .ctlbox .slidebox label{font-size:1rem}
+  .mbtns{display:flex;flex-wrap:wrap;gap:.4rem;margin:.3rem 0 .5rem}
+  .mbtns .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .vstrip{font-size:1.05rem;font-weight:700;padding:.5rem .9rem;border-radius:12px;background:var(--info);color:#1864ab;margin:.4rem 0}
+  .vstrip.good{background:var(--good-bg);color:var(--green)}
+  .vstrip.bad{background:var(--bad-bg);color:var(--red)}
+
+  /* teacher / student */
+  .kd3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem;max-width:820px}
+  @media (max-width:640px){.kd3{grid-template-columns:1fr 1fr}}
+  .kd3 canvas{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;display:block}
+  .kd3 .who{font-size:1.8rem;text-align:center;line-height:1.2}
+  .kd3 .t{font-weight:700;text-align:center;font-size:.9rem;min-height:2.8em}
+  @media (max-width:640px){.kd3 .t{min-height:4.2em}}
+  .kd3 .bignum{margin-top:.4rem}
+
+  /* when */
+  .when{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.8rem}
+  .wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;text-align:center}
+  .wcard .pic{font-size:2.4rem;line-height:1.2}
+  .wcard .if{font-weight:600;margin:.3rem 0 .5rem;min-height:2.6rem}
+  .wcard .then{display:inline-block;font-weight:800;border-radius:999px;padding:.3rem .9rem}
+
   table.d2{border-collapse:collapse;width:100%;font-size:.85rem}
   table.d2 th,table.d2 td{border-bottom:1px solid var(--line);padding:.32rem .4rem;text-align:left;white-space:nowrap}
   table.d2 th{background:var(--soft);color:var(--muted)}
+  .qsteps{font-family:var(--mono);font-size:.9rem;line-height:1.9}
+  .qsteps b{color:var(--blue)}
+  #pmScen{flex-direction:row}
+
+  @media (prefers-reduced-motion:reduce){#pr *,.tree{animation:none!important;transition:none!important}.rw .bar i{transition:none}}
 </style>
 </head>
 <body>
@@ -50,107 +153,223 @@
 <section class="hero">
   <div class="kicker">Lesson 12 of 15 · ≈ 50 min</div>
   <h1>Making models small</h1>
-  <p class="one-liner">A trained model is just a <b>giant list of numbers</b> (its weights), like 0.0371528… To make it smaller we can
-  <b>① round</b> every number (keep fewer digits), <b>② delete</b> the tiny numbers or whole neurons, or <b>③ train a much smaller student</b> to copy it. The model gets smaller. <b>But does it still work, and is it really faster?</b> Let's find out.</p>
-</section>
-<section class="start">
-  <h2>👋 New here? The 30-second version</h2>
-  <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p>Saving a photo at lower quality makes the file much smaller, and it still looks fine, until you go too far and it looks blocky.
-      Rounding a model's numbers works the same way: a little rounding is invisible, too much breaks it.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, drag <b>Bits</b> down from 8 to 1. Watch the dots snap onto fewer marks and the photo lose colours.</li>
-      <li>In ②, drag <b>Bits per weight</b> down and compare the <b>Before</b> and <b>After</b> pictures.</li>
-      <li>Drag <b>Remove weights</b> up and watch lines vanish from the wiring. When does the model break?</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>Going from 32 bits to <b>8 bits</b> makes the model <b>4× smaller</b> and it still works just as well. Only when you squeeze <b>very</b> hard does it break.</p></div>
-  </div>
-  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Bit</b> = one on/off switch; more bits = more allowed values (8 bits = 256 values)</span>
-    <span><b>Quantization</b> = rounding every number to one of a few allowed values</span><span><b>Pruning</b> = deleting the smallest weights</span>
-    <span><b>Fine-tuning</b> = training a little more so the model can recover</span></div>
-</section>
-
-<section class="card">
-  <h2>📱 Why make models small?</h2>
-  <div class="grid3">
-    <div><h3>📦 Smaller file</h3><p>Fits on a phone or a small device, and downloads faster.</p></div>
-    <div><h3>⚡ Often faster</h3><p>Small numbers are quicker to move around and to multiply (on hardware that supports them).</p></div>
-    <div><h3>🔋 Less energy</h3><p>Matters a lot on phones, cameras and cheap cloud servers.</p></div>
-  </div>
-  <div class="tbl-wrap"><table class="plain" style="margin-top:.6rem">
-    <tr><th>Each weight stored as</th><th>Bits</th><th>Our Day-2 MobileNetV2 (2.2 million weights)</th></tr>
-    <tr><td>float32 (normal)</td><td>32</td><td>≈ 8.9 MB</td></tr>
-    <tr><td>float16</td><td>16</td><td>≈ 4.5 MB</td></tr>
-    <tr><td>int8</td><td>8</td><td>≈ 2.2 MB, <b>4× smaller</b></td></tr>
-    <tr><td>int4</td><td>4</td><td>≈ 1.1 MB, 8× smaller</td></tr>
-  </table></div>
-  <p class="small muted">On Day 2 we did this for real: 8.9 MB → 2.6 MB, and accuracy went from 90.0% to 89.4%. Almost no loss!</p>
-</section>
-
-<section class="card">
-  <h2>① Rounding: allow only a few values</h2>
-  <p>You already know rounding: a price of ₹237 becomes ₹240. The computer does the same with weights, but <b>we</b> choose how many values are allowed,
-  like the marks on a ruler. More marks = more precise, but each number needs more bits to store.</p>
-  <div class="grid2" style="align-items:center">
-    <div class="ctl" style="margin:0"><label style="font-size:1.05rem">Bits per number <output id="gbOut"></output></label>
-      <input type="range" id="gb" min="1" max="8" value="3"></div>
-    <div class="stats" style="margin:0">
-      <div class="stat blue"><b id="gLevels">–</b><span>Allowed values</span></div>
-      <div class="stat good"><b id="gSmaller">–</b><span>Smaller than 32 bits</span></div>
-      <div class="stat orange"><b id="gErr">–</b><span>Average rounding mistake</span></div>
-    </div>
-  </div>
-  <div class="grid2" style="margin-top:.6rem">
-    <div class="canvas-box"><div class="canvas-title">🎯 The rounding game: 10 weights snap to the nearest allowed value</div><canvas id="ruler" style="height:250px"></canvas>
-      <div class="look">👀 <b>Blue dots</b> = the real weights. <b>Grey ticks</b> = the only values we are allowed to store. Each blue dot drops to the nearest tick (<b>orange dot</b>).
-        The <b>red line</b> is the rounding mistake. Fewer ticks = longer red lines.</div></div>
-    <div class="canvas-box"><div class="canvas-title">🖼️ The same rounding on a photo (each colour rounded to the allowed values)</div>
-      <div class="twin" style="padding:.3rem"><div><div class="small muted center">Original</div><canvas id="photoO" width="240" height="180" style="aspect-ratio:4/3"></canvas></div>
-        <div><div class="small muted center" id="photoLabel">Rounded</div><canvas id="photoQ" width="240" height="180" style="aspect-ratio:4/3"></canvas></div></div>
-      <div class="look">👀 With many bits the two photos look identical. With very few bits the smooth sky turns into <b>stripes</b>, because there are not enough allowed colours.
-        A model's weights "look" the same way to the model.</div></div>
+  <p class="sub">A model is a giant list of numbers. Make the list smaller, keep the smarts.</p>
+  <div class="analogy">
+    <div class="arow"><div class="who">🏷️</div><div><div class="big"><s>₹237.49</s> ➜ ₹240</div><div class="lbl">Round the price: shorter, still about right</div></div><span class="pill2" style="background:#e7f0ff;color:var(--blue)">🔢 Rounding</span></div>
+    <div class="arow"><div class="who"><span class="tree trim">🌳</span>✂️</div><div><div class="big">Trim the thin twigs</div><div class="lbl">The tree stays healthy</div></div><span class="pill2" style="background:#fff4e6;color:#d9480f">✂️ Pruning</span></div>
+    <div class="tag">We can do both to a neural network.</div>
   </div>
 </section>
 
 <section class="card">
-  <h2>② Now squeeze a real (tiny) model</h2>
-  <p>This page first trains a small network to separate <b style="color:#2f6fed">blue</b> and <b style="color:#f08c00">orange</b> dots (like Lesson 6). Then you can
-  <b>round</b> its weights and <b>delete</b> some of them, and see if it still works.</p>
-  <div class="prog" id="progBox"><i id="prog"></i></div><div class="small muted" id="progTxt">Training…</div>
-  <div class="lab" style="margin-top:.6rem">
-    <aside class="controls">
-      <h3>Round the weights</h3>
-      <div class="ctl"><label>Bits per weight <output id="nbOut"></output></label><input type="range" id="nbits" min="2" max="9" value="9"></div>
-      <div class="adv"><label class="check"><input type="checkbox" id="perch"> Per-channel (one ruler per neuron)</label></div>
-      <h3>Delete weights</h3>
-      <div class="ctl"><label><span id="spLab">Remove weights</span> <output id="spOut"></output></label><input type="range" id="sp" min="0" max="95" step="5" value="0"></div>
-      <div class="ctl"><label>Which ones?</label><select id="method"><option value="mag">The smallest weights (smart)</option><option value="rand">Random weights (careless)</option><option value="neuron">Whole neurons, weakest first (structured)</option></select></div>
-      <div class="btn-row"><button class="btn primary" id="ft">🔧 Retrain a little (fine-tune)</button></div>
-      <div class="btn-row"><button class="btn" id="undo">↺ Back to the original model</button></div>
-    </aside>
-    <div class="stage">
-      <div class="stats">
-        <div class="stat"><b id="accO">–</b><span>Accuracy before</span></div>
-        <div class="stat good"><b id="accC">–</b><span>Accuracy after</span></div>
-        <div class="stat"><b id="nz">–</b><span>Weights kept</span></div>
-        <div class="stat blue"><b id="size">–</b><span>Model size</span></div>
-        <div class="stat orange"><b id="mults">–</b><span>Multiplications per answer</span></div>
-      </div>
+  <h2>① Why make models small?</h2>
+  <p class="bigq">So they fit on a 📱 phone, run ⚡ faster and use less 🔋 battery.</p>
+  <div class="rowlbl" style="font-weight:700;color:var(--muted);margin:.4rem 0 .2rem">One number in memory</div>
+  <div class="bitrow"><div class="l"><b>Normal</b><small>32 bits</small></div><div class="bits" id="bits32"></div></div>
+  <div class="bitrow"><div class="l"><b>🔢 Rounded</b><small>8 bits</small></div><div class="bits g" id="bits8"></div></div>
+  <div class="rowlbl" style="font-weight:700;color:var(--muted);margin:1rem 0 .3rem">Our Day 2 model (2.2 million numbers)</div>
+  <div class="rw">
+    <div class="r"><div class="l"><b>32 bits</b><small>normal</small></div><div class="bar"><i id="sz32" style="background:var(--orange)"></i><span>≈ 8.9 MB</span></div></div>
+    <div class="r"><div class="l"><b>16 bits</b></div><div class="bar"><i id="sz16" style="background:var(--purple)"></i><span>≈ 4.5 MB</span></div></div>
+    <div class="r"><div class="l"><b>8 bits</b><small>4× smaller</small></div><div class="bar"><i id="sz8" style="background:var(--green)"></i><span>≈ 2.2 MB</span></div></div>
+    <div class="r"><div class="l"><b>4 bits</b><small>8× smaller</small></div><div class="bar"><i id="sz4" style="background:var(--blue)"></i><span>≈ 1.1 MB</span></div></div>
+  </div>
+  <div class="chipsrow">
+    <span class="wchip">💡 <b>Bit</b> = one on/off switch</span>
+    <span class="wchip">🔢 <b>Quantization</b> = rounding every number</span>
+    <span class="wchip">✂️ <b>Pruning</b> = cutting the smallest numbers</span>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② 🔢 Rounding (quantization)</h2>
+  <p class="bigq">Fewer bits = fewer allowed values, like fewer marks on a ruler.</p>
+  <div class="slidebox"><label for="gb">Bits</label><input type="range" id="gb" min="1" max="8" value="3"><output id="gbOut"></output></div>
+  <div class="bignums">
+    <div class="bignum"><b id="gLevels" style="color:var(--blue)">–</b><span>📏 allowed values</span></div>
+    <div class="bignum"><b id="gSmaller" style="color:var(--green)">–</b><span>📦 smaller than 32 bits</span></div>
+    <div class="bignum"><b id="gErr">–</b><span>📐 rounding mistake</span></div>
+  </div>
+  <div class="grid2" style="margin-top:.4rem">
+    <div class="canvas-box"><div class="canvas-title">🎯 Each 🔵 weight snaps to the nearest mark 🟠</div><canvas id="ruler" style="height:250px"></canvas>
+      <p class="cap1">🔴 Red line = the mistake. Fewer marks, longer lines.</p></div>
+    <div class="canvas-box"><div class="canvas-title">🖼️ Same rounding on a photo</div>
+      <div class="twin" style="padding:.3rem"><div><div class="tw-l">Original</div><canvas id="photoO" width="240" height="180"></canvas></div>
+        <div><div class="tw-l" id="photoLabel">Rounded</div><canvas id="photoQ" width="240" height="180"></canvas></div></div>
+      <p class="cap1">Too few bits: the smooth sky turns into stripes.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>③ ✂️ Cutting (pruning)</h2>
+  <p class="bigq">Every line is a weight. Thin lines barely matter, so cut them.</p>
+  <div class="diagram">
+    <svg id="pr" viewBox="0 0 1000 360" role="img" aria-label="A small network: the thin connection lines are found, cut, and the rest is retrained">
+      <g id="prLines"></g><g id="prNodes"></g>
+      <text class="lbl" x="130" y="345">input</text><text class="lbl" x="390" y="345">layer 1</text><text class="lbl" x="650" y="345">layer 2</text><text class="lbl" x="880" y="345">answer</text>
+      <text class="sc" x="520" y="40">✂️</text><text class="sc" x="260" y="300">✂️</text><text class="sc" x="770" y="300">✂️</text>
+      <text class="spark" x="940" y="60">✨</text>
+      <text class="cnt" id="prCnt" x="500" y="28"></text>
+    </svg>
+  </div>
+  <div class="steps4" id="steps">
+    <button class="btn" data-k="1"><span class="n">1</span>Trained</button>
+    <button class="btn" data-k="2"><span class="n">2</span>Find thin 🔍</button>
+    <button class="btn" data-k="3"><span class="n">3</span>Cut ✂️</button>
+    <button class="btn" data-k="4"><span class="n">4</span>Retrain 🔧</button>
+    <button class="btn primary" id="playAll">▶ Play all</button>
+  </div>
+  <div class="stepcap" id="stepcap">👆 Press ▶ Play all</div>
+</section>
+
+<section class="card">
+  <h2>④ Let's squeeze a real tiny model</h2>
+  <p class="bigq">It separates 🔵 and 🟠 dots. Does it still work after squeezing?</p>
+  <div class="prog" id="progBox"><i id="prog"></i></div><div class="small muted" id="progTxt">🧠 Training…</div>
+  <div class="scen" id="qscen">
+    <button class="btn" data-b="4" data-s="0" data-m="mag">🔢 4 bits</button>
+    <button class="btn" data-b="2" data-s="0" data-m="mag">🔢 2 bits</button>
+    <button class="btn" data-b="9" data-s="50" data-m="mag">✂️ Cut ½ smallest</button>
+    <button class="btn" data-b="9" data-s="50" data-m="rand">🎲 Cut ½ random</button>
+    <button class="btn" data-b="9" data-s="90" data-m="mag">✂️ Cut 90% → then 🔧</button>
+    <button class="btn" data-b="9" data-s="50" data-m="neuron">🧱 Remove ½ neurons</button>
+  </div>
+  <div class="demo">
+    <div>
       <div class="twin">
-        <div><div class="canvas-title">Before: the original model</div><canvas id="bO" width="240" height="240"></canvas></div>
-        <div><div class="canvas-title" id="cTitle">After</div><canvas id="bC" width="240" height="240"></canvas></div>
+        <div><div class="tw-l">Before</div><canvas id="bO" width="240" height="240"></canvas></div>
+        <div><div class="tw-l">After</div><canvas id="bC" width="240" height="240"></canvas></div>
       </div>
-      <div class="look">👀 The background colour is the model's answer for every point: blue area = "blue", orange area = "orange".
-        If the <b>After</b> picture still puts every dot in the area of its own colour, the squeezed model still works.</div>
-      <div class="canvas-box" style="margin-top:.7rem"><div class="canvas-title">🔌 The wiring of the model after squeezing</div><canvas id="wires" style="height:260px"></canvas>
-        <div class="look">👀 Every line is one weight (a connection between two neurons). Thick, dark lines are big weights; thin, faint lines are small ones.
-          Deleting weights <b>cuts lines</b>. Deleting the smallest ones first removes the faint lines that matter least.
-          <b>Structured</b> pruning removes whole neurons (grey rings): the layer really gets narrower, so the matrices shrink and the computer does fewer multiplications.</div></div>
-      <div class="grid2" style="margin-top:.7rem">
-        <div class="canvas-box"><div class="canvas-title">Accuracy vs bits</div><canvas id="cBits" style="height:180px"></canvas>
-          <div class="look">👀 Flat line = rounding does no harm. A drop = the model breaks.</div></div>
-        <div class="canvas-box"><div class="canvas-title">Accuracy vs % removed (before retraining)</div><canvas id="cSp" style="height:180px"></canvas>
-          <div class="legend"><span><i style="background:#2f6fed"></i>smallest weights</span><span><i style="background:#f08c00"></i>random weights</span><span><i style="background:#2f9e44"></i>whole neurons</span></div></div>
+      <p class="cap1">Dots inside their own colour = it still works.</p>
+      <div class="small muted adv" id="cTitle">After</div>
+    </div>
+    <div>
+      <div class="bignums" style="margin-top:0">
+        <div class="bignum"><b id="accO">–</b><span>🎯 before</span></div>
+        <div class="bignum"><b id="accC">–</b><span>🎯 after</span></div>
+        <div class="bignum"><b id="size" style="color:var(--blue)">–</b><span>📦 size</span></div>
+        <div class="bignum"><b id="mults">–</b><span>⚡ multiplies</span></div>
+      </div>
+      <div class="ctlbox">
+        <div class="slidebox"><label for="nbits">🔢 Bits</label><input type="range" id="nbits" min="2" max="9" value="9"><output id="nbOut"></output></div>
+        <div class="slidebox"><label for="sp">✂️ <span id="spLab">Cut</span></label><input type="range" id="sp" min="0" max="95" step="5" value="0"><output id="spOut"></output></div>
+        <div class="mbtns" id="mbtns">
+          <button class="btn on" data-m="mag">✂️ smallest</button><button class="btn" data-m="rand">🎲 random</button><button class="btn" data-m="neuron">🧱 whole neurons</button>
+        </div>
+        <div class="btn-row"><button class="btn primary" id="ft">🔧 Retrain a little</button><button class="btn" id="undo">↺ Reset</button></div>
+        <div class="adv" style="margin-top:.4rem">
+          <label class="check"><input type="checkbox" id="perch"> Per-channel (one ruler per neuron)</label>
+          <div class="ctl"><label>Which ones?</label><select id="method"><option value="mag">The smallest weights (smart)</option><option value="rand">Random weights (careless)</option><option value="neuron">Whole neurons, weakest first (structured)</option></select></div>
+          <div class="small muted">Weights kept: <b id="nz">–</b></div>
+        </div>
       </div>
     </div>
+  </div>
+  <div class="canvas-box" style="margin-top:.8rem"><div class="canvas-title">🔌 The model's wiring</div><canvas id="wires" style="height:240px"></canvas>
+    <p class="cap1">Thick line = big weight. Watch lines vanish when you cut.</p></div>
+  <div class="grid2 adv" style="margin-top:.7rem">
+    <div class="canvas-box"><div class="canvas-title">Accuracy vs bits</div><canvas id="cBits" style="height:180px"></canvas>
+      <div class="look">👀 Flat line = rounding does no harm. A drop = the model breaks.</div></div>
+    <div class="canvas-box"><div class="canvas-title">Accuracy vs % removed (before retraining)</div><canvas id="cSp" style="height:180px"></canvas>
+      <div class="legend"><span><i style="background:#2f6fed"></i>smallest weights</span><span><i style="background:#f08c00"></i>random weights</span><span><i style="background:#2f9e44"></i>whole neurons</span></div></div>
+  </div>
+</section>
+
+<section class="card" id="pm">
+  <h2>⑤ A zero still takes space</h2>
+  <p class="bigq">✂️ Zeros are still stored and multiplied. 🧱 Removing whole neurons really shrinks it.</p>
+  <div class="scen" id="pmScen">
+    <button class="btn on" data-m="mag" type="button">✂️ Smallest → 0</button>
+    <button class="btn" data-m="struct" type="button">🧱 Remove whole neurons</button>
+    <button class="btn adv" data-m="rand" type="button">🎲 Random → 0</button>
+    <button class="btn adv" data-m="24" type="button">🔢 2 of every 4 (NVIDIA)</button>
+    <button class="btn adv" data-m="csr" type="button">📇 Sparse list</button>
+  </div>
+  <div class="slidebox"><label for="pmF">Remove</label><input type="range" id="pmF" min="0" max="90" step="10" value="50"><output id="pmOut"></output></div>
+  <div class="canvas-box"><div class="canvas-title">One layer as a table of numbers · 🔴 = a stored zero</div><canvas id="pmGrid" style="height:clamp(120px,36vw,230px)"></canvas></div>
+  <div class="bignums">
+    <div class="bignum"><b id="pmBytes" style="color:var(--blue)">–</b><span>📦 bytes stored</span></div>
+    <div class="bignum"><b id="pmMul" style="color:var(--orange)">–</b><span>⚡ multiplications</span></div>
+    <div class="bignum"><b id="pmWaste" style="color:var(--red)">–</b><span>🗑️ wasted “× 0”</span></div>
+    <div class="bignum"><b id="pmKeep" style="color:var(--green)">–</b><span>💪 strength kept</span></div>
+  </div>
+  <div class="adv">
+    <p class="small muted" id="pmHint"></p>
+    <div id="pmV" class="banner info">–</div>
+    <div class="canvas-box" style="margin-top:.6rem"><div class="canvas-title">What is written in the file (bar length = bytes)</div><div id="pmStore"></div></div>
+    <h3 style="margin-top:1.2rem">📋 What to expect from each method</h3>
+    <div class="tbl-wrap"><table class="plain">
+      <tr><th>Method</th><th>📦 File size</th><th>🗜️ After zipping</th><th>⚡ Speed on a normal CPU</th><th>⚡ Speed on special hardware</th><th>🎯 Accuracy before retraining</th></tr>
+      <tr><td>✂️ Smallest weights → 0</td><td>same</td><td>smaller</td><td>same</td><td>same</td><td style="color:#2f9e44">small drop</td></tr>
+      <tr><td>🎲 Random weights → 0</td><td>same</td><td>smaller</td><td>same</td><td>same</td><td style="color:#e03131">big drop</td></tr>
+      <tr><td>🧱 Whole neurons / channels</td><td style="color:#2f9e44"><b>smaller</b></td><td>smaller</td><td style="color:#2f9e44"><b>faster</b></td><td style="color:#2f9e44"><b>faster</b></td><td style="color:#f08c00">bigger drop → retrain</td></tr>
+      <tr><td>🔢 2 out of every 4</td><td>≈ half (special format)</td><td>smaller</td><td>same</td><td style="color:#2f9e44">≈ 2× faster (NVIDIA sparse cores)</td><td style="color:#f08c00">medium drop</td></tr>
+      <tr><td>📇 Sparse list</td><td style="color:#e03131">bigger at 50%</td><td>smaller</td><td style="color:#e03131">slower, faster only at ≈ 95%+ zeros</td><td>depends on the engine</td><td>same as ✂️</td></tr>
+    </table></div>
+    <ul class="small">
+      <li><b>Zeros are still numbers.</b> In float32 a 0 takes 4 bytes. Zipping helps the download only; in memory the model is full size again.</li>
+      <li><b>× 0 costs as much as × 0.37.</b> The CPU multiplies whole blocks and never checks for zeros.</li>
+      <li><b>A sparse list backfires at medium sparsity:</b> every kept weight also needs its position, and jumping around memory is slow.</li>
+      <li><b>Global vs per-layer.</b> Day 2's <code>prune.global_unstructured</code> ranks all weights together; per-layer is safer but less clever.</li>
+      <li><b>Which channel is weakest?</b> L1 norm of its weights, or its BatchNorm γ ("network slimming").</li>
+      <li><b>Channels are chained.</b> Removing an output channel removes an input of the next layer; residual connections force matching sizes (the notebook prunes only inner channels; <code>torch-pruning</code> tracks this).</li>
+      <li><b>Iterative:</b> prune a little → retrain → repeat. <b>2:4 sparsity</b> needs NVIDIA sparse tensor cores (A100 / RTX 30xx+).</li>
+    </ul>
+  </div>
+</section>
+
+<section class="card">
+  <h2>⑥ 👨‍🏫 ➜ 🧒 Teach a tiny student</h2>
+  <p class="bigq">A tiny model learns by copying a big model's answers.</p>
+  <div class="btn-row" style="margin:.4rem 0 .7rem"><button class="btn primary" id="kdGo" disabled>▶ Train both students</button>
+    <span class="adv"><select id="kdH" style="font:inherit;padding:.3rem"><option value="4" selected>4 neurons (17 weights, 70× smaller)</option><option value="2">2 neurons (9 weights, too small?)</option></select></span></div>
+  <div class="kd3">
+    <div><div class="who">👨‍🏫</div><div class="t">Big teacher<br><span class="muted">1,185 weights</span></div><canvas id="kdT" width="200" height="200"></canvas><div class="bignum"><b id="kdTa">–</b><span>🎯 test</span></div></div>
+    <div><div class="who">🧒📄</div><div class="t">Tiny student<br><span class="muted">only 20 labelled dots</span></div><canvas id="kdH1" width="200" height="200"></canvas><div class="bignum"><b id="kdHa">–</b><span>🎯 test</span></div></div>
+    <div><div class="who">🧒👨‍🏫</div><div class="t">Tiny student<br><span class="muted">copies the teacher</span></div><canvas id="kdS1" width="200" height="200"></canvas><div class="bignum"><b id="kdSa">–</b><span>🎯 test</span></div></div>
+  </div>
+  <div id="kdV" class="vstrip">👆 Press ▶ Train both students.</div>
+</section>
+
+<section class="card">
+  <h2>⑦ Which one should I use?</h2>
+  <div class="when">
+    <div class="wcard"><div class="pic">📦💻</div><div class="if">Smaller file, about the same accuracy</div><span class="then" style="background:#e7f0ff;color:var(--blue)">🔢 Round to 8 bits</span></div>
+    <div class="wcard"><div class="pic">⚡🐢</div><div class="if">Must really run faster</div><span class="then" style="background:#ebfbee;color:var(--green)">🧱 Remove whole neurons</span></div>
+    <div class="wcard"><div class="pic">🔌🤏</div><div class="if">Tiny device, tiny memory</div><span class="then" style="background:#f3f0ff;color:var(--purple)">🧒 Train a student</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🌍 Day 2 did this for real</h2>
+  <p class="bigq">MobileNetV2 on CIFAR-10, rounded to 8 bits: tiny loss, big win.</p>
+  <div class="bignums">
+    <div class="bignum"><b style="color:var(--blue)">9.19 ➜ 2.61 MB</b><span>📦 3.5× smaller</span></div>
+    <div class="bignum"><b style="color:var(--purple)">8.8 ➜ 0.9 ms</b><span>⚡ per picture (int8 in ONNX Runtime)</span></div>
+    <div class="bignum"><b style="color:var(--green)">90.0% ➜ 89.4%</b><span>🎯 accuracy</span></div>
+  </div>
+  <div class="rowlbl" style="font-weight:700;color:var(--muted);margin:.8rem 0 .3rem">📦 File size</div>
+  <div class="rw">
+    <div class="r"><div class="l"><b>Normal</b><small>32 bits</small></div><div class="bar"><i id="d2a" style="background:var(--orange)"></i><span>9.19 MB</span></div></div>
+    <div class="r"><div class="l"><b>🔢 8 bits</b><small>ONNX Runtime</small></div><div class="bar"><i id="d2b" style="background:var(--green)"></i><span>2.61 MB</span></div></div>
+    <div class="r"><div class="l"><b>✂️ 50% cut</b><small>zeros kept</small></div><div class="bar"><i id="d2c" style="background:var(--red)"></i><span>9.19 MB · no smaller!</span></div></div>
+  </div>
+  <div class="chipsrow">
+    <span class="wchip">✂️ 50% cut, no retraining ➜ <b>33%</b> accuracy</span>
+    <span class="wchip">🐌 16-bit (BF16) on a laptop CPU ➜ <b>227 ms</b>, way slower</span>
+    <span class="wchip">📏 Always measure on your real device</span>
+  </div>
+  <div class="adv" style="margin-top:1rem">
+    <div class="canvas-box"><div class="canvas-title">All Day 2 results · MobileNetV2 on CIFAR-10, trainer's laptop CPU (batch 1)</div>
+      <div class="tbl-wrap"><table class="d2" id="d2t"></table></div>
+      <div class="look">👀 Short bars are good. Time bars use a log scale. Latencies are medians on one laptop: compare ratios.</div></div>
+    <ul class="small">
+      <li><b>ONNX Runtime</b> alone: 8.8 → 1.3 ms, same weights. A fused, pre-planned graph beats Python overhead.</li>
+      <li><b>Static int8</b> (calibration, per-channel): 3.5× smaller and fastest (0.9 ms), −0.6 pp. This is what Day 3 serves.</li>
+      <li><b>Dynamic int8</b> in PyTorch only rounds the last Linear layer, so a CNN barely changes (9.15 MB, slower).</li>
+      <li><b>FP16</b>: half the size, no CPU speed-up. <b>BF16</b>: ≈ 26× slower (no BF16 hardware, emulated).</li>
+      <li><b>Unstructured pruning</b>: same size, same speed; 50% without retraining collapses to 33%.</li>
+    </ul>
   </div>
 </section>
 
@@ -158,13 +377,11 @@
   <h2>📏 Detailed: the rounding formula</h2>
   <div class="grid2">
     <div>
-      <p>Take all the weights of a layer and find their range, say −0.4 … +0.4. Put 255 evenly spaced marks on that range. For every weight, store only
-      <b>the number of the nearest mark</b> (an integer from −127 to 127, which fits in 1 byte). To use the weight again, multiply the mark number by the spacing.</p>
+      <p>Find the layer's range (say −0.4 … +0.4), put 255 evenly spaced marks on it, and store only <b>the number of the nearest mark</b> (an int from −127 to 127, 1 byte).</p>
       <p class="center" style="font-family:var(--mono);font-size:1.05rem">q = round(x / scale) + zero_point<br>x̂ = (q − zero_point) × scale</p>
     </div>
-    <p class="small muted"><b>scale</b> = the spacing between marks. <b>zero_point</b> = which integer means 0.0 (it is 0 for symmetric quantization).
-      The small difference x − x̂ is the <b>quantization error</b>. Real int8 schemes pick the range per tensor or per channel, from the weights (and, for
-      activations, from calibration data).</p>
+    <p class="small muted"><b>scale</b> = spacing between marks. <b>zero_point</b> = which integer means 0.0 (0 for symmetric). x − x̂ is the <b>quantization error</b>.
+      Real int8 picks the range per tensor or per channel, from the weights (and, for activations, from calibration data).</p>
   </div>
 </section>
 
@@ -191,9 +408,9 @@
         <div class="stat bad"><b id="sZero">–</b><span>Weights rounded to 0</span></div>
         <div class="stat"><b id="sClip">–</b><span>Weights clipped</span></div>
       </div>
-      <div class="canvas-box"><div class="canvas-title">Grey = original weights · blue spikes = where they land after quantization · thin lines = the ruler marks</div><canvas id="hist" style="height:300px"></canvas></div>
+      <div class="canvas-box"><div class="canvas-title">Grey = original weights · blue spikes = where they land · thin lines = ruler marks</div><canvas id="hist" style="height:300px"></canvas></div>
       <div class="explain qsteps" id="follow" style="margin-top:.6rem"></div>
-      <p class="small muted">SQNR = signal-to-quantization-noise ratio in decibels: 10·log₁₀(Σx² / Σ(x − x̂)²). Every extra bit adds about 6 dB.</p>
+      <p class="small muted">SQNR = 10·log₁₀(Σx² / Σ(x − x̂)²). Every extra bit adds about 6 dB.</p>
     </div>
   </div>
 </section>
@@ -202,21 +419,18 @@
   <h2>📊 Detailed: one ruler for everyone, or one per channel?</h2>
   <div class="grid2">
     <div>
-      <p>A conv layer has many output channels (kernels), and their weights can have very different sizes. With <b>per-tensor</b> quantization all channels share one ruler,
-      sized for the biggest channel. With <b>per-channel</b> quantization every channel gets its own ruler.</p>
+      <p><b>Per-tensor</b>: all channels share one ruler, sized for the biggest. <b>Per-channel</b>: every channel gets its own ruler.</p>
       <div class="ctl" style="max-width:18rem"><label>Bits <output id="b2Out"></output></label><input type="range" id="bits2" min="2" max="8" value="8"></div>
-      <p class="small muted">Six channels, weight spread (std) from 0.01 to 0.4. Bars = SQNR per channel.</p>
+      <p class="small muted">Six channels, weight std 0.01 … 0.4. Bars = SQNR per channel.</p>
     </div>
     <div class="canvas-box"><canvas id="chan" style="height:260px"></canvas>
       <div class="legend"><span><i style="background:#f08c00"></i>per-tensor (one scale)</span><span><i style="background:#2f6fed"></i>per-channel (six scales)</span></div></div>
   </div>
 </section>
 
-<section class="card">
-  <h2>③ Rounding the numbers <i>between</i> the layers: calibration</h2>
-  <p>Rounding the weights is only half of int8. <b>Static</b> int8 (Day 2) also rounds the <b>activations</b>: the numbers that flow from layer to layer while the model runs.
-  Weights are known in advance, but activations depend on the input. So we first run a few <b>calibration</b> examples through the model and write down the range of every layer.
-  At prediction time, every activation is rounded onto a ruler that covers that range; anything outside is <b>clipped</b> to the edge.</p>
+<section class="card adv">
+  <h2>🎚️ Detailed: rounding the activations (calibration)</h2>
+  <p>Static int8 (Day 2) also rounds the numbers flowing <b>between</b> layers. Their range depends on the input, so we run a few <b>calibration</b> examples first and record each layer's range; values outside are <b>clipped</b>.</p>
   <div class="lab">
     <aside class="controls">
       <h3>Rounding</h3>
@@ -224,7 +438,7 @@
       <h3>Calibration</h3>
       <div class="ctl"><label>Calibration examples</label><select id="aqN"><option>3</option><option>10</option><option selected>100</option></select></div>
       <label class="check"><input type="checkbox" id="aqWrong"><span>Calibration used the <b>wrong preprocessing</b> (forgot to scale the inputs)</span></label>
-      <div class="scen" id="aqScen">
+      <div class="scen" id="aqScen" style="flex-direction:column">
         <button class="btn" data-s="good">✅ 8 bits, 100 examples</button>
         <button class="btn" data-s="few">❌ Only 3 calibration examples</button>
         <button class="btn" data-s="wrong">❌ Wrong preprocessing, 4 bits</button>
@@ -237,204 +451,21 @@
         <div class="stat orange"><b id="aqC">–</b><span>Activations clipped</span></div>
       </div>
       <div id="aqV" class="banner info">–</div>
-      <div class="canvas-box"><div class="canvas-title">The inputs the model really sees (grey) and the calibrated ruler (red dashes = its ends)</div><canvas id="aqc" style="height:210px"></canvas>
-        <div class="look">👀 Grey = where the real input numbers fall. Thin blue ticks = the values the rounded numbers may take. If the ruler is <b>too short</b> (red dashes inside the grey hump), big values get clipped.
-          If it's <b>far too long</b>, the ticks are spread thin and almost all real values fall between the same two ticks.</div></div>
+      <div class="canvas-box"><div class="canvas-title">Real inputs (grey) and the calibrated ruler (red dashes = its ends, blue ticks = allowed values)</div><canvas id="aqc" style="height:210px"></canvas></div>
     </div>
   </div>
-</section>
-
-<section class="card">
-  <h2>④ Smaller ≠ faster: the real Day-2 numbers</h2>
-  <div class="grid2">
-    <div class="canvas-box"><div class="canvas-title">MobileNetV2 on CIFAR-10, trainer's laptop CPU (batch 1)</div>
-      <div class="tbl-wrap"><table class="d2" id="d2t"></table></div>
-      <div class="look">👀 <b>Short bars are good</b> in both columns: a small file and a short time per picture (the time bars use a log scale, so each step to the right is many times slower).
-        Notice how many techniques shrink the file but not the time, and how one makes the time explode.</div></div>
-    <div>
-      <h3>✅ What helped</h3>
-      <ul><li><b>ONNX Runtime</b> alone: 8.8 → 1.3 ms, same weights, same size. A fused, pre-planned graph beats Python overhead.</li>
-        <li><b>Static int8</b> (with calibration, per-channel): 3.5× smaller and the fastest (0.9 ms), −0.6 pp accuracy. This is what Day 3 serves.</li></ul>
-      <h3>➖ / ❌ What didn't</h3>
-      <ul><li><b>Dynamic int8</b> in PyTorch: only the last Linear layer is rounded, so a CNN barely changes (9.15 MB, even slower).</li>
-        <li><b>FP16</b>: half the size, but no speed-up on a CPU. <b>BF16</b>: ≈ 26× <i>slower</i> (227 ms): this CPU has no BF16 hardware, so it's emulated.</li>
-        <li><b>Unstructured pruning</b>: same file size, same speed (the zeros are still stored and multiplied, challenge 6). 50% without retraining collapses to 33%.</li></ul>
-      <p class="small muted">Latencies are medians on one laptop and vary from run to run: compare ratios, and always measure on the machine you will deploy to.</p>
-    </div>
-  </div>
-</section>
-
-<section class="card" id="pm">
-  <h2>⑤ Pruning methods: which ones <i>really</i> make the model smaller?</h2>
-  <p>Set half of a model's weights to 0 and you'd expect half the file and half the time. Usually you get <b>neither</b>: same file size, same speed. Why?
-  A layer is a <b>table of numbers</b> (8 neurons × 12 inputs below). Pick a method and watch two things: <b>what the computer still has to store</b>, and <b>how many multiplications it still does</b>.</p>
-  <div class="lab">
-    <aside class="controls">
-      <h3>How to prune</h3>
-      <div class="scen" id="pmScen">
-        <button class="btn on" data-m="mag" type="button">✂️ Smallest weights → 0 <span class="small muted">(unstructured, Day 2)</span></button>
-        <button class="btn" data-m="rand" type="button">🎲 Random weights → 0</button>
-        <button class="btn" data-m="struct" type="button">🧱 Remove whole neurons / channels <span class="small muted">(structured)</span></button>
-        <button class="btn" data-m="24" type="button">🔢 2 out of every 4 <span class="small muted">(2:4, NVIDIA GPUs)</span></button>
-        <button class="btn" data-m="csr" type="button">📇 Smallest → 0, saved as a "sparse list"</button>
-      </div>
-      <div class="ctl"><label>Remove <output id="pmOut"></output></label><input type="range" id="pmF" min="0" max="90" step="10" value="50"></div>
-      <p class="small muted" id="pmHint"></p>
-    </aside>
-    <div class="stage">
-      <div class="stats">
-        <div class="stat blue"><b id="pmBytes">–</b><span>📦 Bytes stored</span></div>
-        <div class="stat orange"><b id="pmMul">–</b><span>⚡ Multiplications per answer</span></div>
-        <div class="stat bad"><b id="pmWaste">–</b><span>🗑️ Of those, "× 0" (wasted)</span></div>
-        <div class="stat good"><b id="pmKeep">–</b><span>💪 Weight strength kept</span></div>
-      </div>
-      <div class="canvas-box"><div class="canvas-title">One layer: left = original, right = after pruning (blue/orange = + / − weight, stronger colour = bigger weight)</div>
-        <canvas id="pmGrid" style="height:230px"></canvas>
-        <div class="look">👀 A white cell with a red dot is a weight that is now 0 but <b>still stored and still multiplied</b>. A removed neuron is gone: nothing to store, nothing to multiply.</div></div>
-      <div class="canvas-box" style="margin-top:.6rem"><div class="canvas-title">What is written in the file (bar length = bytes)</div>
-        <div id="pmStore"></div></div>
-      <div id="pmV" class="banner info" style="margin-top:.6rem">–</div>
-    </div>
-  </div>
-
-  <h3 style="margin-top:1.2rem">📋 What to expect from each method</h3>
-  <div class="tbl-wrap"><table class="plain">
-    <tr><th>Method</th><th>📦 File size</th><th>🗜️ After zipping</th><th>⚡ Speed on a normal CPU</th><th>⚡ Speed on special hardware</th><th>🎯 Accuracy before retraining</th></tr>
-    <tr><td>✂️ Smallest weights → 0</td><td>same</td><td>smaller</td><td>same</td><td>same</td><td style="color:#2f9e44">small drop</td></tr>
-    <tr><td>🎲 Random weights → 0</td><td>same</td><td>smaller</td><td>same</td><td>same</td><td style="color:#e03131">big drop</td></tr>
-    <tr><td>🧱 Whole neurons / channels</td><td style="color:#2f9e44"><b>smaller</b></td><td>smaller</td><td style="color:#2f9e44"><b>faster</b></td><td style="color:#2f9e44"><b>faster</b></td><td style="color:#f08c00">bigger drop → retrain</td></tr>
-    <tr><td>🔢 2 out of every 4</td><td>≈ half (special format)</td><td>smaller</td><td>same</td><td style="color:#2f9e44">≈ 2× faster (NVIDIA sparse cores)</td><td style="color:#f08c00">medium drop</td></tr>
-    <tr><td>📇 Sparse list</td><td style="color:#e03131">bigger at 50%</td><td>smaller</td><td style="color:#e03131">slower, faster only at ≈ 95%+ zeros</td><td>depends on the engine</td><td>same as ✂️</td></tr>
-  </table></div>
-  <h3>Why only structured pruning pays off everywhere</h3>
-  <ul><li><b>Zeros are still numbers.</b> In float32 a 0 takes 4 bytes, like any other weight. Zipping squeezes long runs of zeros, but that only helps the <b>download</b>. After unzipping, the model is its full size again in memory.</li>
-    <li><b>× 0 costs as much as × 0.37.</b> The CPU multiplies whole blocks of numbers at once and never checks for zeros, so the time stays the same.</li>
-    <li><b>A "sparse list" backfires at medium sparsity.</b> For every kept weight it must also store <i>where</i> it is, and that position is often as big as the weight itself. Jumping around memory to find each weight is also slower than reading one neat block.</li>
-    <li><b>Removing whole neurons / channels makes every table smaller.</b> A smaller, normal table is faster on <i>any</i> hardware. The catch: accuracy drops more at first, so you must retrain.</li></ul>
-  <div class="explain adv" style="margin-top:.8rem">
-    <b>Detailed: more choices when pruning</b>
-    <ul style="margin:.3rem 0 0">
-      <li><b>Global vs per-layer.</b> Global (Day 2: <code>prune.global_unstructured</code>) ranks all weights together, so small layers can be emptied almost completely. Per-layer removes the same % from every layer, which is safer but less clever.</li>
-      <li><b>Which channel is weakest?</b> Either the sum of its weights (L1 norm), or its BatchNorm "volume knob" γ: a channel with γ ≈ 0 barely contributes (the idea behind "network slimming").</li>
-      <li><b>Channels are chained.</b> Removing an output channel of one layer also removes an input of the next layer and one BatchNorm entry. Residual connections (<code>x + block(x)</code>) force both sides to stay the same size, which is why the notebook only prunes the <i>inner</i> channels of each block. Libraries such as <code>torch-pruning</code> track these chains automatically.</li>
-      <li><b>Iterative.</b> Prune a little → retrain → prune a little more. This beats removing everything at once.</li>
-      <li><b>2:4 sparsity</b> needs special hardware: sparse tensor cores on NVIDIA A100 / RTX 30-series and newer (up to ≈ 2× faster matrix maths). A normal CPU gains nothing.</li>
-    </ul>
-  </div>
-</section>
-
-<section class="card">
-  <h2>⑥ A third way: teach a small student (knowledge distillation)</h2>
-  <p>Rounding and deleting squeeze a <b>given</b> network. Distillation trains a <b>much smaller</b> network, the <b>student</b>, to copy the answers of the big trained <b>teacher</b>.
-  The trick: the teacher can label as many <b>unlabelled</b> examples as we like, and its answers are <b>soft</b> ("80% blue") instead of just "blue", so they carry more information.</p>
-  <div class="lab">
-    <aside class="controls">
-      <h3>Student</h3>
-      <div class="ctl"><label>Student size</label><select id="kdH"><option value="4" selected>4 neurons (17 weights, 70× smaller)</option><option value="2">2 neurons (9 weights, too small?)</option></select></div>
-      <p class="small">Both students start from the same random weights. The labelled data is scarce: only <b>20 labelled dots</b>.</p>
-      <div class="btn-row"><button class="btn primary" id="kdGo" disabled>▶ Train both students</button></div>
-    </aside>
-    <div class="stage">
-      <div class="twin3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:.6rem">
-        <div><div class="canvas-title">Teacher: 2 → 32 → 32 → 1</div><canvas id="kdT" width="200" height="200" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:8px"></canvas>
-          <div class="stats"><div class="stat"><b id="kdTa">–</b><span>Test acc</span></div><div class="stat"><b>1,185</b><span>Weights</span></div></div></div>
-        <div><div class="canvas-title">Student learns from the 20 labels</div><canvas id="kdH1" width="200" height="200" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:8px"></canvas>
-          <div class="stats"><div class="stat"><b id="kdHa">–</b><span>Test acc</span></div></div></div>
-        <div><div class="canvas-title">Student learns from the teacher's answers on 1,000 unlabelled dots</div><canvas id="kdS1" width="200" height="200" style="width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:8px"></canvas>
-          <div class="stats"><div class="stat"><b id="kdSa">–</b><span>Test acc</span></div></div></div>
-      </div>
-      <div id="kdV" class="banner info">Press ▶ Train both students.</div>
-      <div class="look">👀 Big dots = the 20 labelled training dots the first student gets. Small dots = test dots nobody trains on. A good student draws the same border as the teacher,
-        with a fraction of the weights.</div>
-    </div>
-  </div>
-</section>
-<!-- 
-<section class="card">
-  <h2>⑦ Which method when? A quick guide</h2>
-  <div class="grid2">
-    <div>
-      <div class="ctl"><label>Where will the model run?</label><select id="wzHw"><option value="cpu" selected>Server or laptop CPU</option><option value="gpu">NVIDIA GPU</option><option value="phone">Phone / Raspberry Pi (ARM)</option><option value="mcu">Microcontroller (tiny memory)</option></select></div>
-      <div class="ctl"><label>What kind of model?</label><select id="wzM"><option value="cnn" selected>CNN (images)</option><option value="tr">Transformer / LSTM (text, sequences)</option></select></div>
-      <div class="ctl"><label>How much accuracy may you lose?</label><select id="wzAcc"><option value="1" selected>about 1 point is fine</option><option value="0">almost nothing (medical, safety)</option></select></div>
-      <div class="ctl"><label>Do you have a few hundred example inputs (no labels needed)?</label><select id="wzCal"><option value="y" selected>yes</option><option value="n">no</option></select></div>
-    </div>
-    <div class="explain" id="wzOut"></div>
-  </div>
-</section> -->
-
-<section class="callout try">
-  <h3>🧪 Try this (guess first, then check!)</h3>
-  <ol class="challenges">
-    <li><b>The rounding game.</b> In ①, start at 1 bit and go up one step at a time. At 1 bit, how many values are allowed? From how many bits are the red mistake lines too small to see?
-      <details class="answer"><summary>Answer</summary>At 1 bit only 2 values are allowed (−1 and +1), so every weight is pushed to one end and the average mistake is huge (≈ 0.57).
-      Every extra bit <b>doubles</b> the allowed values and roughly <b>halves</b> the mistake: 2 bits ≈ 0.17, 4 bits ≈ 0.04, 8 bits ≈ 0.002.
-      From about 6 bits the red lines are too small to see.</details></li>
-    <li><b>The photo.</b> Drag from 8 bits down. At how many bits do you first see a difference? What does the photo look like at 1 bit?
-      <details class="answer"><summary>Answer</summary>8, 7 and 6 bits look identical (no pixel changes by more than 2 out of 255). Around 4–5 bits you start to see <b>stripes</b> in the smooth sky.
-      At 3 and 2 bits it looks like a poster. At 1 bit each colour can only be fully on or off, so the whole photo uses just 6 colours!
-      Smooth, delicate areas show the damage first. In a model it's the same: small, delicate weights suffer first.</details></li>
-    <li><b>How low can the model go?</b> In ②, lower "Bits per weight" one step at a time. When does the After picture stop matching the dots?
-      <details class="answer"><summary>Answer</summary>It keeps working all the way down to 4 bits (≈ 97%, the same as the original). At 3 bits it starts to break (≈ 88%).
-      At 2 bits it is just guessing (≈ 51%): each layer can only use 3 values (−, 0, +), which is far too few.
-      <span class="adv">Tick "per-channel": 3 bits → ≈ 96% and 2 bits → ≈ 80%. Giving every neuron its own ruler helps a lot at low bits.</span></details></li>
-    <li><b>Smart vs careless deleting.</b> Remove 50% of the weights with "the smallest ones". Then switch to "random ones".
-      <details class="answer"><summary>Answer</summary>Deleting the <b>smallest</b> half: still ≈ 97%. Those weights hardly mattered (look at the wiring: only faint lines disappeared).
-      Deleting a <b>random</b> half: ≈ 54%, almost guessing, because important thick lines were cut too.
-      Simple rule: a small weight has a small influence.</details></li>
-    <li><b>Break it, then heal it.</b> Remove 90% (smallest ones). The model breaks. Now press 🔧 Retrain a little.
-      <details class="answer"><summary>Answer</summary>Right after deleting 90% of the weights the model is broken (≈ 51%, guessing). Retraining for a short while, with the deleted weights kept at 0,
-      brings it back to ≈ 98%, using only 112 of its 1,120 weights! The remaining weights learn to do the job of the deleted ones. Real pruning works like this: delete some, retrain, repeat.</details></li>
-    <li><b>Smaller ≠ faster.</b> After deleting 90%, look at "Model size". Did it shrink?
-      <details class="answer"><summary>Answer</summary>No! The deleted weights are stored as zeros, and zeros still take space and are still multiplied.
-      To really gain you must store the model in a special "sparse" format, use hardware that skips zeros, or delete whole neurons so the layers really get smaller.
-      Our Live Demo measured exactly this: deleting weights gave <b>no speed-up</b>.</details></li>
-    <li><b>Delete whole neurons.</b> Back to the original. Set "Which ones?" to <b>Whole neurons</b> and remove 50%. Watch accuracy, size and multiplications. Then 75%, then 🔧 Retrain.
-      <details class="answer"><summary>Answer</summary>50% of the neurons: 93% accuracy, and the layers really shrink (32 → 16 neurons), so the file drops from 4.63 KB to 1.32 KB and the model needs only 304 multiplications instead of 1,120.
-      75%: the model breaks (67%, layers 8-8), but after retraining it is back at 98%, with 88 multiplications: <b>13× less work</b> per answer. That's structured pruning: it can lose more accuracy at first,
-      but unlike deleting single weights it makes the model genuinely smaller <i>and</i> faster on any hardware.</details></li>
-    <li><b>Zeros vs removed rows.</b> In ⑤, set Remove to 50%. Compare ✂️ Smallest weights with 🧱 Whole neurons. Which one saves bytes and multiplications? Which one keeps more strength?
-      <details class="answer"><summary>Answer</summary>✂️ keeps <b>87%</b> of the strength but still stores 384 B and does all 96 multiplications (48 of them are "× 0").
-      🧱 stores only <b>192 B</b> and does <b>48</b> multiplications, but keeps only 74%, because some useful weights sit in the removed rows.
-      That's the trade: unstructured = gentle but no gain; structured = real gain, so plan to retrain.</details></li>
-    <li><b>When does a sparse list pay off?</b> Pick 📇 Sparse list and move Remove from 30% upwards. At which % does the file become smaller than the original 384 B?
-      <details class="answer"><summary>Answer</summary>30%: 572 B, 50%: 420 B, both <b>bigger</b> than the original, because every kept weight needs a 4-byte position.
-      From 60% (340 B) it's smaller, and at 90% it's only 116 B. For speed the break-even is much later (≈ 95%+ zeros), because finding each weight by its position is slow.</details></li>
-    <li><b>Calibration matters.</b> In ③, try ❌ Only 3 calibration examples, then ❌ Wrong preprocessing. Then keep the wrong preprocessing but go back to 8 bits.
-      <details class="answer"><summary>Answer</summary>3 examples: the measured ranges are too narrow, 1.5% of all activations get clipped, and accuracy falls from 97% to 75.5%. With 100 examples: 97%, nothing lost.
-      Wrong preprocessing at 4 bits: the ruler is 6× too long, so the real inputs only use a few of its 16 ticks → 87%. At 8 bits the same mistake is hidden (97.5%): 256 ticks are enough to survive it.
-      A hidden bug is still a bug. On Day 2 (Lab Ex. 3) a forgotten <code>Normalize</code> in calibration dropped the int8 model from ≈ 90% to ≈ 30%.</details></li>
-    <li><b>A student with 70× fewer weights.</b> In ⑥, train the 4-neuron students. Then try the 2-neuron student.
-      <details class="answer"><summary>Answer</summary>4 neurons (17 weights): trained on the 20 labels only, 74.5%; trained on the teacher's answers for 1,000 unlabelled dots, <b>98%</b>, as good as the 1,185-weight teacher (97%).
-      The teacher turns cheap unlabelled data into lessons. 2 neurons: 77.5% vs 82%, both far below the teacher. A student that is too small can't learn the border, however good the teacher.</details></li>
-    <li><b>Read the real numbers.</b> In ④, which technique is fastest? Which one shrinks the file most? Which one is slowest, and why?
-      <details class="answer"><summary>Answer</summary>Fastest and nearly smallest: ONNX Runtime static int8 (0.9 ms, 2.61 MB, 89.4%). Smallest: ONNX Runtime dynamic int8 (2.41 MB), but it is 13× slower than static int8 for a CNN.
-      Slowest by far: BF16 on the laptop CPU (227 ms), because the CPU has no BF16 hardware and emulates it. "Smaller" and "faster" are different questions.</details></li>
-    <li class="adv"><b>Bits vs error (Detailed).</b> Slide from 8 bits down to 2. Watch the SQNR and the blue spikes. About how many dB do you lose per bit?
-      <details class="answer"><summary>Answer</summary>About 6 dB per bit (each bit doubles the number of marks and halves the spacing).
-      At 2 bits there are only 3 marks (−s, 0, +s), and most weights collapse to 0.</details></li>
-    <li class="adv"><b>One bad apple (Detailed).</b> At 8 bits, min–max range, tick "Add ONE outlier". What happens to the scale, SQNR and "rounded to 0"? Then switch Range to "Clip at 99.9th percentile".
-      <details class="answer"><summary>Answer</summary>The one weight at 0.9 stretches the ruler about 5× wider, so the spacing gets 5× coarser for all 3,999 normal weights.
-      SQNR drops by about 14 dB (42 → 28) and 4× more weights now round to 0. Clipping ignores the extreme value, so the 3,999 normal weights get their fine ruler back.
-      Only the outlier gets a big error, and because that one error is huge, the overall SQNR number looks bad (≈ 13 dB).
-      So clipping is a trade: great for the many normal weights, bad for the rare extreme one. Choosing the range (<b>calibration</b>) is the core decision in static quantization on Day 2.</details></li>
-    <li class="adv"><b>Per-channel (Detailed).</b> At 8 bits, compare the smallest channel (std 0.01) under both methods. Then try 4 bits.
-      <details class="answer"><summary>Answer</summary>Per-tensor: the small channel only uses a few marks of a ruler built for the big channel, so its SQNR is poor (near 0 dB at 4 bits: the noise is as big as the signal).
-      Per-channel gives every channel roughly the same good SQNR. That's why Day 2's ONNX Runtime export used <code>per_channel=True</code>.</details></li>
-  </ol>
 </section>
 
 <section class="card adv">
   <h2>🗺️ How this maps to Day 2</h2>
   <div class="tbl-wrap"><table class="plain">
     <tr><th>Method (Day 2)</th><th>What it does</th><th>Seen on this page as</th></tr>
-    <tr><td><b>Dynamic quantization</b> <code>quantize_dynamic</code></td><td>Weights → int8 ahead of time; activations quantized on the fly. Mainly Linear/LSTM layers.</td><td>① and ② (weight rounding)</td></tr>
-    <tr><td><b>Static PTQ</b> (+ calibration)</td><td>Also quantizes activations, using ranges measured on calibration images.</td><td>Choosing the Range (min–max vs percentile)</td></tr>
+    <tr><td><b>Dynamic quantization</b> <code>quantize_dynamic</code></td><td>Weights → int8 ahead of time; activations quantized on the fly. Mainly Linear/LSTM layers.</td><td>② and ④ (weight rounding)</td></tr>
+    <tr><td><b>Static PTQ</b> (+ calibration)</td><td>Also quantizes activations, using ranges measured on calibration images.</td><td>Calibration (Detailed)</td></tr>
     <tr><td><b>QAT</b> (quantization-aware training)</td><td>Simulates rounding during training so the weights adapt to the coarse ruler.</td><td>"Retrain a little" after squeezing</td></tr>
-    <tr><td><b>Pruning</b> <code>torch.nn.utils.prune</code></td><td>Zeroes the smallest weights (L1 unstructured) or whole channels (structured; Lab Ex. 4, <code>torch-pruning</code>).</td><td>"Remove weights" slider, "Whole neurons" option</td></tr>
-    <tr><td><b>Calibration</b> (static PTQ, <code>quantize_static</code>)</td><td>Runs representative inputs through the model to set every activation's range.</td><td>③ Rounding the numbers between the layers</td></tr>
-    <tr><td><b>Knowledge distillation</b> (homework 1)</td><td>A small student learns from a big teacher's soft outputs (softmax with temperature, Lesson 5).</td><td>⑥ Teach a small student</td></tr>
-    <tr><td><b>FP16 / BF16</b></td><td>Halves the size. Fast on GPUs; on most CPUs it's <i>slower</i> (no native half-precision math).</td><td>The size table at the top</td></tr>
+    <tr><td><b>Pruning</b> <code>torch.nn.utils.prune</code></td><td>Zeroes the smallest weights (L1 unstructured) or whole channels (structured; Lab Ex. 4, <code>torch-pruning</code>).</td><td>③, ④, ⑤</td></tr>
+    <tr><td><b>Knowledge distillation</b> (homework 1)</td><td>A small student learns from a big teacher's soft outputs (softmax with temperature, Lesson 5).</td><td>⑥ Teach a tiny student</td></tr>
+    <tr><td><b>FP16 / BF16</b></td><td>Halves the size. Fast on GPUs; on most CPUs it's <i>slower</i> (no native half-precision math).</td><td>Size bars in ①</td></tr>
   </table></div>
   <pre class="code"><span class="k">import</span> torch, torch.nn.utils.prune <span class="k">as</span> prune
 <span class="c"># dynamic int8 quantization of all Linear layers</span>
@@ -444,16 +475,41 @@ prune.l1_unstructured(model.fc1, name=<span class="s">"weight"</span>, amount=<s
 prune.remove(model.fc1, <span class="s">"weight"</span>)</pre>
 </section>
 
-<section class="callout think">
-  <h3>🤔 Check yourself</h3>
+<section class="callout try adv">
+  <h3>🧪 Trainer challenges (guess first, then check)</h3>
   <ol class="challenges">
-    <li>Why does rounding to 8 bits hurt the model so little?
-      <details class="answer"><summary>Answer</summary>The rounding mistakes are tiny compared with the weights themselves, like writing 0.03712 as 0.0371. A trained model doesn't notice such small changes.</details></li>
-    <li>Your rounded (int8) model is <i>slower</i> than the original on your laptop. How is that possible?
-      <details class="answer"><summary>Answer</summary>Speed depends on the hardware and software. If your computer has no fast way to multiply 8-bit numbers, or has to keep converting back and forth, it can be slower.
-      We saw this on Day 2 and in the Live Demo: <b>always measure</b> on the machine you will really use.</details></li>
-    <li>Which is safer: deleting the smallest weights, or deleting random weights? Why?
-      <details class="answer"><summary>Answer</summary>The smallest ones. A small weight barely changes the neuron it feeds into, so removing it barely changes the answer. Random deletion also removes big, important weights.</details></li>
+    <li>In ②, go from 1 bit up. When are the red lines too small to see?
+      <details class="answer"><summary>Answer</summary>1 bit: 2 values, mistake ≈ 0.57. Each bit doubles the values and roughly halves the mistake (2 bits ≈ 0.17, 4 ≈ 0.04, 8 ≈ 0.002). From about 6 bits the lines vanish. Photo: 8–6 bits look identical, stripes from 4–5 bits, 1 bit = 6 colours.</details></li>
+    <li>In ④, lower the bits one step at a time. When does After break?
+      <details class="answer"><summary>Answer</summary>Fine down to 4 bits (≈ 97%), 3 bits ≈ 88%, 2 bits ≈ 51% (only −, 0, +). Per-channel: 3 bits ≈ 96%, 2 bits ≈ 80%.</details></li>
+    <li>Cut 50% smallest vs 50% random.
+      <details class="answer"><summary>Answer</summary>Smallest: still ≈ 97% (only faint lines go). Random: ≈ 54%, important thick lines were cut too.</details></li>
+    <li>Cut 90% (smallest), then 🔧 Retrain.
+      <details class="answer"><summary>Answer</summary>≈ 51% right after cutting; retraining brings it back to ≈ 98% with only 112 of 1,120 weights. The size does not shrink: zeros are still stored.</details></li>
+    <li>🧱 Remove 50% of the neurons, then 75% + 🔧.
+      <details class="answer"><summary>Answer</summary>50%: 93%, layers 32 → 16, file 4.63 KB → 1.32 KB, 1,120 → 304 multiplications. 75%: breaks (67%), retrained back to 98% with 88 multiplications (13× less work).</details></li>
+    <li>In ⑤ at 50%: ✂️ vs 🧱. Then 📇 sparse list from 30% up.
+      <details class="answer"><summary>Answer</summary>✂️ keeps 87% strength but stores 384 B and does all 96 multiplications (48 × 0). 🧱 stores 192 B, 48 multiplications, keeps 74%. Sparse list: 30% → 572 B, 50% → 420 B (bigger!), from 60% (340 B) smaller, 90% → 116 B.</details></li>
+    <li>In ⑥, the 4-neuron students, then 2 neurons.
+      <details class="answer"><summary>Answer</summary>4 neurons (17 weights): 20 labels only 74.5%; copying the teacher on 1,000 unlabelled dots 98% (teacher 97%). 2 neurons: 77.5% vs 82%: too small to learn the border.</details></li>
+    <li>Calibration: ❌ 3 examples, ❌ wrong preprocessing, then wrong preprocessing at 8 bits.
+      <details class="answer"><summary>Answer</summary>3 examples: 1.5% clipped, 97% → 75.5%. Wrong preprocessing at 4 bits: ruler 6× too long → 87%. At 8 bits it's hidden (97.5%), but still a bug. Day 2 Lab Ex. 3: forgotten <code>Normalize</code> dropped int8 from ≈ 90% to ≈ 30%.</details></li>
+    <li>4,000 weights: at 8 bits add ONE outlier, then clip at 99.9%.
+      <details class="answer"><summary>Answer</summary>The ruler gets ≈ 5× wider, SQNR 42 → 28 dB, 4× more weights round to 0. Clipping restores the fine ruler for the 3,999 normal weights (overall SQNR ≈ 13 dB because the outlier's error is huge). About 6 dB per bit.</details></li>
+    <li>Per-channel: the std 0.01 channel at 8 and 4 bits.
+      <details class="answer"><summary>Answer</summary>Per-tensor: poor SQNR (near 0 dB at 4 bits). Per-channel gives every channel similar good SQNR, which is why Day 2 used <code>per_channel=True</code>.</details></li>
+  </ol>
+</section>
+
+<section class="callout think">
+  <h3>🤔 Quick quiz</h3>
+  <ol class="challenges">
+    <li>32 bits ➜ 8 bits. How much smaller?
+      <details class="answer"><summary>Answer</summary>4× smaller, and the accuracy barely moves.</details></li>
+    <li>✂️ Cut the smallest weights or 🎲 random ones?
+      <details class="answer"><summary>Answer</summary>The smallest: a small weight has a small effect.</details></li>
+    <li>You set half the weights to 0. Is the file smaller?
+      <details class="answer"><summary>Answer</summary>No. Zeros are still stored. 🧱 Remove whole neurons to really shrink it.</details></li>
   </ol>
 </section>
 
@@ -632,8 +688,8 @@ function trainTiny(){
   const net=new Net([2,32,32,1],'tanh',7),r=mulberry32(99);let e=0;const E=300;
   const chunk=()=>{for(let k=0;k<15&&e<E;k++,e++){const idx=[...C.tr.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
       for(let s=0;s<idx.length;s+=10)net.trainBatch(idx.slice(s,s+10).map(i=>C.tr[i]),'adam',0.03,0);}
-    $('#prog').style.width=(e/E*100)+'%';$('#progTxt').textContent=`Training the tiny model first: round ${e} / ${E}`;
-    if(e<E)requestAnimationFrame(chunk);else{C.net=net;$('#progTxt').textContent=`✅ Model trained! It gets ${pct(evalSet(net,C.te).acc)} of the test dots right. Now squeeze it with the sliders.`;computeCurves();partC();partAQ();drawKD($('#kdT'),C.net,null);$('#kdTa').textContent=pct(evalSet(C.net,C.te).acc);$('#kdGo').disabled=false;}};
+    $('#prog').style.width=(e/E*100)+'%';$('#progTxt').textContent=`🧠 Training the tiny model… ${e} / ${E}`;
+    if(e<E)requestAnimationFrame(chunk);else{C.net=net;$('#progBox').hidden=true;$('#progTxt').innerHTML=`✅ Trained: <b>${pct(evalSet(net,C.te).acc)}</b> right. Now squeeze it 👇`;computeCurves();partC();partAQ();drawKD($('#kdT'),C.net,null);$('#kdTa').textContent=pct(evalSet(C.net,C.te).acc);$('#kdGo').disabled=false;}};
   requestAnimationFrame(chunk);
 }
 function computeCurves(){
@@ -660,8 +716,8 @@ function fineTune(){
   $('#ft').disabled=true;let e=0;
   const chunk=()=>{for(let k=0;k<10&&e<100;k++,e++){const idx=[...C.tr.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
       for(let s=0;s<idx.length;s+=10)n.trainBatch(idx.slice(s,s+10).map(i=>C.tr[i]),'adam',0.01,0);}
-    C.tuned={sp,method,net:n};$('#progTxt').textContent=`Retraining (the deleted weights stay at 0): round ${e} / 100`;partC();
-    if(e<100)requestAnimationFrame(chunk);else $('#progTxt').textContent=`✅ Retrained for 100 rounds. The deleted weights stayed deleted. Move a slider to go back.`;};
+    C.tuned={sp,method,net:n};$('#progTxt').textContent=`🔧 Retraining (cut weights stay cut)… ${e} / 100`;partC();
+    if(e<100)requestAnimationFrame(chunk);else $('#progTxt').textContent=`✅ Retrained. The cut weights stayed cut.`;};
   requestAnimationFrame(chunk);
 }
 // the right-most slider position (9) means 'keep float32'
@@ -669,17 +725,19 @@ function readBits(){const v=+$('#nbits').value;return v===9?32:v;}
 function partC(){
   const bits=readBits();
   const sp=+$('#sp').value/100,method=$('#method').value,perCh=$('#perch').checked;
-  $('#nbOut').textContent=bits===32?'32 (original)':bits;$('#spOut').textContent=Math.round(sp*100)+'%';$('#spLab').textContent=method==='neuron'?'Remove neurons':'Remove weights';
+  $('#nbOut').textContent=bits===32?'32 (normal)':bits;$('#spOut').textContent=Math.round(sp*100)+'%';$('#spLab').textContent=method==='neuron'?'Remove neurons':'Cut weights';
   if(!C.net)return;
   const tuned=C.tuned&&C.tuned.sp===sp&&C.tuned.method===method,base=tuned?C.tuned.net:C.net;
   const n=tuned?quantNet(cloneNet(base),bits,perCh):compressed(bits,perCh,sp,method,C.net);
   const acc=evalSet(n,C.te).acc,o=evalSet(C.net,C.te).acc;let nz=0,tot=0;n.W.forEach(w=>w.forEach(v=>{tot++;if(v!==0)nz++;}));
-  $('#accO').textContent=pct(o);$('#accC').textContent=pct(acc);$('#accC').parentElement.className='stat '+(acc>=o-0.02?'good':'bad');
+  $('#accO').textContent=pct(o);$('#accC').textContent=pct(acc);$('#accC').style.color=acc>=o-0.02?'var(--green)':'var(--red)';
   $('#nz').textContent=`${nz} / ${tot}`;
   // unstructured pruning keeps the dense matrices (zeros are stored and multiplied); structured pruning really shrinks them
   const rc=realCost(n),structured=method==='neuron'&&sp>0,wStored=structured?rc.w:tot,bStored=structured?rc.b:n.b.reduce((s,b)=>s+b.length,0);
   const bytes=wStored*(bits===32?4:bits/8)+bStored*4;$('#size').textContent=(bytes/1024).toFixed(2)+' KB';
-  $('#mults').textContent=wStored.toLocaleString('en-US');$('#mults').parentElement.className='stat '+(wStored<tot?'good':'orange');
+  $('#mults').textContent=wStored.toLocaleString('en-US');$('#mults').style.color=wStored<tot?'var(--green)':'var(--orange)';
+  document.querySelectorAll('#mbtns .btn').forEach(b=>b.classList.toggle('on',b.dataset.m===method));
+  const qb=[...document.querySelectorAll('#qscen .btn')];qb.forEach(b=>b.classList.toggle('on',+b.dataset.b===+$('#nbits').value&&+b.dataset.s===+$('#sp').value&&b.dataset.m===method&&(+b.dataset.s>0||!perCh)));
   $('#cTitle').textContent=`After: ${bits===32?'32-bit (not rounded)':bits+'-bit weights'}, ${Math.round(sp*100)}%${method==='neuron'?' of neurons':''} removed${sp>0?({mag:' (smallest)',rand:' (random)',neuron:` → layers ${rc.al.join('-')}`})[method]:''}${tuned?' + retrained':''}`;
   drawBoundary($('#bO'),C.net);drawBoundary($('#bC'),n);drawWires(n);
   const cb=C.curves.bits,m1=lineChart($('#cBits'),cb.map(c=>c.b),[{col:'#2f6fed',ys:cb.map(c=>c.acc)}],'bits per weight',x=>x);
@@ -696,8 +754,8 @@ function gameError(bits){return GAME_W.reduce((s,w)=>s+Math.abs(w-snapTo(w,bits)
 function drawGame(){
   const bits=+$('#gb').value,L=2**bits,{ctx,w:W,h:H}=setupCanvas($('#ruler')),pad=24,y0=H-58,sx=x=>pad+(x+1)/2*(W-2*pad);
   $('#gbOut').textContent=`${bits} bit${bits>1?'s':''} = ${L} allowed values`;$('#gLevels').textContent=L;$('#gSmaller').textContent=(32/bits).toFixed(bits===3?1:0)+'×';
-  const err=gameError(bits),word=err<0.01?'tiny':err<0.05?'small':err<0.15?'medium':'big';$('#gErr').textContent=`${err.toFixed(3)} (${word})`;
-  $('#gErr').parentElement.className='stat '+(err<0.05?'good':err<0.15?'orange':'bad');
+  const err=gameError(bits),word=err<0.01?'tiny':err<0.05?'small':err<0.15?'medium':'big';$('#gErr').textContent=`${word} ${err<0.05?'✅':err<0.15?'⚠️':'❌'}`;$('#gErr').title=err.toFixed(3);
+  $('#gErr').style.color=err<0.05?'var(--green)':err<0.15?'var(--orange)':'var(--red)';
   // the ruler
   ctx.strokeStyle='#1c2230';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx(-1),y0);ctx.lineTo(sx(1),y0);ctx.stroke();
   ctx.font='12px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.textAlign='center';
@@ -729,7 +787,7 @@ function drawPhoto(bits){
   const L=2**bits,src=photoBase.data,out=new ImageData(240,180),d=out.data;
   for(let i=0;i<src.length;i+=4){for(let c=0;c<3;c++)d[i+c]=Math.round(Math.round(src[i+c]/255*(L-1))/(L-1)*255);d[i+3]=255;}
   $('#photoQ').getContext('2d').putImageData(out,0,0);
-  $('#photoLabel').textContent=`Rounded to ${bits} bit${bits>1?'s':''} per colour (${L} shades each)`;
+  $('#photoLabel').textContent=`${bits} bit${bits>1?'s':''} · ${L} shades`;
 }
 // ---------- wiring diagram of the squeezed model ----------
 function drawWires(net){
@@ -798,9 +856,9 @@ async function runKD(){if(!C.net)return;$('#kdGo').disabled=true;const h=+$('#kd
   while(st<STEPS){for(let k=0;k<150&&st<STEPS;k++,st++){if(!q1.length)q1=batches(hard,r1);if(!q2.length)q2=batches(soft,r2);S1.trainBatch(q1.shift(),'adam',0.03,0);S2.trainBatch(q2.shift(),'adam',0.03,0);}
     drawKD($('#kdH1'),S1,hard);drawKD($('#kdS1'),S2,null);$('#kdHa').textContent=pct(evalSet(S1,C.te).acc);$('#kdSa').textContent=pct(evalSet(S2,C.te).acc);await new Promise(r=>requestAnimationFrame(r));}
   const a1=evalSet(S1,C.te).acc,a2=evalSet(S2,C.te).acc,t=evalSet(C.net,C.te).acc,v=$('#kdV');
-  if(a2>=a1+0.03&&a2>=t-0.03){v.className='banner good';v.innerHTML=`✅ <b>Distillation works:</b> the ${S2.paramCount()}-weight student reaches ${pct(a2)} (teacher ${pct(t)}) by copying the teacher's answers. From the 20 labels alone: ${pct(a1)}.`;}
-  else if(a2<t-0.05){v.className='banner bad';v.innerHTML=`❌ <b>The student is too small:</b> ${h} neurons can't draw the teacher's border, however good the lessons (${pct(a2)} vs teacher ${pct(t)}). Distillation can't add capacity.`;}
-  else{v.className='banner info';v.innerHTML=`➖ Both students: ${pct(a1)} vs ${pct(a2)}.`;}
+  if(a2>=a1+0.03&&a2>=t-0.03){v.className='vstrip good';v.innerHTML=`✅ Copying the teacher wins: ${pct(a2)} vs ${pct(a1)}, with only ${S2.paramCount()} weights.`;}
+  else if(a2<t-0.05){v.className='vstrip bad';v.innerHTML=`❌ Too tiny: ${h} neurons can't draw the border (${pct(a2)} vs teacher ${pct(t)}).`;}
+  else{v.className='vstrip';v.innerHTML=`➖ Both students: ${pct(a1)} vs ${pct(a2)}.`;}
   $('#kdGo').disabled=false;KD.last={a1,a2,t};return KD.last;}
 // ---------- ⑦ which method when? ----------
 function wizard(){if(!$('#wzOut'))return;
@@ -877,6 +935,32 @@ $('#bits2').addEventListener('input',partB);
 $('#ft').onclick=fineTune;
 $('#undo').onclick=()=>{C.tuned=null;$('#nbits').value=9;$('#sp').value=0;$('#method').value='mag';$('#perch').checked=false;partC();};
 $('#gb').addEventListener('input',drawGame);
+// ---------- ① bit boxes + growing bars ----------
+[['#bits32',32],['#bits8',8]].forEach(([id,n])=>{$(id).innerHTML='<i></i>'.repeat(n);});
+const GROW=[['#sz32','100%'],['#sz16','50%'],['#sz8','25%'],['#sz4','12.5%'],['#d2a','100%'],['#d2b','28.4%'],['#d2c','100%']];
+const noMotion=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if('IntersectionObserver' in window&&!noMotion){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const g=GROW.find(q=>$(q[0])===e.target);e.target.style.width=g[1];io.unobserve(e.target);}}),{threshold:.3});GROW.forEach(([id])=>io.observe($(id)));}
+else GROW.forEach(([id,w])=>$(id).style.width=w);
+// ---------- ③ pruning diagram ----------
+(function(){const sizes=[3,5,5,2],X=[130,390,650,880],r=mulberry32(3),pos=(l,k)=>[X[l],sizes[l]===1?170:60+k*(250/(sizes[l]-1))];
+  const lines=[];for(let l=0;l<3;l++)for(let i=0;i<sizes[l];i++)for(let j=0;j<sizes[l+1];j++)lines.push({a:pos(l,i),b:pos(l+1,j),w:Math.abs(gauss(r))});
+  const sorted=lines.map(o=>o.w).sort((a,b)=>a-b),cut=sorted[Math.floor(lines.length/2)],mx=sorted[sorted.length-1];
+  $('#prLines').innerHTML=lines.map(o=>`<line class="${o.w<cut?'weak':''}" x1="${o.a[0]}" y1="${o.a[1]}" x2="${o.b[0]}" y2="${o.b[1]}" stroke-width="${(1+8*o.w/mx).toFixed(1)}"/>`).join('');
+  let nodes='';sizes.forEach((n,l)=>{for(let k=0;k<n;k++){const [x,y]=pos(l,k);nodes+=`<circle cx="${x}" cy="${y}" r="${l===0||l===3?13:10}"/>`;}});$('#prNodes').innerHTML=nodes;
+  const total=lines.length,kept=lines.filter(o=>o.w>=cut).length;
+  const CAPS={1:`🧠 A trained model: ${total} lines. Thick = important.`,2:'🔍 Find the thinnest lines (half of them).',3:`✂️ Cut them: ${total} ➜ ${kept} lines.`,4:'🔧 Retrain a little. The thick lines take over.'};
+  let playT=null;
+  function setStep(k){const svg=$('#pr');svg.classList.toggle('find',k===2);svg.classList.toggle('cut',k>=3);svg.classList.toggle('heal',k===4);
+    $('#prCnt').textContent=k>=3?`${kept} lines left`:`${total} lines`;
+    document.querySelectorAll('#steps [data-k]').forEach(b=>b.classList.toggle('on',+b.dataset.k===k));$('#stepcap').textContent=CAPS[k];}
+  document.querySelectorAll('#steps [data-k]').forEach(b=>b.onclick=()=>{clearTimeout(playT);setStep(+b.dataset.k);});
+  $('#playAll').onclick=()=>{clearTimeout(playT);let k=1;const tick=()=>{setStep(k);if(k++<4)playT=setTimeout(tick,2600);};tick();};
+  $('#prCnt').textContent=`${total} lines`;})();
+// ---------- ④ quick buttons + method buttons ----------
+document.querySelectorAll('#mbtns .btn').forEach(b=>b.onclick=()=>{$('#method').value=b.dataset.m;partC();});
+document.querySelectorAll('#qscen .btn').forEach(b=>b.onclick=()=>{$('#nbits').value=b.dataset.b;$('#sp').value=b.dataset.s;$('#method').value=b.dataset.m;$('#perch').checked=false;partC();
+  if(b.textContent.includes('🔧')&&C.net)setTimeout(fineTune,900);});
+
 window.addEventListener('resize',()=>{drawGame();partA();partB();partC();partAQ();drawD2();pmDraw();});
 drawGame();partA();partB();drawD2();pmDraw();wizard();trainTiny();
 </script>

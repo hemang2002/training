@@ -6,40 +6,104 @@
 <title>13 · Data augmentation — Training, Visualized</title>
 <link rel="stylesheet" href="style.css">
 <style>
+  .hero h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.025em;line-height:1.08;margin-bottom:.3em}
+  .sub{color:var(--muted);font-size:1.1rem;margin:.2rem 0 .8rem}
+  .bigq{font-size:clamp(1.3rem,3vw,1.75rem);letter-spacing:-.015em;line-height:1.2;font-weight:700;margin:0 0 .6rem}
   .pic{width:100%;aspect-ratio:1;display:block;border-radius:8px;border:1px solid var(--line);background:#000}
+  .chipsrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+  .wchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:.92rem}
+  .stepcap{font-size:1.15rem;font-weight:700;min-height:1.8rem;margin:.5rem .2rem .2rem}
+
+  /* hero analogy: one face, many views */
+  .analogy{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem 1.2rem;box-shadow:var(--shadow);max-width:52rem}
+  .faces{display:grid;grid-template-columns:minmax(0,8rem) repeat(6,minmax(0,1fr));gap:.45rem;align-items:center}
+  .faces .lbl{font-size:.95rem;font-weight:700;line-height:1.2}
+  .faces .lbl small{display:block;font-weight:500;color:var(--muted);font-size:.78rem}
+  .face{aspect-ratio:1;background:#e7f5ff;border-radius:14px;display:grid;place-items:center;position:relative;overflow:hidden;font-size:clamp(1.4rem,4.2vw,2.5rem);line-height:1}
+  .face .e{display:inline-block}
+  .face.dark{background:#343a40}.face.dark .e{filter:brightness(.45)}
+  .face.tilt .e{transform:rotate(-38deg)}
+  .face.far .e{transform:scale(.45)}
+  .face.hat .h{position:absolute;top:4%;left:50%;transform:translateX(-50%);font-size:.72em}
+  .face.hat .e{margin-top:.35em}
+  .face.blur .e{filter:blur(2.5px)}
+  .fname{font-size:.75rem;color:var(--muted);text-align:center;font-weight:600}
+  .mk{text-align:center;font-size:clamp(1.1rem,3vw,1.5rem);opacity:0;transform:scale(.3);transition:opacity .35s,transform .45s cubic-bezier(.3,1.5,.5,1);transition-delay:calc(var(--d,0) * .18s)}
+  .analogy.go .mk{opacity:1;transform:none}
+  .analogy .tag{font-size:1.05rem;font-weight:700;color:var(--blue);text-align:center;margin-top:.7rem}
+  @media (max-width:560px){.faces{grid-template-columns:minmax(0,4.2rem) repeat(6,minmax(0,1fr));gap:.3rem}.faces .lbl small{display:none}.faces .lbl{font-size:.8rem}.fname{font-size:.62rem}}
+
+  /* ① epochs */
+  .flow{max-width:62rem;display:grid;grid-template-columns:minmax(0,9rem) 2.2rem minmax(0,1fr);gap:.6rem;align-items:center}
+  .disk{text-align:center;font-weight:700;font-size:.9rem}
+  .disk .pic{border:3px solid var(--blue);margin-bottom:.3rem}
+  .arrowbig{font-size:1.8rem;text-align:center;color:var(--muted)}
+  .lane2{display:grid;grid-template-columns:2.2rem minmax(0,1fr);gap:.5rem;align-items:center;margin:.3rem 0}
+  .lane2 .sym{font-size:1.6rem;text-align:center}
+  .minis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.35rem}
+  .minis figure{margin:0;min-width:0;transition:opacity .3s,transform .4s cubic-bezier(.3,1.4,.5,1)}
+  .minis figure.hid{opacity:.08;transform:scale(.8)}
+  .minis figcaption,.batch figcaption{font-size:.7rem;color:var(--muted);line-height:1.25;text-align:center;margin-top:.15rem;overflow-wrap:anywhere}
+  @media (max-width:640px){.flow{grid-template-columns:1fr}.disk{max-width:7rem;margin:0 auto}.arrowbig{transform:rotate(90deg)}}
+
+  /* ② playground */
+  body.simple .lab{grid-template-columns:1fr}
   .batch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem}
-  @media (min-width:1100px){.batch{grid-template-columns:repeat(8,minmax(0,1fr))}}
-  .batch figure,.minis figure{margin:0;min-width:0}
-  .batch figcaption,.minis figcaption{font-size:.7rem;color:var(--muted);line-height:1.25;text-align:center;margin-top:.15rem;overflow-wrap:anywhere}
-  .minis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.35rem;margin:.2rem 0 .5rem}
-  .rowlbl{font-size:.85rem;font-weight:700;margin:.4rem .1rem .15rem}
-  .orig{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem}
-  .orig figure{margin:0;width:130px;flex:none}
-  .orig figcaption{font-size:.75rem;color:var(--muted);text-align:center}
-  .orig p{flex:1;min-width:12rem;margin:0}
-  .presets{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0 .4rem}
-  .presets .btn{font-size:.84rem;padding:.35rem .6rem}
-  .presets .btn.on,.seg3 .btn.on{border-color:var(--blue);background:#e7f0ff}
-  .smp{background:#fff;border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:10px;padding:.55rem .8rem;font-size:.93rem}
-  body:not(.simple) .smp{display:none}
-  .cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:.7rem;margin:.6rem 0}
-  .case{border:2px solid var(--line);border-radius:12px;padding:.6rem .7rem;background:#fff;min-width:0}
-  .case h3{font-size:.95rem;margin:0 0 .35rem}
+  @media (min-width:1000px){.batch{grid-template-columns:repeat(8,minmax(0,1fr))}}
+  .batch figure{margin:0;min-width:0}
+  .big3{display:flex;flex-wrap:wrap;gap:.5rem;margin:.2rem 0 .7rem}
+  .big3 .btn{font-size:1rem;padding:.55rem 1rem}
+  .big3 .btn.on,.chips .btn.on{border-color:var(--blue);background:#e7f0ff}
+  .big3 .btn.pulse{animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(47,111,237,.45)}50%{box-shadow:0 0 0 8px rgba(47,111,237,0)}}
+  .chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.3rem 0 .6rem}
+  .chips .btn{border-radius:999px;padding:.35rem .8rem}
+  .rowlbl{font-size:.82rem;font-weight:700;color:var(--muted);margin:1rem 0 .3rem;text-transform:uppercase;letter-spacing:.05em}
+
+  /* ③ good / bad */
+  .cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(45%,220px),1fr));gap:.7rem;margin:.6rem 0}
+  .case{border:2px solid var(--line);border-radius:14px;padding:.6rem .7rem;background:#fff;min-width:0}
+  .case h3{font-size:1rem;margin:0 0 .35rem}
   .case .pair{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:.35rem;align-items:center}
   .case .pair span{font-size:1.2rem;color:var(--muted)}
-  .case .pair small{display:block;text-align:center;font-size:.72rem;color:var(--muted)}
-  .case .q{font-size:.86rem;margin:.4rem 0 .2rem}
+  .case .q{font-size:.9rem;margin:.4rem 0 .2rem}
   .case .btn-row{margin:.3rem 0 0}
-  .case .btn{font-size:.82rem;padding:.3rem .55rem}
-  .case .ans{font-size:.86rem;margin-top:.35rem}
+  .case .btn{font-size:.85rem;padding:.3rem .6rem}
+  .case .ans{font-size:.9rem;margin-top:.35rem;font-weight:600}
   .case.good{border-color:#8ce99a;background:var(--good-bg)}
   .case.bad{border-color:#ffa8a8;background:var(--bad-bg)}
-  .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.7rem}
-  .rules > div{background:var(--soft);border-radius:12px;padding:.7rem .85rem}
-  .rules h3{font-size:1rem;margin:0 0 .3rem}
-  .rules p{margin:0;font-size:.92rem}
+  .scorebox{display:inline-flex;align-items:baseline;gap:.5rem;background:#fff;border:1px solid var(--line);border-radius:14px;padding:.4rem .9rem}
+  .scorebox b{font:800 1.8rem/1 var(--sans);color:var(--blue);font-variant-numeric:tabular-nums}
+
+  /* ④ real results */
+  .res{display:flex;flex-direction:column;gap:.7rem;max-width:52rem;margin-top:.4rem}
+  .res .r{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr) 4.5rem;gap:.8rem;align-items:center}
+  .res .r .l b{display:block}
+  .res .r .l small{color:var(--muted)}
+  .res .bar{height:2.2rem;background:var(--soft);border-radius:10px;overflow:hidden}
+  .res .bar i{display:block;height:100%;border-radius:10px;width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+  .res .num{font:800 1.5rem/1 var(--sans);font-variant-numeric:tabular-nums;text-align:right}
+  @media (max-width:640px){.res .r{grid-template-columns:minmax(0,1fr) 4rem}.res .r .l{grid-column:1 / -1}}
+  .bignums{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.8rem;align-items:center}
+  .bignum{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.5rem .9rem;text-align:center;min-width:8rem}
+  .bignum b{display:block;font:800 1.7rem/1.1 var(--sans);letter-spacing:-.02em}
+  .bignum span{font-size:.82rem;color:var(--muted)}
+  .verdict{font-size:1.1rem;font-weight:700;padding:.6rem .9rem;border-radius:12px;margin-top:.8rem}
+  .verdict.good{background:var(--good-bg);color:var(--green)}
+  .verdict.bad{background:var(--bad-bg);color:var(--red)}
+  .legend{display:flex;flex-wrap:wrap;gap:.9rem;font-size:.8rem;color:var(--muted);margin:.3rem}
+  .legend i{display:inline-block;width:.8rem;height:.8rem;border-radius:3px;margin-right:.3rem;vertical-align:-1px}
+
+  /* ⑤ rules */
+  .when{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.8rem}
+  .wcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;text-align:center}
+  .wcard .pic2{font-size:2.4rem;line-height:1.2}
+  .wcard .if{font-weight:700;margin:.3rem 0 .5rem}
+  .wcard .then{display:inline-block;font-weight:700;border-radius:999px;padding:.3rem .9rem;font-size:.9rem}
+
   .tbl-wrap code{overflow-wrap:anywhere}
   @media (max-width:600px){.tfs{font-size:.8rem}.tfs th,.tfs td{padding:.35rem .3rem}.tfs code{font-size:.78rem}}
+  @media (prefers-reduced-motion:reduce){.mk,.minis figure,.res .bar i{transition:none!important}.big3 .btn.pulse{animation:none}}
 </style>
 </head>
 <body>
@@ -69,118 +133,135 @@
 
 <main class="wrap">
 <section class="hero">
-  <div class="kicker">Lesson 13 of 15 · ≈ 30 min</div>
+  <div class="kicker">Lesson 13 of 15 · ≈ 20 min</div>
   <h1>Data augmentation: more pictures for free</h1>
-  <p class="one-liner">A model with only a few pictures starts to <b>memorise</b> them, pixel by pixel. Data augmentation shows the <b>same picture in new ways</b>:
-  flipped, shifted, zoomed, a bit darker, a bit blurry. Every epoch the model sees a slightly different version, so it has to learn <b>what matters</b>
-  (ears, whiskers, shape) instead of the <b>exact pixels</b>. The one rule: after the change, the <b>label must still be true</b>.</p>
-</section>
-<section class="start">
-  <h2>👋 New here? The 30-second version</h2>
-  <div class="row">
-    <div class="box story"><h3>🧸 Think of it like this</h3><p>If you only ever saw <b>one photo</b> of your new classmate, you might not recognise them in the shade, from the side, or wearing a hat.
-      Seeing them on many different days teaches you their <b>face</b>, not that one photo. Augmentation gives the model "many different days" from one photo.</p></div>
-    <div class="box"><h3>👆 Do this</h3><ol><li>In ②, move <b>one slider</b>: the top row shows that change alone, the bottom row shows it mixed with the others. Press <b>🎲</b> for new random picks.</li>
-      <li>In ③, guess ✅ or ❌ for each change, then check.</li>
-      <li>In ④, switch between <b>none / good / too strong</b> and watch the two curves.</li></ol></div>
-    <div class="box"><h3>👀 Notice this</h3><p>Without augmentation, training accuracy goes to ≈ 100% but new pictures do worse (<b>overfitting</b>).
-      Good augmentation makes training <b>harder</b>, and the model does <b>better</b> on new pictures. Too much makes it fail everywhere.</p></div>
-  </div>
-  <div class="words">📖 <b>Hard words, made easy:</b><br><span><b>Augmentation</b> = making new versions of a training picture</span>
-    <span><b>Transform</b> = one change, like "flip" or "rotate"</span><span><b>Label</b> = the right answer for a picture ("cat")</span>
-    <span><b>Overfitting</b> = memorising the training pictures instead of learning</span><span><b>Validation set</b> = pictures kept aside to test on</span>
-    <span><b>Epoch</b> = one pass over all training pictures</span><span><b>Colour jitter</b> = small random changes of light and colour</span>
-    <span><b>Cutout</b> (random erasing) = cover a random box with grey</span></div>
-</section>
-
-<section class="card">
-  <h2>① Why augment?</h2>
-  <div class="grid2">
-    <div>
-      <p>A neural network has <b>millions of weights</b>. If it only has a few thousand pictures, it can simply <b>remember</b> each one: "this exact pattern of pixels = cat".
-      That works on the training pictures (≈ 100%!) but fails on new ones. This is <b>overfitting</b> (Lesson 7).</p>
-      <p>The fix that costs nothing: every time a picture is used, change it a little, <b>at random</b>. The cat is flipped, then zoomed in, then a bit darker.
-      The exact pixels are never the same twice, so memorising them doesn't help. The only way to be right every time is to learn <b>what a cat looks like</b>.</p>
-      <p>🎁 More variety, no new photos, no new labels. On a small dataset this is often the <b>cheapest big win</b> you can get.</p>
+  <p class="sub">Show the model the same picture in many new ways.</p>
+  <div class="analogy" id="analogy">
+    <div class="faces">
+      <div></div>
+      <div class="face"><span class="e">🙂</span></div>
+      <div class="face dark"><span class="e">🙂</span></div>
+      <div class="face tilt"><span class="e">🙂</span></div>
+      <div class="face far"><span class="e">🙂</span></div>
+      <div class="face hat"><span class="h">🧢</span><span class="e">🙂</span></div>
+      <div class="face blur"><span class="e">🙂</span></div>
+      <div></div>
+      <div class="fname">normal</div><div class="fname">🌙 dark</div><div class="fname">🔄 tilted</div><div class="fname">🔍 far</div><div class="fname">🧢 hat</div><div class="fname">💧 blurry</div>
+      <div class="lbl">📷 1 photo<small>of a new friend</small></div>
+      <div class="mk" style="--d:0">✅</div><div class="mk" style="--d:1">❓</div><div class="mk" style="--d:2">❓</div><div class="mk" style="--d:3">❓</div><div class="mk" style="--d:4">❓</div><div class="mk" style="--d:5">❓</div>
+      <div class="lbl">📸 many days<small>sun, shade, hats…</small></div>
+      <div class="mk" style="--d:7">✅</div><div class="mk" style="--d:8">✅</div><div class="mk" style="--d:9">✅</div><div class="mk" style="--d:10">✅</div><div class="mk" style="--d:11">✅</div><div class="mk" style="--d:12">✅</div>
     </div>
-    <div class="canvas-box"><div class="canvas-title">The same training picture, 6 epochs in a row</div>
-      <div class="rowlbl">🚫 Without augmentation: exactly the same pixels every time</div><div class="minis" id="rowNone"></div>
-      <div class="rowlbl">✅ With augmentation: a new version every epoch</div><div class="minis" id="rowAug"></div>
-      <div class="btn-row"><button class="btn" id="shuffle1">🎲 Shuffle</button></div>
-      <div class="look">👀 Top row: the model sees one photo six times and can learn it by heart. Bottom row: it sees six different "photos", all still clearly a cat.</div></div>
+    <div class="tag">Many views teach the face, not one photo. 🎲 Augmentation gives a model those "many days".</div>
   </div>
 </section>
 
 <section class="card">
-  <h2>② Augmentation playground</h2>
-  <p>When you move a slider, you see <b>two rows</b>. <b>Top:</b> only that one change, in 8 steps from its smallest to its biggest value. <b>Bottom:</b> a real training batch, where all switched-on changes are mixed at random, like the data loader does. Press 🎲 for new random picks.</p>
+  <h2>① One photo, a new version every epoch</h2>
+  <p class="bigq">The photo on disk never changes. What the model sees does.</p>
+  <div class="flow">
+    <div class="disk"><canvas id="origc" class="pic" width="160" height="160"></canvas>💾 on disk</div>
+    <div class="arrowbig">➜</div>
+    <div>
+      <div class="lane2"><span class="sym" title="No augmentation">🚫</span><div class="minis" id="rowNone"></div></div>
+      <div class="lane2"><span class="sym" title="With augmentation">🎲</span><div class="minis" id="rowAug"></div></div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn primary" id="play1">▶ Play 6 epochs</button><button class="btn" id="shuffle1">🎲 New dice</button></div>
+  <div class="stepcap" id="cap1">🚫 Same pixels every time → learned by heart. 🎲 A new cat every time → learns "cat".</div>
+  <div class="chipsrow">
+    <span class="wchip">🎲 <b>Augmentation</b> = a new random version of a photo</span>
+    <span class="wchip">🏷️ <b>Label</b> = the right answer ("cat")</span>
+    <span class="wchip">🔁 <b>Epoch</b> = one pass over all photos</span>
+    <span class="wchip">🤓 <b>Overfitting</b> = learning by heart</span>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Playground: bend the cat</h2>
+  <p class="bigq">Mix random changes. Would you still say "cat"?</p>
   <div class="lab">
-    <aside class="controls" id="controls"></aside>
+    <aside class="controls adv" id="controls"></aside>
     <div class="stage">
-      <div class="orig"><figure><canvas id="origc" class="pic" width="160" height="160"></canvas><figcaption>Original (on disk)</figcaption></figure>
-        <p>This picture never changes on disk. The changes happen <b>on the fly</b>, each time the picture is loaded. Black corners come from rotating or shifting (there are no pixels there).</p></div>
-      <div class="btn-row"><button class="btn primary" id="roll">🎲 Roll new dice for the real batch</button></div>
-      <div class="canvas-box"><div class="canvas-title" id="batchT">Only one change</div><div class="batch" id="batch"></div>
-        <div class="look" id="look"></div></div>
-      <div class="canvas-box"><div class="canvas-title">🎲 A real training batch: all switched-on changes mixed at random</div><div class="batch" id="batch2"></div>
-        <div class="look">👀 This is what the model really sees: every picture gets a <b>random mix</b> of all switched-on changes (listed under it). While you drag a slider, each picture keeps its own dice roll, so you see the slider's effect <b>inside the mix</b>. Ask yourself: <b>would I still say "cat"?</b></div></div>
-      <p class="smp" id="plain"></p>
+      <div class="big3" id="presets">
+        <button class="btn" data-k="none">🚫 None</button><button class="btn" data-k="good">👍 Gentle</button><button class="btn pulse" data-k="strong">💥 Too strong</button>
+        <button class="btn primary" id="roll">🎲 Roll again</button>
+      </div>
+      <div class="batch" id="batch2"></div>
+
+      <div class="rowlbl">One change at a time 👇</div>
+      <div class="chips" id="chips"></div>
+      <div class="canvas-box"><div class="canvas-title" id="batchT"></div><div class="batch" id="batch"></div></div>
       <div class="adv"><div class="canvas-title" style="margin-top:.6rem">The matching torchvision code (sizes for 32 × 32 CIFAR-10 pictures)</div><pre class="code" id="code"></pre></div>
     </div>
   </div>
 </section>
 
 <section class="card">
-  <h2>③ Good or bad augmentation? The label must stay true</h2>
-  <p>An augmentation is only good if a human would still give the picture <b>the same label</b>. For each change, guess first: is the label still true?</p>
-  <div class="stats"><div class="stat blue"><b id="score">0 / 0</b><span>Your correct guesses</span></div></div>
+  <h2>③ Good or bad? 🏷️ The label must stay true</h2>
+  <p class="bigq">After the change, is the answer still right?</p>
+  <div class="scorebox"><b id="score">0 / 0</b><span class="muted">your correct guesses</span></div>
   <div class="cases" id="cases"></div>
   <div class="btn-row"><button class="btn" id="revealAll">👀 Reveal all</button><button class="btn ghost" id="resetCases">↺ Start again</button></div>
 </section>
 
 <section class="card">
-  <h2>④ What to expect when you train</h2>
-  <p>Same small dataset, same CNN, three settings. <span class="pill orange">typical shape (illustration), not measured</span></p>
-  <div class="btn-row seg3" id="seg3">
-    <button class="btn" data-k="none">🚫 No augmentation</button><button class="btn" data-k="good">👍 Good augmentation</button><button class="btn" data-k="strong">💥 Too strong</button>
+  <h2>④ Does it really help? 🌍 Day 2 tried it</h2>
+  <p class="bigq">Same small CNN, 5,000 CIFAR-10 photos, three settings.</p>
+  <div class="big3" id="seg3">
+    <button class="btn" data-k="none">🚫 None</button><button class="btn pulse" data-k="good">👍 Gentle</button><button class="btn" data-k="strong">💥 Too strong</button>
   </div>
-  <div class="grid2">
-    <div class="canvas-box"><div class="canvas-title">Accuracy over epochs (illustration)</div><canvas id="chart" style="height:260px"></canvas>
+  <div class="res">
+    <div class="r"><div class="l"><b>📚 Practice photos</b><small>seen in training</small></div><div class="bar"><i id="bTr" style="background:var(--orange)"></i></div><div class="num" id="fTr">–</div></div>
+    <div class="r"><div class="l"><b>🆕 New photos</b><small>never seen: what counts</small></div><div class="bar"><i id="bTe" style="background:var(--blue)"></i></div><div class="num" id="fVa" style="color:var(--blue)">–</div></div>
+  </div>
+  <div class="bignums">
+    <div class="bignum"><b id="fGap">–</b><span>gap (practice − new)</span></div>
+    <div class="bignum" style="flex:1;min-width:min(100%,16rem);text-align:left"><span>👀 What the model practised on</span><div class="minis" id="rowChart" style="margin-top:.3rem;max-width:24rem"></div></div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+  <p class="small muted">Real run from <code>Day2 / 05_data_augmentation.ipynb</code>. Your numbers will differ a little.</p>
+
+  <div class="adv" style="margin-top:1rem">
+    <div class="canvas-box"><div class="canvas-title">Typical shape over epochs (illustration, not the Day 2 numbers)</div><canvas id="chart" style="height:260px"></canvas>
       <div class="legend"><span><i style="background:#f08c00"></i>training accuracy</span><span><i style="background:#2f6fed"></i>validation accuracy (new pictures)</span><span><i style="background:#ffc9c9"></i>gap</span><span>grey dashed = validation of the other two settings</span></div></div>
-    <div>
-      <div class="stats"><div class="stat orange"><b id="fTr">–</b><span>Train (end)</span></div><div class="stat blue"><b id="fVa">–</b><span>Validation (end)</span></div><div class="stat"><b id="fGap">–</b><span>Gap</span></div></div>
-      <div class="banner info" id="verdict"></div>
-      <div class="rowlbl">What the model sees during training with this setting:</div><div class="minis" id="rowChart"></div>
-      <p class="small muted">The companion notebook <code>05_data_augmentation.ipynb</code> trains a small CNN on CIFAR-10 with and without augmentation. Expect this <b>shape</b>; your exact numbers will differ.</p>
-    </div>
+    <p class="small">Day 2 table: no augmentation 98.0 % / 60.7 % (gap 37) · good 67.4 % / 64.4 % (best test 67.8 %, gap 3, still rising) · too strong 15.5 % / 22.4 % (underfitting; test is higher because test photos are clean).</p>
   </div>
 </section>
 
 <section class="card">
-  <h2>⑤ Rules to remember</h2>
-  <div class="rules">
-    <div><h3>🏋️ Only on training data</h3><p>Validation and test pictures get <b>no</b> random changes: only resize + normalise. We want to measure the model on real, clean pictures, and the same way every time.</p></div>
-    <div><h3>🎲 Fresh every epoch</h3><p>The changes are random and made <b>when a picture is loaded</b>. Epoch 1 and epoch 2 see different versions. The dataset on disk does <b>not</b> grow.</p></div>
-    <div><h3>🏷️ Label stays true</h3><p>Only use changes that could really happen and don't change the answer. Think about <b>your</b> data: digits, text, colours, medical scans all have their own rules.</p></div>
-    <div><h3>💸 Cheap and strong</h3><p>No new photos, no new labels, a little extra CPU work. Biggest help when data is <b>small</b>. Start gentle; too strong = underfitting.</p></div>
+  <h2>⑤ Three rules</h2>
+  <div class="when">
+    <div class="wcard"><div class="pic2">🏋️📚</div><div class="if">Only change the practice photos</div><span class="then" style="background:#e7f0ff;color:var(--blue)">🆕 test photos stay clean</span></div>
+    <div class="wcard"><div class="pic2">🎲🔁</div><div class="if">New dice every epoch</div><span class="then" style="background:#fff4e6;color:#d9480f">💾 disk doesn't grow</span></div>
+    <div class="wcard"><div class="pic2">🏷️✅</div><div class="if">The label must stay true</div><span class="then" style="background:#ebfbee;color:var(--green)">🤔 think about your data</span></div>
   </div>
-  <h3 style="margin-top:1rem">Common torchvision transforms</h3>
-  <div class="tbl-wrap"><table class="plain tfs">
-    <tr><th>Transform</th><th>What it does</th><th>Simulates</th><th>Careful when</th></tr>
-    <tr><td><code>RandomHorizontalFlip</code></td><td>mirror left ↔ right</td><td>object facing the other way</td><td>text, signs, left vs right hand</td></tr>
-    <tr><td><code>RandomVerticalFlip</code></td><td>upside down</td><td>satellite or microscope views</td><td>normal photos (the sky is up!), digits</td></tr>
-    <tr><td><code>RandomRotation</code></td><td>tilt by a random angle</td><td>camera held crooked</td><td>big angles, 6 vs 9</td></tr>
-    <tr><td><code>RandomResizedCrop</code></td><td>cut out a part, resize it</td><td>object closer, further, not centred</td><td>the crop can cut the object away</td></tr>
-    <tr><td><code>RandomAffine(translate=…)</code></td><td>shift</td><td>object not in the middle</td><td>object pushed out of the picture</td></tr>
-    <tr><td><code>ColorJitter</code></td><td>brightness, contrast, saturation, hue</td><td>different light, weather, cameras</td><td>colour <b>is</b> the class</td></tr>
-    <tr><td><code>GaussianBlur</code></td><td>soften</td><td>out of focus, motion</td><td>tiny details matter</td></tr>
-    <tr><td>noise (small custom transform)</td><td>random grain</td><td>dark photos, cheap sensors</td><td>too much hides the object</td></tr>
-    <tr><td><code>RandomErasing</code></td><td>grey box somewhere</td><td>something in front of the object</td><td>the box hides the whole object</td></tr>
-  </table></div>
+
+  <div class="adv">
+    <h3 style="margin-top:1rem">Common torchvision transforms</h3>
+    <div class="tbl-wrap"><table class="plain tfs">
+      <tr><th>Transform</th><th>What it does</th><th>Simulates</th><th>Careful when</th></tr>
+      <tr><td><code>RandomHorizontalFlip</code></td><td>mirror left ↔ right</td><td>object facing the other way</td><td>text, signs, left vs right hand</td></tr>
+      <tr><td><code>RandomVerticalFlip</code></td><td>upside down</td><td>satellite or microscope views</td><td>normal photos (the sky is up!), digits</td></tr>
+      <tr><td><code>RandomRotation</code></td><td>tilt by a random angle</td><td>camera held crooked</td><td>big angles, 6 vs 9</td></tr>
+      <tr><td><code>RandomResizedCrop</code></td><td>cut out a part, resize it</td><td>object closer, further, not centred</td><td>the crop can cut the object away</td></tr>
+      <tr><td><code>RandomAffine(translate=…)</code></td><td>shift</td><td>object not in the middle</td><td>object pushed out of the picture</td></tr>
+      <tr><td><code>ColorJitter</code></td><td>brightness, contrast, saturation, hue</td><td>different light, weather, cameras</td><td>colour <b>is</b> the class</td></tr>
+      <tr><td><code>GaussianBlur</code></td><td>soften</td><td>out of focus, motion</td><td>tiny details matter</td></tr>
+      <tr><td>noise (small custom transform)</td><td>random grain</td><td>dark photos, cheap sensors</td><td>too much hides the object</td></tr>
+      <tr><td><code>RandomErasing</code></td><td>grey box somewhere</td><td>something in front of the object</td><td>the box hides the whole object</td></tr>
+    </table></div>
+    <ul class="small" style="margin-top:.8rem">
+      <li><b>Validation / test:</b> only resize + normalise, so the score is measured on real pictures and is the same every run.</li>
+      <li><b>On the fly:</b> transforms run in <code>__getitem__</code>, so epoch 1 and epoch 2 see different versions. Files on disk don't change.</li>
+      <li><b>Start gentle.</b> Too strong = underfitting (training accuracy stays low). Biggest help when data is small.</li>
+      <li><b>Try in ②:</b> 👍 Gentle, then crop all the way up and rotation to 45°. Some crops lose the cat entirely: keep ≥ 60–80 % of the area, rotations ≈ 10–15°.</li>
+    </ul>
+  </div>
 </section>
 
 <section class="card adv">
-  <h2>🐍 Detailed: train and test pipelines in PyTorch</h2>
+  <h2>🐍 Train and test pipelines in PyTorch</h2>
   <pre class="code"><span class="k">from</span> torchvision <span class="k">import</span> datasets, transforms
 mean, std = (<span class="n">0.4914</span>, <span class="n">0.4822</span>, <span class="n">0.4465</span>), (<span class="n">0.2470</span>, <span class="n">0.2435</span>, <span class="n">0.2616</span>)   <span class="c"># CIFAR-10</span>
 
@@ -199,41 +280,21 @@ train_ds = datasets.CIFAR10(<span class="s">"data"</span>, train=<span class="k"
 test_ds  = datasets.CIFAR10(<span class="s">"data"</span>, train=<span class="k">False</span>, transform=test_tf)
 <span class="c"># train_tf runs inside __getitem__, so every epoch draws new random versions</span></pre>
   <h3>🔮 Test-time augmentation (TTA)</h3>
-  <p>A trick for the <b>final prediction</b>, not for measuring during training: predict on the test picture <b>and</b> on a few gentle versions of it (e.g. flipped),
-  then <b>average</b> the probabilities. It often adds a little accuracy, but it costs several forward passes per picture. Use the same gentle, label-safe transforms.</p>
+  <p class="small">For the <b>final prediction</b> only: predict on the picture and a few gentle versions (e.g. flipped), then average. A little more accuracy, several forward passes per picture.</p>
   <pre class="code">probs = (model(x).softmax(<span class="n">1</span>) + model(x.flip(<span class="n">3</span>)).softmax(<span class="n">1</span>)) / <span class="n">2</span>   <span class="c"># original + horizontal flip</span></pre>
-  <p class="small muted">More ideas you will meet later: <b>AutoAugment / RandAugment</b> (a learned or random list of transforms), <b>Mixup / CutMix</b> (blend two pictures and their labels).
-  In <code>RandomResizedCrop(scale=(a, 1))</code>, <code>a</code> is the smallest share of the picture's area that is kept.</p>
-</section>
-
-<section class="callout try">
-  <h3>🧪 Try this (guess first, then check!)</h3>
-  <ol class="challenges">
-    <li><b>How far is too far?</b> In ②, press 👍 Gentle, then drag <b>Random crop</b> all the way up and <b>Rotation</b> to 45°. Press 🎲 a few times. Is every picture still clearly a cat?
-      <details class="answer"><summary>Answer</summary>No. Some crops show only grass, the ball or half an ear, and big rotations leave large black corners. Those pictures still carry the label "cat",
-      so the model is taught something false. Keep crops big enough that the object stays in the picture (e.g. keep ≥ 60–80% of the area) and rotations small (≈ 10–15°).</details></li>
-    <li><b>Higher is not always better.</b> In ④, compare 🚫 No augmentation with 👍 Good. Which one has the <b>higher training</b> accuracy? Which one would you ship?
-      <details class="answer"><summary>Answer</summary>No augmentation reaches ≈ 99% on training pictures, but only ≈ 65% on new ones. Good augmentation stays lower on training (≈ 87%)
-      but reaches ≈ 81% on new pictures. Ship the one with the better <b>validation</b> accuracy. Training accuracy only tells you how well it remembers.</details></li>
-    <li><b>Everything at maximum.</b> In ②, press 💥 Too strong and look at the batch. Which curve in ④ do you expect?
-      <details class="answer"><summary>Answer</summary>The 💥 curve: both training and validation stay low (≈ 50%). The pictures are so damaged that the model can't even learn the training set:
-      <b>underfitting</b>. Validation is even a bit higher than training, because validation pictures are clean. Turn the strength down until training accuracy rises again.</details></li>
-  </ol>
+  <p class="small muted">Later: <b>AutoAugment / RandAugment</b> (a learned or random list of transforms), <b>Mixup / CutMix</b> (blend two pictures and their labels).
+  In <code>RandomResizedCrop(scale=(a, 1))</code>, <code>a</code> is the smallest share of the area that is kept.</p>
 </section>
 
 <section class="callout think">
-  <h3>🤔 Check yourself</h3>
+  <h3>🤔 Quick quiz</h3>
   <ol class="challenges">
-    <li>Why do we <b>not</b> augment the validation and test pictures?
-      <details class="answer"><summary>Answer</summary>They are there to measure how good the model is on <b>real</b> pictures. Random changes would make the score noisy (different every run) and test on pictures that don't really exist.
-      They get only the same resize + normalise as training.</details></li>
-    <li>You have 1,000 training pictures and train for 20 epochs with augmentation. How many pictures are on disk after training? How many different versions did the model see?
-      <details class="answer"><summary>Answer</summary>Still 1,000 on disk: augmentation never saves new files. But the model saw 20 × 1,000 = 20,000 pictures, and almost all of them were different random versions.</details></li>
-    <li>Your model tells a <b>left</b> hand from a <b>right</b> hand. Is <code>RandomHorizontalFlip</code> a good idea?
-      <details class="answer"><summary>Answer</summary>No! A mirrored left hand looks exactly like a right hand, so the label would become wrong. Same problem as the "turn left" sign in ③.</details></li>
-    <li>With your new augmentation, training accuracy is 58% and validation 60%, and both stopped improving. What is going on, and what do you try?
-      <details class="answer"><summary>Answer</summary>Underfitting: the augmentation is probably too strong (or the model too small). Make the changes gentler, then maybe train longer or use a bigger model.
-      You want training accuracy a bit above validation, with a small gap.</details></li>
+    <li>Do we augment the 🆕 test photos?
+      <details class="answer"><summary>Answer</summary>No. Test photos must be real and the same every time.</details></li>
+    <li>1,000 photos, 20 epochs with 🎲. How many files on 💾 disk after?
+      <details class="answer"><summary>Answer</summary>Still 1,000. But the model saw 20,000 different versions.</details></li>
+    <li>Telling a left hand from a right hand. Is ↔️ flip OK?
+      <details class="answer"><summary>Answer</summary>No! A flipped left hand looks like a right hand. 🏷️ The label breaks.</details></li>
   </ol>
 </section>
 
@@ -248,6 +309,7 @@ test_ds  = datasets.CIFAR10(<span class="s">"data"</span>, train=<span class="k"
 const $=s=>document.querySelector(s);
 const put=(el,html)=>el.replaceChildren(document.createRange().createContextualFragment(html));
 const S=160;
+const REDUCED=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 function mk(){const c=document.createElement('canvas');c.width=S;c.height=S;c.className='pic';return c;}
 let rnd=Math.random;   // swapped for a seeded one in ②, so a picture keeps its random draws while you drag a slider
 const seeded=a=>()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
@@ -256,6 +318,10 @@ function circle(c,x,y,r){c.beginPath();c.arc(x,y,r,0,2*Math.PI);c.fill();}
 function ell(c,x,y,rx,ry){c.beginPath();c.ellipse(x,y,rx,ry,0,0,2*Math.PI);c.fill();}
 function tri(c,a,b,d,e,f,g){c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.lineTo(f,g);c.closePath();c.fill();}
 function line(c,a,b,d,e){c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.stroke();}
+
+// ---------- hero: marks pop in when visible ----------
+(function(){const a=$('#analogy');if(!('IntersectionObserver' in window)){a.classList.add('go');return;}
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){a.classList.add('go');io.disconnect();}}),{threshold:.3});io.observe(a);})();
 
 // ---------- procedural pictures (160 × 160) ----------
 function drawCat(c){
@@ -286,12 +352,6 @@ function drawSign(c){
   c.fillStyle='#fff';c.fillRect(70,48,32,20);tri(c,44,58,72,34,72,82);
   c.fillStyle='#fff';c.fillRect(44,110,72,24);c.strokeStyle='#212529';c.lineWidth=2;c.strokeRect(44,110,72,24);
   c.fillStyle='#212529';c.font='bold 17px "Segoe UI", Arial, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('LEFT',80,123);
-}
-function drawBanana(c){
-  c.fillStyle='#f8f9fa';c.fillRect(0,0,S,S);c.lineCap='round';c.strokeStyle='#fab005';c.lineWidth=30;
-  c.beginPath();c.moveTo(30,60);c.quadraticCurveTo(80,150,132,58);c.stroke();
-  c.strokeStyle='#ffd43b';c.lineWidth=14;c.beginPath();c.moveTo(36,62);c.quadraticCurveTo(80,138,126,60);c.stroke();
-  c.fillStyle='#5c3d1e';circle(c,27,56,6);circle(c,135,54,5);c.fillStyle='#8d5524';circle(c,64,98,2.5);circle(c,94,104,2);circle(c,108,90,2.5);
 }
 function drawLight(c){
   c.fillStyle='#e7f5ff';c.fillRect(0,0,S,S);c.fillStyle='#495057';c.fillRect(74,140,12,20);
@@ -339,51 +399,54 @@ function augment(src,out,q){const p={...P0,...q},c=out.getContext('2d'),W=out.wi
 const u=(a,b)=>a+(b-a)*rnd();
 function sample(g){const p={},tags=[];
   if(g.crop<1){const a=u(g.crop,1),r=Math.exp(u(Math.log(3/4),Math.log(4/3))),w=Math.min(1,Math.sqrt(a*r)),h=Math.min(1,Math.sqrt(a/r));
-    p.sx=1/w;p.sy=1/h;p.cx=u(-(1-w)/2,(1-w)/2);p.cy=u(-(1-h)/2,(1-h)/2);tags.push('crop');}
-  if(g.flip&&rnd()<.5){p.flip=true;tags.push('flip');}
+    p.sx=1/w;p.sy=1/h;p.cx=u(-(1-w)/2,(1-w)/2);p.cy=u(-(1-h)/2,(1-h)/2);tags.push('🔍');}
+  if(g.flip&&rnd()<.5){p.flip=true;tags.push('↔️');}
   if(g.rot){p.rot=u(-g.rot,g.rot);tags.push(Math.round(p.rot)+'°');}
-  if(g.shift){p.tx=u(-g.shift,g.shift);p.ty=u(-g.shift,g.shift);tags.push('shift');}
+  if(g.shift){p.tx=u(-g.shift,g.shift);p.ty=u(-g.shift,g.shift);tags.push('✥');}
   if(g.br){p.br=u(Math.max(0,1-g.br),1+g.br);}
   if(g.ct)p.ct=u(Math.max(0,1-g.ct),1+g.ct);
-  if(g.br||g.ct)tags.push('light');
-  if(g.sat||g.hue){if(g.sat)p.sat=u(Math.max(0,1-g.sat),1+g.sat);if(g.hue)p.hue=u(-g.hue,g.hue);tags.push('colour');}
-  if(g.blur){p.blur=u(0.1,g.blur);tags.push('blur');}
-  if(g.noise){p.noise=g.noise;tags.push('noise');}
+  if(g.br||g.ct)tags.push('☀️');
+  if(g.sat||g.hue){if(g.sat)p.sat=u(Math.max(0,1-g.sat),1+g.sat);if(g.hue)p.hue=u(-g.hue,g.hue);tags.push('🎨');}
+  if(g.blur){p.blur=u(0.1,g.blur);tags.push('💧');}
+  if(g.noise){p.noise=g.noise;tags.push('📺');}
   if(g.erase&&rnd()<.5){const a=u(.02,Math.max(.03,g.erase)),r=Math.exp(u(Math.log(.3),Math.log(3.3))),w=Math.min(.95,Math.sqrt(a*r)),h=Math.min(.95,Math.sqrt(a/r));
-    p.erase={x:u(0,1-w),y:u(0,1-h),w,h};tags.push('cutout');}
+    p.erase={x:u(0,1-w),y:u(0,1-h),w,h};tags.push('⬛');}
   return {p,tags};}
 
-// ---------- ② controls ----------
+// ---------- ② controls (sliders live in Detailed view) ----------
 const pct2=v=>'±'+(v/100).toFixed(2);
-const SL=[{g:'📐 Position & shape'},{id:'flip',check:1,name:'↔️ Horizontal flip (half of the time)'},
-  {id:'rot',name:'🔄 Rotation',max:45,f:v=>`±${v}°`},{id:'crop',name:'🔍 Random crop / zoom',max:80,f:v=>`keep ≥ ${100-v}%`},{id:'shift',name:'✥ Shift',max:30,f:v=>`±${v}%`},
-  {g:'🎨 Light & colour'},{id:'br',name:'☀️ Brightness',max:80,f:pct2},{id:'ct',name:'◐ Contrast',max:80,f:pct2},{id:'sat',name:'🌈 Saturation',max:100,f:pct2},{id:'hue',name:'🎨 Hue (colour shift)',max:50,f:pct2},
-  {g:'🧽 Blur, noise & holes'},{id:'blur',name:'💧 Blur',max:20,f:v=>`σ ≤ ${(v/10).toFixed(1)}`},{id:'noise',name:'📺 Noise',max:30,f:v=>(v/100).toFixed(2)},{id:'erase',name:'⬛ Cutout (random erasing)',max:40,f:v=>`box ≤ ${v}%`}];
+const SL=[{g:'📐 Position & shape'},{id:'flip',check:1,name:'↔️ Horizontal flip (half of the time)',chip:'↔️ flip'},
+  {id:'rot',name:'🔄 Rotation',max:45,f:v=>`±${v}°`,chip:'🔄 rotate'},{id:'crop',name:'🔍 Random crop / zoom',max:80,f:v=>`keep ≥ ${100-v}%`,chip:'🔍 zoom'},{id:'shift',name:'✥ Shift',max:30,f:v=>`±${v}%`,chip:'✥ shift'},
+  {g:'🎨 Light & colour'},{id:'br',name:'☀️ Brightness',max:80,f:pct2,chip:'☀️ light'},{id:'ct',name:'◐ Contrast',max:80,f:pct2,chip:'◐ contrast',adv:1},{id:'sat',name:'🌈 Saturation',max:100,f:pct2,chip:'🌈 saturation',adv:1},{id:'hue',name:'🎨 Hue (colour shift)',max:50,f:pct2,chip:'🎨 colour'},
+  {g:'🧽 Blur, noise & holes'},{id:'blur',name:'💧 Blur',max:20,f:v=>`σ ≤ ${(v/10).toFixed(1)}`,chip:'💧 blur'},{id:'noise',name:'📺 Noise',max:30,f:v=>(v/100).toFixed(2),chip:'📺 noise'},{id:'erase',name:'⬛ Cutout (random erasing)',max:40,f:v=>`box ≤ ${v}%`,chip:'⬛ cutout'}];
 const PRE={none:{flip:0,rot:0,crop:0,shift:0,br:0,ct:0,sat:0,hue:0,blur:0,noise:0,erase:0},
   good:{flip:1,rot:10,crop:30,shift:10,br:20,ct:20,sat:20,hue:2,blur:0,noise:0,erase:0},
   strong:{flip:1,rot:45,crop:80,shift:30,br:80,ct:80,sat:100,hue:50,blur:20,noise:30,erase:40}};
+// strength used to demo "one change" when that change is switched off in the current setting
+const DEMO={flip:1,rot:30,crop:60,shift:20,br:60,ct:60,sat:80,hue:30,blur:15,noise:20,erase:30};
 const toCfg=s=>({flip:!!s.flip,rot:s.rot,crop:1-s.crop/100,shift:s.shift/100,br:s.br/100,ct:s.ct/100,sat:s.sat/100,hue:s.hue/100,blur:s.blur/10,noise:s.noise/100,erase:s.erase/100});
-let h='<h3>Quick settings</h3><div class="presets" id="presets"><button class="btn" data-k="none">🚫 None</button><button class="btn" data-k="good">👍 Gentle</button><button class="btn" data-k="strong">💥 Too strong</button></div>';
+let h='';
 for(const s of SL){if(s.g){h+=`<h3>${s.g}</h3>`;continue;}
   h+=s.check?`<label class="check"><input type="checkbox" id="s_${s.id}"> ${s.name}</label>`
     :`<div class="ctl"><label for="s_${s.id}">${s.name} <output id="o_${s.id}"></output></label><input type="range" id="s_${s.id}" min="0" max="${s.max}" step="1" value="0"></div>`;}
 put($('#controls'),h);
+put($('#chips'),SL.filter(s=>s.id).map(s=>`<button class="btn${s.adv?' adv':''}" data-id="${s.id}">${s.chip}</button>`).join(''));
 function readSliders(){const o={};for(const s of SL)if(s.id){const el=$('#s_'+s.id);o[s.id]=s.check?(el.checked?1:0):+el.value;}return o;}
 function setSliders(o){for(const s of SL)if(s.id){const el=$('#s_'+s.id);if(s.check)el.checked=!!o[s.id];else el.value=o[s.id];}}
 function labels(){const o=readSliders();for(const s of SL)if(s.id&&!s.check)$('#o_'+s.id).textContent=o[s.id]?s.f(o[s.id]):'off';}
-function presetOn(k){document.querySelectorAll('#presets .btn').forEach(b=>b.classList.toggle('on',b.dataset.k===k));}
+function presetOn(k){document.querySelectorAll('#presets [data-k]').forEach(b=>{b.classList.toggle('on',b.dataset.k===k);});}
 
 const batchFigs=[];
 for(let i=0;i<8;i++){const f=document.createElement('figure'),c=mk(),cap=document.createElement('figcaption');f.append(c,cap);$('#batch').append(f);batchFigs.push({c,cap});}
 const mixFigs=[];
 for(let i=0;i<8;i++){const f=document.createElement('figure'),c=mk(),cap=document.createElement('figcaption');f.append(c,cap);$('#batch2').append(f);mixFigs.push({c,cap});}
 let seeds=mixFigs.map(()=>Math.random()*2**32|0),lastOne='rot';
-function roll(){const g=toCfg(readSliders());mixFigs.forEach((b,i)=>{rnd=seeded(seeds[i]);const {p,tags}=sample(g);augment(CAT,b.c,p);b.cap.textContent=tags.length?tags.join(' · '):'unchanged';});rnd=Math.random;}
+function roll(){const g=toCfg(readSliders());mixFigs.forEach((b,i)=>{rnd=seeded(seeds[i]);const {p,tags}=sample(g);augment(CAT,b.c,p);b.cap.textContent=tags.length?tags.join(' '):'unchanged';});rnd=Math.random;}
 function reroll(){seeds=seeds.map(()=>Math.random()*2**32|0);roll();}
 // one change only, 8 fixed steps from smallest to biggest: no randomness, so nothing flickers while you drag
 const lerp=(a,b,t)=>a+(b-a)*t,sg=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
 const ONE={
-  flip:(g,t,i)=>g.flip?[{flip:i%2===1},i%2?'flipped':'not flipped']:[{},'off'],
+  flip:(g,t,i)=>g.flip?[{flip:i%2===1},i%2?'flipped':'normal']:[{},'off'],
   rot:(g,t)=>{const r=lerp(-g.rot,g.rot,t);return[{rot:r},sg(Math.round(r))+'°'];},
   crop:(g,t,i)=>{const a=lerp(g.crop,1,t),w=Math.sqrt(a),m=(1-w)/2,d=[[-1,-1],[1,-1],[-1,1],[1,1]][i%4];return[{sx:1/w,sy:1/w,cx:d[0]*m,cy:d[1]*m},'keep '+Math.round(a*100)+'%'];},
   shift:(g,t,i)=>{const an=i*Math.PI/4,x=g.shift*Math.cos(an),y=g.shift*Math.sin(an);return[{tx:x,ty:y},`x ${sg(Math.round(x*100))}% y ${sg(Math.round(y*100))}%`];},
@@ -394,101 +457,116 @@ const ONE={
   blur:(g,t)=>{const v=lerp(0.1,g.blur,t);return[{blur:v},'σ '+v.toFixed(1)];},
   noise:(g,t)=>{const v=lerp(g.noise/8,g.noise,t);return[{noise:v},'noise '+v.toFixed(2)];},
   erase:(g,t,i)=>{const a=lerp(.02,Math.max(.03,g.erase),t),w=Math.sqrt(a),d=[[.1,.1],[.55,.15],[.2,.5],[.5,.55]][i%4];return[{erase:{x:Math.min(d[0],1-w),y:Math.min(d[1],1-w),w,h:w}},'box '+Math.round(a*100)+'%'];}};
-function showOne(id){lastOne=id;const g=toCfg(readSliders()),s=SL.find(x=>x.id===id),name=s.name.replace(/^\S+\s/,'').replace(/ \(.*\)$/,'');
-  const on=s.check?g.flip:readSliders()[id]>0;
-  batchFigs.forEach((b,i)=>{const [p,cap]=on?ONE[id](g,i/7,i):[{},'unchanged'];augment(CAT,b.c,p);b.cap.textContent=cap;});
-  $('#batchT').textContent=on?`Only ${name}: 8 steps, from the smallest to the biggest change`:`${name} is off: all 8 pictures are the same`;
-  put($('#look'),on?`👀 You see <b>only ${name.toLowerCase()}</b>, nothing else. Each picture is one step of the allowed range (value under it). In training, each picture would get <b>one random value</b> from this range. The row below shows it <b>mixed</b> with the other switched-on changes.`
-    :`👀 This change is switched off. Move its slider to the right to see what it does.`);}
+function showOne(id){lastOne=id;const o=readSliders(),s=SL.find(x=>x.id===id);
+  if(!o[id])o[id]=DEMO[id];   // switched off right now: still demo what it does
+  const g=toCfg(o);
+  batchFigs.forEach((b,i)=>{const [p,cap]=ONE[id](g,i/7,i);augment(CAT,b.c,p);b.cap.textContent=cap;});
+  $('#batchT').textContent=`Only ${s.chip}: smallest → biggest`;
+  document.querySelectorAll('#chips .btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));}
 const N=v=>`<span class="n">${v}</span>`,CM=t=>`<span class="c"># ${t}</span>`;
-function codeUpdate(){const o=readSliders(),g=toCfg(o),L=[],words=[];const f2=v=>v.toFixed(2);
-  if(o.crop){L.push(`transforms.RandomResizedCrop(${N(32)}, scale=(${N(f2(g.crop))}, ${N('1.0')})),`);words.push('crop / zoom');}
-  if(o.flip){L.push(`transforms.RandomHorizontalFlip(p=${N(0.5)}),`);words.push('flip');}
-  if(o.rot){L.push(`transforms.RandomRotation(${N(o.rot)}),`);words.push(`rotate up to ${o.rot}°`);}
-  if(o.shift){L.push(`transforms.RandomAffine(degrees=${N(0)}, translate=(${N(f2(g.shift))}, ${N(f2(g.shift))})),`);words.push('shift');}
+function codeUpdate(){const o=readSliders(),g=toCfg(o),L=[];const f2=v=>v.toFixed(2);
+  if(o.crop)L.push(`transforms.RandomResizedCrop(${N(32)}, scale=(${N(f2(g.crop))}, ${N('1.0')})),`);
+  if(o.flip)L.push(`transforms.RandomHorizontalFlip(p=${N(0.5)}),`);
+  if(o.rot)L.push(`transforms.RandomRotation(${N(o.rot)}),`);
+  if(o.shift)L.push(`transforms.RandomAffine(degrees=${N(0)}, translate=(${N(f2(g.shift))}, ${N(f2(g.shift))})),`);
   const cj=[['brightness',g.br],['contrast',g.ct],['saturation',g.sat],['hue',g.hue]].filter(x=>x[1]>0);
-  if(cj.length){L.push(`transforms.ColorJitter(${cj.map(([k,v])=>`${k}=${N(f2(v))}`).join(', ')}),`);words.push('change light / colour');}
-  if(o.blur){L.push(`transforms.GaussianBlur(kernel_size=${N(5)}, sigma=(${N(0.1)}, ${N(g.blur.toFixed(1))})),`);words.push('blur');}
+  if(cj.length)L.push(`transforms.ColorJitter(${cj.map(([k,v])=>`${k}=${N(f2(v))}`).join(', ')}),`);
+  if(o.blur)L.push(`transforms.GaussianBlur(kernel_size=${N(5)}, sigma=(${N(0.1)}, ${N(g.blur.toFixed(1))})),`);
   L.push('transforms.ToTensor(),');
-  if(o.noise){L.push(`transforms.Lambda(<span class="k">lambda</span> x: x + ${N(f2(g.noise))} * torch.randn_like(x)),  ${CM('add noise')}`);words.push('add noise');}
+  if(o.noise)L.push(`transforms.Lambda(<span class="k">lambda</span> x: x + ${N(f2(g.noise))} * torch.randn_like(x)),  ${CM('add noise')}`);
   L.push('transforms.Normalize(mean, std),');
-  if(o.erase){L.push(`transforms.RandomErasing(p=${N(0.5)}, scale=(${N(0.02)}, ${N(f2(g.erase))})),`);words.push('cut out a box');}
+  if(o.erase)L.push(`transforms.RandomErasing(p=${N(0.5)}, scale=(${N(0.02)}, ${N(f2(g.erase))})),`);
   const none=L.length===2;
-  put($('#code'),`train_tf = transforms.Compose([${none?'   '+CM('no augmentation: every epoch sees the same pixels'):''}\n${L.map(l=>'    '+l).join('\n')}\n])\ntest_tf  = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])   ${CM('never augmented')}`);
-  put($('#plain'),none?'🧾 Nothing is switched on: the model sees the exact same picture every epoch.'
-    :`🧾 In PyTorch this is one list of transforms: <b>${words.join('</b>, <b>')}</b>. Each one is applied at random, every time a picture is loaded. (Switch to 🎓 Detailed view to see the code.)`);}
+  put($('#code'),`train_tf = transforms.Compose([${none?'   '+CM('no augmentation: every epoch sees the same pixels'):''}\n${L.map(l=>'    '+l).join('\n')}\n])\ntest_tf  = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean, std)])   ${CM('never augmented')}`);}
 let pend=false;
 function refresh(one){labels();codeUpdate();if(pend)return;pend=true;requestAnimationFrame(()=>{pend=false;showOne(one||lastOne);roll();});}
 document.querySelectorAll('#controls input').forEach(el=>el.addEventListener('input',()=>{presetOn(null);refresh(el.id.slice(2));}));
-document.querySelectorAll('#presets .btn').forEach(b=>b.onclick=()=>{setSliders(PRE[b.dataset.k]);presetOn(b.dataset.k);refresh();});
+document.querySelectorAll('#presets [data-k]').forEach(b=>b.onclick=()=>{document.querySelectorAll('#presets .pulse').forEach(x=>x.classList.remove('pulse'));setSliders(PRE[b.dataset.k]);presetOn(b.dataset.k);reroll();refresh();});
+document.querySelectorAll('#chips .btn').forEach(b=>b.onclick=()=>showOne(b.dataset.id));
 $('#roll').onclick=reroll;
 augment(CAT,$('#origc'),{});
 setSliders(PRE.good);presetOn('good');refresh();
 
-// ---------- ① rows ----------
+// ---------- ① epochs: same pixels vs a new version ----------
 function miniRow(el,n,lab){const cs=[];for(let i=0;i<n;i++){const f=document.createElement('figure'),c=mk(),cap=document.createElement('figcaption');cap.textContent=lab(i);f.append(c,cap);el.append(f);cs.push(c);}return cs;}
 const rowNone=miniRow($('#rowNone'),6,i=>'epoch '+(i+1)),rowAug=miniRow($('#rowAug'),6,i=>'epoch '+(i+1));
 rowNone.forEach(c=>augment(CAT,c,{}));
 function shuffle1(){const g=toCfg(PRE.good);rowAug.forEach(c=>augment(CAT,c,sample(g).p));}
 $('#shuffle1').onclick=shuffle1;shuffle1();
+const CAP1_END='🚫 Same pixels every time → learned by heart. 🎲 A new cat every time → learns "cat".';
+let playT=null;
+function play1(){clearTimeout(playT);shuffle1();const figs=[...$('#rowNone').children,...$('#rowAug').children];
+  if(REDUCED){figs.forEach(f=>f.classList.remove('hid'));$('#cap1').textContent=CAP1_END;return;}
+  figs.forEach(f=>f.classList.add('hid'));let k=0;
+  const tick=()=>{$('#rowNone').children[k].classList.remove('hid');$('#rowAug').children[k].classList.remove('hid');
+    $('#cap1').textContent=`Epoch ${k+1}: 🚫 the same photo again · 🎲 a brand-new cat`;
+    if(++k<6)playT=setTimeout(tick,850);else playT=setTimeout(()=>{$('#cap1').textContent=CAP1_END;},1200);};
+  tick();}
+$('#play1').onclick=play1;
+if('IntersectionObserver' in window&&!REDUCED){const io1=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play1();io1.disconnect();}}),{threshold:.5});io1.observe($('#rowAug'));}
 
 // ---------- ③ good vs bad ----------
 const CASES=[
-  {t:'🐱 Cat, flipped left ↔ right',lab:'cat',d:drawCat,p:{flip:true},ok:true,why:'A cat looking the other way is still a cat. The sun and the tree moved, but the label is still true. The most common augmentation for photos.'},
-  {t:'6️⃣ Digit 6, turned upside down',lab:'6',d:drawDigit('6'),p:{rot:180},ok:false,why:'Upside down, a 6 looks like a 9! The picture now shows another class, but the label still says "6". The model would learn nonsense.'},
-  {t:'7️⃣ Digit 7, tilted a little (10°)',lab:'7',d:drawDigit('7'),p:{rot:10},ok:true,why:'People write a bit slanted anyway. A small tilt keeps a 7 a 7. Small rotations are fine for digits; big ones are not.'},
-  {t:'⬅️ "Turn left" sign, flipped left ↔ right',lab:'turn left',d:drawSign,p:{flip:true},ok:false,why:'The arrow now points right and the text is mirrored: it says "turn right" now. Never flip when left and right mean something (signs, text, left vs right hand).'},
-  {t:'🍌 Ripe banana, strong colour change',lab:'ripe',d:drawBanana,p:{hue:0.2},ok:false,why:'Ripeness IS the colour. Yellow turned green, so it now looks unripe. When colour is the answer, don\'t jitter the hue (a little brightness is still ok).'},
-  {t:'🚦 Red traffic light, colour change',lab:'stop (red)',d:drawLight,p:{hue:0.33},ok:false,why:'Red became green: "stop" now looks like "go". Dangerous! Hue changes are off-limits when colour decides the class.'},
-  {t:'✂️ Cat photo, cropped very hard',lab:'cat',d:drawCat,p:{sx:4.5,sy:4.5,cx:-0.36,cy:0.36},ok:false,why:'Only grass and a ball are left. There is no cat any more, but the label still says "cat". A crop must keep the object in the picture.'},
-  {t:'🛰️ Satellite photo, flipped upside down',lab:'farmland',d:drawSat,p:{vflip:true},ok:true,why:'Seen from space there is no "up": fields and rivers look fine either way. Same for cells under a microscope or many medical scans. Vertical flips are great here.'},
-  {t:'🌥️ Cat photo, a bit darker',lab:'cat',d:drawCat,p:{br:0.65},ok:true,why:'Like a cloudy day or a cheap camera. Still a cat. Brightness changes teach the model to ignore the lighting.'}];
+  {t:'🐱 Flip ↔️',lab:'cat',d:drawCat,p:{flip:true},ok:true,why:'A cat facing the other way is still a cat.'},
+  {t:'6️⃣ Upside down',lab:'6',d:drawDigit('6'),p:{rot:180},ok:false,why:'Upside down, a 6 becomes a 9!'},
+  {t:'7️⃣ Small tilt 🔄',lab:'7',d:drawDigit('7'),p:{rot:10},ok:true,why:'People write slanted anyway. Still a 7.'},
+  {t:'⬅️ Sign, flip ↔️',lab:'turn left',d:drawSign,p:{flip:true},ok:false,why:'Now it points right. The label is wrong.'},
+  {t:'🚦 Colour change 🎨',lab:'stop (red)',d:drawLight,p:{hue:0.33},ok:false,why:'Red became green: "stop" became "go"!'},
+  {t:'🐱 Very hard zoom 🔍',lab:'cat',d:drawCat,p:{sx:4.5,sy:4.5,cx:-0.36,cy:0.36},ok:false,why:'Only grass and a ball. No cat left.'},
+  {t:'🛰️ Upside down',lab:'farmland',d:drawSat,p:{vflip:true},ok:true,why:'From space there is no "up".'},
+  {t:'🐱 A bit darker ☀️',lab:'cat',d:drawCat,p:{br:0.65},ok:true,why:'Like a cloudy day. Still a cat.'}];
 const CS={};
-function buildCases(){let html='';CASES.forEach((k,i)=>{html+=`<div class="case" id="case${i}"><h3>${k.t}</h3><div class="pair"><div><canvas class="pic" width="${S}" height="${S}"></canvas><small>before</small></div><span>→</span><div><canvas class="pic" width="${S}" height="${S}"></canvas><small>after</small></div></div>
-    <div class="q">Label: <b>"${k.lab}"</b>. Still true after this change?</div><div class="btn-row"><button class="btn" data-i="${i}" data-g="1">✅ Still true</button><button class="btn" data-i="${i}" data-g="0">❌ Now wrong</button></div><div class="ans"></div></div>`;});
+function buildCases(){let html='';CASES.forEach((k,i)=>{html+=`<div class="case" id="case${i}"><h3>${k.t}</h3><div class="pair"><canvas class="pic" width="${S}" height="${S}"></canvas><span>➜</span><canvas class="pic" width="${S}" height="${S}"></canvas></div>
+    <div class="q">🏷️ <b>"${k.lab}"</b> still true?</div><div class="btn-row"><button class="btn" data-i="${i}" data-g="1">✅ Yes</button><button class="btn" data-i="${i}" data-g="0">❌ No</button></div><div class="ans"></div></div>`;});
   put($('#cases'),html);
   CASES.forEach((k,i)=>{const src=source(k.d),cv=document.querySelectorAll(`#case${i} canvas`);augment(src,cv[0],{});augment(src,cv[1],k.p);});
   document.querySelectorAll('#cases .btn').forEach(b=>b.onclick=()=>reveal(+b.dataset.i,b.dataset.g==='1'));
   CS.done={};score();}
 function reveal(i,guess){if(i in CS.done)return;const k=CASES[i],card=$('#case'+i);CS.done[i]=guess===null?null:guess===k.ok;
   card.classList.add(k.ok?'good':'bad');card.querySelectorAll('.btn').forEach(b=>b.disabled=true);
-  const head=guess===null?'':(guess===k.ok?'🎉 You got it! ':'🙈 Not quite. ');
-  put(card.querySelector('.ans'),`${head}<b>${k.ok?'✅ Good augmentation':'❌ Bad augmentation'}.</b> ${k.why}`);score();}
+  const head=guess===null?'':(guess===k.ok?'🎉 ':'🙈 ');
+  put(card.querySelector('.ans'),`${head}${k.ok?'✅ Good.':'❌ Bad.'} ${k.why}`);score();}
 function score(){const v=Object.values(CS.done),g=v.filter(x=>x!==null);$('#score').textContent=`${g.filter(Boolean).length} / ${g.length}`;}
 $('#revealAll').onclick=()=>CASES.forEach((_,i)=>reveal(i,null));
 $('#resetCases').onclick=buildCases;
 buildCases();
 
-// ---------- ④ theory curves ----------
+// ---------- ④ real Day 2 results (bars) + illustration chart (Detailed) ----------
+// numbers from Day2_Transfer_Learning_and_Optimization/05_data_augmentation.ipynb (5,000 CIFAR-10 training pictures, 2,000 test)
+const REAL={none:{tr:98.0,te:60.7},good:{tr:67.4,te:64.4},strong:{tr:15.5,te:22.4}};
+const VERD={none:['bad','🤓 Learned by heart: great on practice, weak on new photos.'],
+  good:['good','🎯 Best on new photos, and the gap is tiny.'],
+  strong:['bad','😵 Too messy: it can\'t even learn the practice photos.']};
 const E=30,ex=Math.exp;
 const CUR={none:{tr:e=>0.1+0.89*(1-ex(-e/4)),va:e=>0.1+0.62*(1-ex(-e/3.5))-0.003*Math.max(0,e-8)},
   good:{tr:e=>0.1+0.78*(1-ex(-e/7)),va:e=>0.1+0.72*(1-ex(-e/7.5))},
   strong:{tr:e=>0.1+0.42*(1-ex(-e/10)),va:e=>0.1+0.46*(1-ex(-e/10))}};
-const VERD={none:['bad','🚫 Overfitting: the model memorised the training pictures (train ≈ 99%) but gets only ≈ 65% on new ones. Big gap, and validation even drops after epoch ≈ 8.'],
-  good:['good','👍 Healthy: training is harder (it rises slower and ends lower), but validation ends higher and the gap is small. The model learned what a cat looks like, not the exact pixels.'],
-  strong:['bad','💥 Underfitting: the pictures are so damaged that the model can\'t even learn the training set. Both curves stay low. Validation (clean pictures) is even a bit higher. Turn it down!']};
-let CK='good',anim=null;
+let CK='none',anim=null;
 const rowChart=miniRow($('#rowChart'),6,()=>'');
 function setupCanvas(cv){const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.max(1,Math.round(r.width*dpr));cv.height=Math.max(1,Math.round(r.height*dpr));
   const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height};}
-function drawChart(t){const {ctx,w:W,h:H}=setupCanvas($('#chart')),L=40,T=10,pw=W-L-12,ph=H-T-30,sx=e=>L+e/E*pw,sy=v=>T+(1-v)*ph,cur=CUR[CK],end=t*E;
+function drawChart(t){const {ctx,w:W,h:H}=setupCanvas($('#chart'));if(W<60)return;const L=40,T=10,pw=W-L-12,ph=H-T-30,sx=e=>L+e/E*pw,sy=v=>T+(1-v)*ph,cur=CUR[CK],end=t*E;
   ctx.font='11px Segoe UI, sans-serif';ctx.fillStyle='#868e96';ctx.lineWidth=1;
   for(let v=0;v<=1.001;v+=0.2){ctx.strokeStyle='#eef0f3';ctx.beginPath();ctx.moveTo(L,sy(v));ctx.lineTo(L+pw,sy(v));ctx.stroke();ctx.textAlign='right';ctx.fillText(Math.round(v*100)+'%',L-4,sy(v)+4);}
   ctx.textAlign='center';for(let e=0;e<=E;e+=5)ctx.fillText(e,sx(e),T+ph+14);ctx.fillText('epoch',L+pw/2,H-2);
   const path=(f,e1)=>{ctx.beginPath();for(let e=0;e<=e1+1e-9;e+=0.25){const x=sx(e),y=sy(f(e));e?ctx.lineTo(x,y):ctx.moveTo(x,y);}};
   ctx.setLineDash([5,4]);ctx.strokeStyle='#ced4da';ctx.lineWidth=1.5;for(const k in CUR)if(k!==CK){path(CUR[k].va,E);ctx.stroke();}ctx.setLineDash([]);
   ctx.beginPath();for(let e=0;e<=end;e+=0.25)ctx.lineTo(sx(e),sy(cur.tr(e)));for(let e=Math.floor(end*4)/4;e>=0;e-=0.25)ctx.lineTo(sx(e),sy(cur.va(e)));ctx.closePath();ctx.fillStyle='rgba(224,49,49,.13)';ctx.fill();
-  ctx.lineWidth=2.8;ctx.strokeStyle='#f08c00';path(cur.tr,end);ctx.stroke();ctx.strokeStyle='#2f6fed';path(cur.va,end);ctx.stroke();
-  if(t>=1){const g=Math.round((cur.tr(E)-cur.va(E))*100);ctx.fillStyle='#c92a2a';ctx.textAlign='right';ctx.font='bold 12px Segoe UI, sans-serif';
-    ctx.fillText(`gap ${g} pts`,L+pw-4,sy((cur.tr(E)+cur.va(E))/2)+4);}}
-function setCurve(k){CK=k;document.querySelectorAll('#seg3 .btn').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
-  const c=CUR[k],p=v=>Math.round(v*100)+'%';$('#fTr').textContent='≈ '+p(c.tr(E));$('#fVa').textContent='≈ '+p(c.va(E));$('#fGap').textContent=Math.round((c.tr(E)-c.va(E))*100)+' pts';
-  const vd=$('#verdict');vd.className='banner '+VERD[k][0];vd.textContent=VERD[k][1];
+  ctx.lineWidth=2.8;ctx.strokeStyle='#f08c00';path(cur.tr,end);ctx.stroke();ctx.strokeStyle='#2f6fed';path(cur.va,end);ctx.stroke();}
+function setCurve(k,first){CK=k;document.querySelectorAll('#seg3 .btn').forEach(b=>{b.classList.toggle('on',b.dataset.k===k);if(!first)b.classList.remove('pulse');});
+  const r=REAL[k],gap=Math.round(r.tr-r.te);
+  $('#bTr').style.width=r.tr+'%';$('#bTe').style.width=r.te+'%';
+  $('#fTr').textContent=Math.round(r.tr)+'%';$('#fVa').textContent=Math.round(r.te)+'%';
+  $('#fGap').textContent=(gap>0?gap:'−'+Math.abs(gap))+' pts';$('#fGap').style.color=Math.abs(gap)>10?'var(--red)':'var(--green)';
+  const vd=$('#verdict');vd.className='verdict '+VERD[k][0];vd.textContent=VERD[k][1];
   const g=toCfg(PRE[k]);rowChart.forEach(cv=>augment(CAT,cv,sample(g).p));
+  if(REDUCED){drawChart(1);return;}
   const t0=performance.now(),me=anim={};const step=now=>{if(anim!==me)return;const t=Math.min(1,(now-t0)/700);drawChart(t);if(t<1)requestAnimationFrame(step);};requestAnimationFrame(step);drawChart(0);}
 document.querySelectorAll('#seg3 .btn').forEach(b=>b.onclick=()=>setCurve(b.dataset.k));
 window.addEventListener('resize',()=>{anim=null;drawChart(1);});
-setCurve('none');
+// bars grow when the section scrolls into view
+(function(){const go=()=>setCurve('none',true);if(!('IntersectionObserver' in window)){go();return;}
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){go();io.disconnect();}}),{threshold:.4});io.observe($('#bTr'));})();
 </script>
 <script>
 /* Simple / Detailed switch: simple view hides code and trainer notes (class "adv"). Remembered per browser. */
