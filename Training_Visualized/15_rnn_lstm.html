@@ -32,6 +32,7 @@
   .bag .w b{color:var(--blue);margin-left:.25rem}
   .note{font-size:.95rem;min-height:1.6rem;color:#5c4813}
   .ver{font-weight:800;font-size:1.05rem;min-height:1.5rem}
+  .spark{display:block;width:100%;height:70px;margin:.2rem 0}
 
   /* shared diagram */
   .diagram{background:#fcfcfd;border:1px solid var(--line);border-radius:18px;padding:.4rem;overflow-x:auto}
@@ -322,41 +323,41 @@
 <main class="wrap">
 <section class="hero">
   <div class="kicker">Lesson 15 of 15 · ≈ 30 min</div>
-  <h1>RNN &amp; LSTM: reading one word at a time</h1>
-  <p class="sub">Text comes in order. These models read in order and remember.</p>
-  <div class="analogy" aria-label="Dog bites man is a normal day; man bites dog is news">
-    <div class="hrow"><span class="hw">🐕 dog</span><span class="hw" style="animation-delay:.6s">bites</span><span class="hw" style="animation-delay:1.2s">🧍 man</span><span class="harr">➜</span><span class="hres" style="background:var(--soft);color:var(--muted)">😐 normal day</span></div>
-    <div class="hrow"><span class="hw" style="animation-delay:3s">🧍 man</span><span class="hw" style="animation-delay:3.6s">bites</span><span class="hw" style="animation-delay:4.2s">🐕 dog</span><span class="harr">➜</span><span class="hres" style="background:#fff4e6;color:#d9480f">😲 news!</span></div>
-    <div class="tag">Same words, different order, different meaning.</div>
+  <h1>RNN &amp; LSTM: reading prices one day at a time</h1>
+  <p class="sub">A stock price comes in order, day after day. These models read in order and remember.</p>
+  <div class="analogy" aria-label="100, 105, 110 is going up; 110, 105, 100 is going down">
+    <div class="hrow"><span class="hw">💰 100</span><span class="hw" style="animation-delay:.6s">105</span><span class="hw" style="animation-delay:1.2s">110</span><span class="harr">➜</span><span class="hres" style="background:var(--good-bg);color:var(--green)">📈 going up</span></div>
+    <div class="hrow"><span class="hw" style="animation-delay:3s">💰 110</span><span class="hw" style="animation-delay:3.6s">105</span><span class="hw" style="animation-delay:4.2s">100</span><span class="harr">➜</span><span class="hres" style="background:var(--bad-bg);color:#c92a2a">📉 going down</span></div>
+    <div class="tag">Same prices, different order, opposite story.</div>
   </div>
 </section>
 
 <section class="card">
   <h2>① Why order matters</h2>
-  <p class="bigq">Same words + different order = different meaning.</p>
-  <div class="seg" id="pairSeg"><button data-p="movie" class="on">🎬 good / bad</button><button data-p="dog">🐕 dog / man</button><button data-p="food">🍝 food / service</button></div>
+  <p class="bigq">Same prices + different order = different story.</p>
+  <div class="seg" id="pairSeg"><button data-p="trend" class="on">📈 up / 📉 down</button><button data-p="dip">🥄 dip / ⛰️ peak</button><button data-p="crash">💥 crash today / long ago</button></div>
   <div class="grid2" style="margin-top:.5rem">
     <div>
-      <div class="sbox"><h3>🅰️</h3><div class="sent" id="sentA"></div><div class="note" id="noteA"></div><div class="ver" id="verA"></div></div>
-      <div class="sbox"><h3>🅱️</h3><div class="sent" id="sentB"></div><div class="note" id="noteB"></div><div class="ver" id="verB"></div></div>
-      <div class="btn-row"><button class="btn primary" id="oNext">Next word ▶</button><button class="btn ghost" id="oReset">⟲ Start over</button></div>
+      <div class="sbox"><h3>🅰️ Stock A</h3><div class="sent" id="sentA"></div><svg class="spark" id="sparkA" viewBox="0 0 300 70" aria-hidden="true"></svg><div class="note" id="noteA"></div><div class="ver" id="verA"></div></div>
+      <div class="sbox"><h3>🅱️ Stock B</h3><div class="sent" id="sentB"></div><svg class="spark" id="sparkB" viewBox="0 0 300 70" aria-hidden="true"></svg><div class="note" id="noteB"></div><div class="ver" id="verB"></div></div>
+      <div class="btn-row"><button class="btn primary" id="oNext">Next day ▶</button><button class="btn ghost" id="oReset">⟲ Start over</button></div>
     </div>
     <div>
-      <div class="sbox"><h3>🛍️ Bag of words (same for 🅰️ and 🅱️)</h3><div class="bag" id="bag"></div>
-        <div class="banner bad" style="margin-bottom:0">🤷 Same bag → same answer. The order is lost.</div></div>
+      <div class="sbox"><h3>📊 Average price (same for 🅰️ and 🅱️)</h3><div class="bag" id="bag"></div><div class="ver" id="avg"></div>
+        <div class="banner bad" style="margin-bottom:0">🤷 Same prices → same average → same answer. The order is lost.</div></div>
     </div>
   </div>
   <div class="chipsrow">
-    <span class="wchip">📖 <b>Sequence</b> = things in order</span>
-    <span class="wchip">🛍️ <b>Bag of words</b> = count words, lose the order</span>
+    <span class="wchip">📖 <b>Sequence</b> = numbers in time order</span>
+    <span class="wchip">📊 <b>Average</b> = keeps the numbers, loses the order</span>
   </div>
 </section>
 
 <section class="card">
   <h2>② The RNN: a reader with a memory</h2>
-  <p class="bigq">Read one word, update the 🧠 memory, repeat.</p>
+  <p class="bigq">Read one day's price, update the 🧠 memory, repeat.</p>
   <div class="diagram">
-    <svg id="rnnA" viewBox="0 0 1000 310" role="img" aria-label="An RNN reads 'this is not bad' word by word; the memory travels from cell to cell and only the last memory gives the answer">
+    <svg id="rnnA" viewBox="0 0 1000 310" role="img" aria-label="An RNN reads the prices 100, 103, 101, 106 day by day; the memory travels from cell to cell and only the last memory gives the guess for the next day">
       <defs>
         <marker id="raG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#adb5bd"/></marker>
         <marker id="raO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f08c00"/></marker>
@@ -367,43 +368,43 @@
       <line class="flow" data-k="5" x1="794" y1="162" x2="838" y2="162" style="stroke:#2f9e44"/>
       <g class="out" data-k="5">
         <rect x="846" y="128" width="146" height="68" rx="14" fill="#ebfbee" stroke="#2f9e44" stroke-width="2.5"/>
-        <text x="919" y="155" text-anchor="middle" font-size="13" fill="#2b8a3e" font-weight="700">ANSWER</text>
-        <text x="919" y="182" text-anchor="middle" font-size="19" font-weight="700">😀 positive</text>
+        <text x="919" y="155" text-anchor="middle" font-size="13" fill="#2b8a3e" font-weight="700">GUESS DAY 5</text>
+        <text x="919" y="182" text-anchor="middle" font-size="19" font-weight="700">📈 ≈ 108</text>
       </g>
       <text class="brain" x="0" y="162" font-size="30" text-anchor="middle" dominant-baseline="central" style="transform:translate(50px,0)">🧠</text>
     </svg>
   </div>
   <div class="steps4" id="rSteps">
-    <button class="btn" data-k="1"><span class="n">1</span>this</button>
-    <button class="btn" data-k="2"><span class="n">2</span>is</button>
-    <button class="btn" data-k="3"><span class="n">3</span>not</button>
-    <button class="btn" data-k="4"><span class="n">4</span>bad</button>
-    <button class="btn" data-k="5"><span class="n">5</span>Answer</button>
+    <button class="btn" data-k="1"><span class="n">1</span>Day 1 · 100</button>
+    <button class="btn" data-k="2"><span class="n">2</span>Day 2 · 103</button>
+    <button class="btn" data-k="3"><span class="n">3</span>Day 3 · 101</button>
+    <button class="btn" data-k="4"><span class="n">4</span>Day 4 · 106</button>
+    <button class="btn" data-k="5"><span class="n">5</span>Guess</button>
     <button class="btn primary" id="rPlayAll">▶ Play all</button>
   </div>
   <div class="stepcap" id="rCap">👆 Press ▶ Play all</div>
   <div class="chipsrow">
     <span class="wchip">🧠 <b>Memory</b> (hidden state) = a few numbers carried along</span>
-    <span class="wchip">🔁 <b>Same cell</b> for every word</span>
+    <span class="wchip">🔁 <b>Same cell</b> for every day</span>
   </div>
 </section>
 
 <section class="card">
   <h2>③ The problem: the memory fades</h2>
-  <p class="bigq">A plain RNN slowly forgets the first words.</p>
-  <div class="keyline"><span class="wd">The</span><span class="wd key">🔑 keys</span><span class="gap">… 20 more words …</span><span class="wd">are</span><span class="gap">← needs "keys" (many)</span></div>
+  <p class="bigq">A plain RNN slowly forgets the early days.</p>
+  <div class="keyline"><span class="wd">Last December</span><span class="wd key">🎉 big jump</span><span class="gap">… 11 months of prices …</span><span class="wd">December again</span><span class="gap">← will it jump again?</span></div>
   <div class="fade2" id="fade2">
-    <div class="frow"><b>🔁 RNN</b><div class="mems"><span class="mb" style="--o:1;--d:0.00s">🔑 keys</span><span class="mb" style="--o:0.7;--d:0.45s">🔑 keys</span><span class="mb" style="--o:0.45;--d:0.90s">🔑 keys</span><span class="mb" style="--o:0.28;--d:1.35s">🔑 keys</span><span class="mb" style="--o:0.15;--d:1.80s">🔑 keys</span><span class="mb" style="--o:0.07;--d:2.25s">🔑 keys</span></div><span class="res bad">❓ “is” or “are”?</span></div>
-    <div class="frow"><b>📓 LSTM</b><div class="mems"><span class="mb" style="--o:1;--d:0.00s">🔑 keys</span><span class="mb" style="--o:1;--d:0.45s">🔑 keys</span><span class="mb" style="--o:1;--d:0.90s">🔑 keys</span><span class="mb" style="--o:1;--d:1.35s">🔑 keys</span><span class="mb" style="--o:1;--d:1.80s">🔑 keys</span><span class="mb" style="--o:1;--d:2.25s">🔑 keys</span></div><span class="res good">✅ “are”</span></div>
+    <div class="frow"><b>🔁 RNN</b><div class="mems"><span class="mb" style="--o:1;--d:0.00s">🎉 Dec jump</span><span class="mb" style="--o:0.7;--d:0.45s">🎉 Dec jump</span><span class="mb" style="--o:0.45;--d:0.90s">🎉 Dec jump</span><span class="mb" style="--o:0.28;--d:1.35s">🎉 Dec jump</span><span class="mb" style="--o:0.15;--d:1.80s">🎉 Dec jump</span><span class="mb" style="--o:0.07;--d:2.25s">🎉 Dec jump</span></div><span class="res bad">❓ no idea</span></div>
+    <div class="frow"><b>📓 LSTM</b><div class="mems"><span class="mb" style="--o:1;--d:0.00s">🎉 Dec jump</span><span class="mb" style="--o:1;--d:0.45s">🎉 Dec jump</span><span class="mb" style="--o:1;--d:0.90s">🎉 Dec jump</span><span class="mb" style="--o:1;--d:1.35s">🎉 Dec jump</span><span class="mb" style="--o:1;--d:1.80s">🎉 Dec jump</span><span class="mb" style="--o:1;--d:2.25s">🎉 Dec jump</span></div><span class="res good">✅ expects 📈</span></div>
   </div>
   <div class="btn-row"><button class="btn" id="fReplay">↻ Replay</button></div>
-  <p class="cap1">Each box = the 🧠 memory after one more word. The RNN's note about “keys” gets fainter every word.</p>
+  <p class="cap1">Each box = the 🧠 memory a couple of months later. The RNN's note about last December gets fainter every day.</p>
 </section>
 
 <section class="card">
   <h2>④ The LSTM: a notebook with 3 tools</h2>
   <p class="bigq">🧽 Erase old notes. ✍️ Write new notes. 📢 Say what's needed now.</p>
-  <div class="lsent">📖 “The <b>boy</b> is tall. The <b>girls</b> ___ …”</div>
+  <div class="lsent">💰 Price went <b>up</b> for 3 weeks… then 💥 bad news: <b>−15 %</b> today. Tomorrow ___ ?</div>
   <div class="diagram">
     <svg id="lstmA" viewBox="0 0 1000 310" role="img" aria-label="LSTM as a conveyor belt carrying a notebook past three stations: forget, write and show">
       <defs><marker id="laB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fed"/></marker>
@@ -433,12 +434,12 @@
       </g>
       <g class="out">
         <rect x="846" y="192" width="146" height="68" rx="14" fill="#fff" stroke="#2f6fed" stroke-width="2.5"/>
-        <text x="919" y="234" text-anchor="middle" font-size="19" font-weight="700">🗣️ “are”</text>
+        <text x="919" y="234" text-anchor="middle" font-size="19" font-weight="700">🗣️ “lower”</text>
       </g>
-      <text x="500" y="295" text-anchor="middle" font-size="14" fill="#868e96">each tool looks at 📖 the new word + 🧠 the last output, and learns when to act</text>
+      <text x="500" y="295" text-anchor="middle" font-size="14" fill="#868e96">each tool looks at 💰 today's price + 🧠 the last output, and learns when to act</text>
       <!-- notes riding the belt -->
-      <g class="noteOld"><rect x="-62" y="-24" width="124" height="48" rx="10" fill="#fff" stroke="#f08c00" stroke-width="2.5"/><text x="0" y="6" text-anchor="middle" font-size="17" font-weight="700">👦 one boy</text></g>
-      <g class="noteNew"><rect x="-70" y="-24" width="140" height="48" rx="10" fill="#fff" stroke="#2f9e44" stroke-width="2.5"/><text x="0" y="6" text-anchor="middle" font-size="17" font-weight="700">👧👧 girls</text></g>
+      <g class="noteOld"><rect x="-70" y="-24" width="140" height="48" rx="10" fill="#fff" stroke="#f08c00" stroke-width="2.5"/><text x="0" y="6" text-anchor="middle" font-size="17" font-weight="700">📈 going up</text></g>
+      <g class="noteNew"><rect x="-78" y="-24" width="156" height="48" rx="10" fill="#fff" stroke="#2f9e44" stroke-width="2.5"/><text x="0" y="6" text-anchor="middle" font-size="17" font-weight="700">📉 going down</text></g>
     </svg>
   </div>
   <div class="steps4" id="lSteps">
@@ -447,7 +448,7 @@
     <button class="btn" data-k="3"><span class="n">3</span>📢 Show</button>
     <button class="btn primary" id="lPlayAll">▶ Play all</button>
   </div>
-  <div class="stepcap" id="lCap">📓 The notebook remembers: “one boy”. Press ▶ Play all</div>
+  <div class="stepcap" id="lCap">📓 The notebook remembers: “going up”. Press ▶ Play all</div>
   <div class="chipsrow">
     <span class="wchip">🚪 <b>Gate</b> = a dial from 0 (closed) to 1 (open)</span>
     <span class="wchip">🛤️ The notebook slides along, so notes don't fade</span>
@@ -457,10 +458,10 @@
 
 <section class="card">
   <h2>⑤ Inside the LSTM cell: 4 gates</h2>
-  <p class="bigq">One cell runs for every word. Each gate is a small dial.</p>
-  <div class="lsent">📖 “The <b>boy</b> is tall. The <b>girls</b> ___ …” &nbsp;·&nbsp; now reading: <b>girls</b></div>
+  <p class="bigq">One cell runs for every day. Each gate is a small dial.</p>
+  <div class="lsent">💰 3 weeks <b>up</b>… then 💥 <b>−15 %</b> &nbsp;·&nbsp; now reading: <b>today's price</b></div>
   <div class="diagram">
-    <svg id="arch" viewBox="0 0 1000 500" role="img" aria-label="LSTM cell: the notebook line runs across the top; forget, candidate, input and output gates sit below it and read the new word and the last output">
+    <svg id="arch" viewBox="0 0 1000 500" role="img" aria-label="LSTM cell: the notebook line runs across the top; forget, candidate, input and output gates sit below it and read today's price and the last output">
       <defs>
         <marker id="kA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#495057"/></marker>
         <marker id="rA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e03131"/></marker>
@@ -471,12 +472,12 @@
       </defs>
       <!-- the cell -->
       <rect x="120" y="60" width="760" height="370" rx="24" fill="#f8f9fb" stroke="#ced4da" stroke-width="2" stroke-dasharray="8 6"/>
-      <text x="864" y="418" text-anchor="end" font-size="13" fill="#868e96">one LSTM cell = one word</text>
+      <text x="864" y="418" text-anchor="end" font-size="13" fill="#868e96">one LSTM cell = one day</text>
       <!-- inputs (always on) -->
       <line class="w" x1="20" y1="380" x2="702" y2="380" stroke="#495057"/>
       <text class="io" x="20" y="368">🧠 last output</text>
       <line class="w" x1="180" y1="478" x2="180" y2="384" stroke="#495057" marker-end="url(#kA)"/>
-      <text class="io" x="192" y="476">📖 new word</text>
+      <text class="io" x="192" y="476">💰 today's price</text>
       <g stroke="#495057" stroke-width="3" marker-end="url(#kA)">
         <line x1="260" y1="380" x2="260" y2="336"/><line x1="410" y1="380" x2="410" y2="336"/><line x1="550" y1="380" x2="550" y2="336"/><line x1="700" y1="380" x2="700" y2="336"/>
       </g>
@@ -487,8 +488,8 @@
         <text class="io" x="20" y="88" fill="#d9480f">📓 old notebook</text>
         <text class="io" x="980" y="88" fill="#d9480f" text-anchor="end">📓 new notebook</text>
         <circle cx="480" cy="110" r="18" fill="#fff" stroke="#2f9e44" stroke-width="3.5"/><text class="op" x="480" y="111" fill="#2f9e44">+</text>
-        <text class="noteL" x="40" y="142" font-size="15" font-weight="700">👦 one boy</text>
-        <text class="noteR" x="975" y="142" font-size="15" font-weight="700" text-anchor="end">👧👧 girls</text>
+        <text class="noteL" x="40" y="142" font-size="15" font-weight="700">📈 going up</text>
+        <text class="noteR" x="975" y="142" font-size="15" font-weight="700" text-anchor="end">📉 going down</text>
       </g>
 
       <!-- 🧽 forget gate -->
@@ -527,7 +528,7 @@
         <circle cx="800" cy="300" r="18" fill="#fff" stroke="#2f6fed" stroke-width="3.5"/><text class="op" x="800" y="301" fill="#2f6fed">×</text>
         <line class="w" x1="818" y1="300" x2="972" y2="300" stroke="#2f6fed" marker-end="url(#bA)"/>
         <text class="io" x="980" y="286" fill="#1c4fbf" text-anchor="end">🗣️ new output</text>
-        <text x="980" y="326" fill="#1c4fbf" text-anchor="end" font-size="13">“are” + to the next word</text>
+        <text x="980" y="326" fill="#1c4fbf" text-anchor="end" font-size="13">“lower” + to the next day</text>
         <rect class="gbox" x="640" y="266" width="120" height="68" rx="14" fill="#e7f0ff" stroke="#2f6fed"/>
         <text class="gico" x="672" y="292">📢</text><text class="gfn" x="752" y="284">σ</text>
         <text class="gname" x="700" y="322" fill="#1c4fbf">Output</text>
@@ -547,25 +548,25 @@
   <div class="gcards" id="gCards">
     <button class="gcard" data-k="1" style="border-color:#ffc9c9;color:#e03131"><div class="ge">🧽</div><b style="color:#c92a2a">Forget gate</b><span class="gt" style="background:#fff5f5;color:#c92a2a">σ · dial 0 → 1</span>
       <p>What should I erase from the notebook?</p><div class="dial"><span>0 erase</span><i style="background:linear-gradient(90deg,#e03131,#fff5f5)"></i><span>1 keep</span></div>
-      <span class="ex">New subject “girls” → erase “one boy” (dial ≈ 0)</span></button>
+      <span class="ex">Big crash today → erase “going up” (dial ≈ 0)</span></button>
     <button class="gcard" data-k="2" style="border-color:#99e9f2;color:#0c8599"><div class="ge">💡</div><b style="color:#0b7285">Candidate</b><span class="gt" style="background:#e3fafc;color:#0b7285">tanh · value −1 … +1</span>
       <p>What new note could I write?</p><div class="dial"><span>−1</span><i style="background:linear-gradient(90deg,#0c8599,#fff,#0c8599)"></i><span>+1</span></div>
-      <span class="ex">Draft note: “many” (plural)</span></button>
+      <span class="ex">Draft note: “going down”</span></button>
     <button class="gcard" data-k="2" style="border-color:#b2f2bb;color:#2f9e44"><div class="ge">✍️</div><b style="color:#2b8a3e">Input gate</b><span class="gt" style="background:#ebfbee;color:#2b8a3e">σ · dial 0 → 1</span>
       <p>How much of the draft do I write?</p><div class="dial"><span>0 none</span><i style="background:linear-gradient(90deg,#ebfbee,#2f9e44)"></i><span>1 all</span></div>
-      <span class="ex">Important news → write it fully (dial ≈ 1)</span></button>
+      <span class="ex">Tiny wobble → skip it (≈ 0). Big move −15 % → write it fully (≈ 1)</span></button>
     <button class="gcard" data-k="3" style="border-color:#ffd8a8;color:#f08c00"><div class="ge">📓</div><b style="color:#d9480f">Notebook (cell state)</b><span class="gt" style="background:#fff4e6;color:#d9480f">only × and +</span>
       <p>Kept notes + new notes.</p><div class="dial"><span>old × 🧽</span><i style="background:#f08c00"></i><span>+ ✍️ × 💡</span></div>
-      <span class="ex">“one boy” erased, “girls” written</span></button>
+      <span class="ex">“going up” erased, “going down” written</span></button>
     <button class="gcard" data-k="4" style="border-color:#a5c4ff;color:#2f6fed"><div class="ge">📢</div><b style="color:#1c4fbf">Output gate</b><span class="gt" style="background:#e7f0ff;color:#1c4fbf">σ · dial 0 → 1</span>
       <p>What do I say right now?</p><div class="dial"><span>0 quiet</span><i style="background:linear-gradient(90deg,#e7f0ff,#2f6fed)"></i><span>1 say it</span></div>
-      <span class="ex">A verb comes next → read “girls” → say “are”</span></button>
+      <span class="ex">Time to guess → read “going down” → say “lower”</span></button>
   </div>
   <div class="chipsrow">
     <span class="wchip"><b>σ</b> = a dial: 0 closed … 1 open</span>
     <span class="wchip"><b>tanh</b> = a value: −1 … +1</span>
     <span class="wchip"><b>×</b> = turn down · <b>+</b> = add</span>
-    <span class="wchip">🧠📖 every gate reads the last output + the new word</span>
+    <span class="wchip">🧠💰 every gate reads the last output + today's price</span>
   </div>
 
 </section>
@@ -573,39 +574,40 @@
 <section class="card">
   <h2>⑥ Which one should I use?</h2>
   <div class="when">
-    <div class="wcard"><div class="pic">📱💬</div><div class="if">Short texts, a few words</div><span class="then" style="background:#fff4e6;color:#d9480f">🔁 Plain RNN is fine</span></div>
-    <div class="wcard"><div class="pic">📚✉️</div><div class="if">Long texts, early words matter</div><span class="then" style="background:#e7f0ff;color:var(--blue)">📓 LSTM</span></div>
-    <div class="wcard"><div class="pic">🌍🖥️</div><div class="if">Huge amounts of text + big GPUs</div><span class="then" style="background:#ebfbee;color:var(--green)">⚡ Transformer</span></div>
+    <div class="wcard"><div class="pic">📅🔟</div><div class="if">Short history: the last 10 days</div><span class="then" style="background:#fff4e6;color:#d9480f">🔁 Plain RNN is fine</span></div>
+    <div class="wcard"><div class="pic">📆🎉</div><div class="if">Long history: patterns from months ago matter</div><span class="then" style="background:#e7f0ff;color:var(--blue)">📓 LSTM</span></div>
+    <div class="wcard"><div class="pic">🌍🖥️</div><div class="if">Huge data, many stocks + big GPUs</div><span class="then" style="background:#ebfbee;color:var(--green)">⚡ Transformer</span></div>
   </div>
+  <div class="life">⚠️ Real stock prices are very hard to predict: news and surprises move them. Always compare with the lazy guess <b>“tomorrow = today”</b>. Many models barely beat it.</div>
 </section>
 <section class="card">
   <h2>⑦ Then and now</h2>
-  <p class="bigq">Today's chatbots read all words at once.</p>
+  <p class="bigq">Today's big models read all days at once.</p>
   <div class="tnow"><div class="diagram">
-    <svg viewBox="0 0 440 250" role="img" aria-label="RNN reads words one after another; Transformer connects all words at once">
+    <svg viewBox="0 0 440 250" role="img" aria-label="RNN reads prices one day after another; Transformer connects all days at once">
       <defs><marker id="ar6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f08c00"/></marker></defs>
-      <text x="8" y="22" font-size="14" font-weight="700" fill="#d9480f">🔁 RNN: one word after another</text>
+      <text x="8" y="22" font-size="14" font-weight="700" fill="#d9480f">🔁 RNN: one day after another</text>
       <g font-size="13" text-anchor="middle">
-        <rect x="10" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="45" y="56">the</text>
-        <rect x="115" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="150" y="56">keys</text>
+        <rect x="10" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="45" y="56">Day 1</text>
+        <rect x="115" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="150" y="56">Day 2</text>
         <rect x="220" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="255" y="56">…</text>
-        <rect x="325" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="360" y="56">are</text>
+        <rect x="325" y="36" width="70" height="30" rx="7" fill="#fff4e6" stroke="#f08c00" stroke-width="2"/><text x="360" y="56">Today</text>
       </g>
       <g stroke="#f08c00" stroke-width="2.5" marker-end="url(#ar6)"><line x1="80" y1="51" x2="111" y2="51"/><line x1="185" y1="51" x2="216" y2="51"/><line x1="290" y1="51" x2="321" y2="51"/></g>
-      <text x="8" y="90" font-size="12" fill="#5d6678">must wait for each word · "keys" fades</text>
-      <text x="8" y="128" font-size="14" font-weight="700" fill="#2f6fed">⚡ Transformer: all words at once</text>
+      <text x="8" y="90" font-size="12" fill="#5d6678">must wait for each day · Day 1 fades</text>
+      <text x="8" y="128" font-size="14" font-weight="700" fill="#2f6fed">⚡ Transformer: all days at once</text>
       <g fill="none" stroke="#7048e8" stroke-width="1.6" opacity=".7">
         <path d="M45 190 Q97 150 150 190"/><path d="M45 190 Q150 120 255 190"/><path d="M45 190 Q202 100 360 190"/>
         <path d="M150 190 Q202 150 255 190"/><path d="M150 190 Q255 120 360 190"/><path d="M255 190 Q307 150 360 190"/>
       </g>
       <path d="M150 190 Q255 120 360 190" fill="none" stroke="#7048e8" stroke-width="3.5"/>
       <g font-size="13" text-anchor="middle">
-        <rect x="10" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="45" y="210">the</text>
-        <rect x="115" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="150" y="210">keys</text>
+        <rect x="10" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="45" y="210">Day 1</text>
+        <rect x="115" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="150" y="210">Day 2</text>
         <rect x="220" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="255" y="210">…</text>
-        <rect x="325" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="360" y="210">are</text>
+        <rect x="325" y="190" width="70" height="30" rx="7" fill="#e7f0ff" stroke="#2f6fed" stroke-width="2"/><text x="360" y="210">Today</text>
       </g>
-      <text x="8" y="242" font-size="12" fill="#5d6678">every word looks at every word: "are" → "keys"</text>
+      <text x="8" y="242" font-size="12" fill="#5d6678">every day looks at every day: Today → Day 2</text>
     </svg>
   </div>
   <div class="chipsrow tchips">
@@ -616,14 +618,14 @@
 
 <section class="card">
   <h2>⑧ From RNN to today's huge LLMs</h2>
-  <p class="bigq">40 years: from reading word by word to reading everything at once.</p>
+  <p class="bigq">40 years: from reading step by step to reading everything at once.</p>
   <div class="eraband">
-    <span style="background:#fff4e6;color:#d9480f">🔁 one word at a time</span>
-    <span style="background:#e7f0ff;color:#1c4fbf">⚡ all words at once</span>
+    <span style="background:#fff4e6;color:#d9480f">🔁 one step at a time</span>
+    <span style="background:#e7f0ff;color:#1c4fbf">⚡ all steps at once</span>
     <span style="background:#ebfbee;color:var(--green)">🤖 huge + talks to everyone</span>
   </div>
   <ol class="hist" id="hist">
-    <li class="" style="--c:#f08c00;--i:0"><span class="dot">🔁</span><span class="yr">1986</span><div class="what"><b>RNN</b><span>Reads one word at a time and keeps a small memory.</span></div></li>
+    <li class="" style="--c:#f08c00;--i:0"><span class="dot">🔁</span><span class="yr">1986</span><div class="what"><b>RNN</b><span>Reads one step at a time (a price, a word…) and keeps a small memory.</span></div></li>
     <li class="" style="--c:#f08c00;--i:1"><span class="dot">📓</span><span class="yr">1997</span><div class="what"><b>LSTM</b><span>Adds the notebook and gates, so it remembers longer.</span></div></li>
     <li class="" style="--c:#f08c00;--i:2"><span class="dot">🌍</span><span class="yr">2014</span><div class="what"><b>Translation</b><span>One LSTM reads a sentence, a second one writes it in another language.</span></div></li>
     <li class="" style="--c:#2f6fed;--i:3"><span class="dot">👀</span><span class="yr">2015</span><div class="what"><b>Attention</b><span>While writing, the model may look back at any word.</span></div></li>
@@ -646,12 +648,14 @@
 <section class="callout think">
   <h3>🤔 Quick quiz</h3>
   <ol class="challenges">
-    <li>An RNN reads 40 words. How many different cells does it use?
-      <details class="answer"><summary>Answer</summary>Just one. The same 🔁 cell is reused for every word.</details></li>
+    <li>An RNN reads 40 days of prices. How many different cells does it use?
+      <details class="answer"><summary>Answer</summary>Just one. The same 🔁 cell is reused for every day.</details></li>
     <li>🧽 Forget gate = 0. What happens to the old note?
       <details class="answer"><summary>Answer</summary>It is erased completely. (1 = keep it all.)</details></li>
-    <li>A long story where the first words matter. 🔁 RNN or 📓 LSTM?
-      <details class="answer"><summary>Answer</summary>📓 LSTM. Its notebook keeps the early notes; the RNN's memory fades.</details></li>
+    <li>Sales jump every December, and you read a whole year of prices. 🔁 RNN or 📓 LSTM?
+      <details class="answer"><summary>Answer</summary>📓 LSTM. Its notebook keeps the note from last December; the RNN's memory fades.</details></li>
+    <li>Stock A: 100, 105, 110. Stock B: 110, 105, 100. Same average. Same future?
+      <details class="answer"><summary>Answer</summary>No. A is going up 📈, B is going down 📉. The order matters, so we read the prices in order.</details></li>
   </ol>
 </section>
 
@@ -668,34 +672,41 @@ const $$=s=>[...document.querySelectorAll(s)];
 const put=(el,html)=>el.replaceChildren(document.createRange().createContextualFragment(html));
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-// ================= ① bag of words vs reading in order =================
+// ================= ① average vs reading in order =================
 const PAIRS={
-  movie:{a:'it was good , not bad',b:'it was bad , not good',
-    na:['👆 Press Next word','…','…','"good" → 😀','…','"not" → flip the next word','"not bad" → 😀😀'],
-    nb:['👆 Press Next word','…','…','"bad" → 😞','…','"not" → flip the next word','"not good" → 😞😞'],
-    va:'😀 Positive',vb:'😞 Negative'},
-  dog:{a:'dog bites man',b:'man bites dog',
-    na:['👆 Press Next word','🐕 acts','🐕 bites…','…🧍. Normal day.'],
-    nb:['👆 Press Next word','🧍 acts','🧍 bites…','…🐕?! News!'],
-    va:'😐 Not news',vb:'😲 Headline news!'},
-  food:{a:'the food was not good but the service was great',b:'the service was not good but the food was great',
-    na:['👆 Press Next word','…','topic: 🍝','…','"not"…','🍝 bad 😞','"but": change coming','…','topic: 🧑‍🍳','…','🧑‍🍳 great 😀'],
-    nb:['👆 Press Next word','…','topic: 🧑‍🍳','…','"not"…','🧑‍🍳 bad 😞','"but": change coming','…','topic: 🍝','…','🍝 great 😀'],
-    va:'Go for the staff 🧑‍🍳',vb:'Go for the food 🍝'}};
-const O={p:'movie',k:0};
-function drawOrder(){const P=PAIRS[O.p],A=P.a.split(' '),B=P.b.split(' '),n=A.length,k=O.k;
-  const chips=ws=>ws.map((w,j)=>`<span class="w ${j<k-1?'read':j===k-1?'now':''}">${esc(w)}</span>`).join('');
+  trend:{a:[100,102,105,108,110],b:[110,108,105,102,100],
+    na:['👆 Press Next day','starts at 100','up a little','up again','still going up','📈 steady climb'],
+    nb:['👆 Press Next day','starts at 110','down a little','down again','still falling','📉 steady fall'],
+    va:'📈 Going up: next ≈ 112',vb:'📉 Going down: next ≈ 98'},
+  dip:{a:[100,92,88,95,104],b:[88,95,104,100,92],
+    na:['👆 Press Next day','starts at 100','falling…','lowest point','bouncing back','🥄 recovered and rising'],
+    nb:['👆 Press Next day','starts at 88','rising…','the top!','turning down','⛰️ falling from the top'],
+    va:'📈 Recovering: next higher',vb:'📉 Falling: next lower'},
+  crash:{a:[100,101,102,103,80],b:[80,100,101,102,103],
+    na:['👆 Press Next day','starts at 100','calm','calm','calm','💥 crash today!'],
+    nb:['👆 Press Next day','starts low at 80','big jump up!','calm','calm','calm climb'],
+    va:'😱 Just crashed: be careful',vb:'😌 Old crash, calm now'}};
+const O={p:'trend',k:0};
+function spark(sel,ps,k,lo,hi){const x=j=>15+j*(270/(ps.length-1)),y=v=>60-(v-lo)/(hi-lo)*50;
+  const seen=ps.slice(0,k),pts=seen.map((v,j)=>`${x(j)},${y(v)}`).join(' ');
+  put($(sel),`<svg xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="64" x2="290" y2="64" stroke="#dee2e6" stroke-width="2"/>`
+    +(k>1?`<polyline points="${pts}" fill="none" stroke="#2f6fed" stroke-width="3" stroke-linejoin="round"/>`:'')
+    +seen.map((v,j)=>`<circle cx="${x(j)}" cy="${y(v)}" r="${j===k-1?6:4}" fill="${j===k-1?'#ffd43b':'#2f6fed'}" stroke="${j===k-1?'#f0b400':'none'}" stroke-width="2"/>`).join('')+`</svg>`);
+  const g=$(sel),tmp=g.firstElementChild;while(tmp.firstChild)g.appendChild(tmp.firstChild);tmp.remove();}
+function drawOrder(){const P=PAIRS[O.p],A=P.a,B=P.b,n=A.length,k=O.k,lo=Math.min(...A),hi=Math.max(...A);
+  const chips=ps=>ps.map((v,j)=>`<span class="w ${j<k-1?'read':j===k-1?'now':''}">${j<k?v:'?'}</span>`).join('');
   put($('#sentA'),chips(A));put($('#sentB'),chips(B));
+  spark('#sparkA',A,k,lo,hi);spark('#sparkB',B,k,lo,hi);
   $('#noteA').textContent='💭 '+P.na[k];$('#noteB').textContent='💭 '+P.nb[k];
   const done=k>=n;$('#verA').textContent=done?'→ '+P.va:'';$('#verB').textContent=done?'→ '+P.vb:'';
-  const cnt={};A.forEach(w=>cnt[w]=(cnt[w]||0)+1);
-  put($('#bag'),Object.keys(cnt).sort().map(w=>`<span class="w">${esc(w)}<b>×${cnt[w]}</b></span>`).join(''));
+  put($('#bag'),[...A].sort((p,q)=>p-q).map(v=>`<span class="w">${v}</span>`).join(''));
+  $('#avg').textContent='average = '+(A.reduce((s,v)=>s+v,0)/n).toFixed(1);
   $('#oNext').disabled=done;}
 $$('#pairSeg button').forEach(b=>b.onclick=()=>{O.p=b.dataset.p;O.k=0;$$('#pairSeg button').forEach(x=>x.classList.toggle('on',x===b));drawOrder();});
 $('#oNext').onclick=()=>{O.k++;drawOrder();};$('#oReset').onclick=()=>{O.k=0;drawOrder();};
 
 // ================= ② RNN animation (diagram) =================
-const RW=['this','is','not','bad'],RX=[190,370,550,730],FADE=[1,.55,.32,.2];
+const RW=['100','103','101','106'],RX=[190,370,550,730],FADE=[1,.55,.32,.2];
 (function buildCols(){let s='';
   RW.forEach((w,j)=>{const cx=RX[j],k=j+1;
     if(j>0)s+=`<line class="flow" data-k="${k}" x1="${RX[j-1]+64}" y1="162" x2="${cx-66}" y2="162"/>`;
@@ -707,11 +718,11 @@ const RW=['this','is','not','bad'],RX=[190,370,550,730],FADE=[1,.55,.32,.2];
     s+=`<g class="col" data-k="${k}"><rect class="cellr" x="${cx-60}" y="130" width="120" height="64" rx="14"/>`
       +`<text x="${cx}" y="168" text-anchor="middle" font-size="19" font-weight="700" fill="#2f6fed">🔁 RNN</text>`
       +`<line x1="${cx}" y1="246" x2="${cx}" y2="200" stroke="#adb5bd" stroke-width="3" marker-end="url(#raG)"/>`
-      +`<rect class="wordr" x="${cx-52}" y="248" width="104" height="44" rx="10"/><text x="${cx}" y="277" text-anchor="middle" font-size="19" font-weight="700">📖 ${w}</text></g>`;});
+      +`<rect class="wordr" x="${cx-52}" y="248" width="104" height="44" rx="10"/><text x="${cx}" y="277" text-anchor="middle" font-size="19" font-weight="700">💰 ${w}</text></g>`;});
   put($('#rnnCols'),`<svg xmlns="http://www.w3.org/2000/svg">${s}</svg>`);
   const g=$('#rnnCols'),tmp=g.firstElementChild;while(tmp.firstChild)g.appendChild(tmp.firstChild);tmp.remove();})();
-const RCAP={1:'📖 Read “this”. The 🧠 memory takes a note.',2:'📖 Read “is”. New word + old memory → new memory.',
-  3:'📖 Read “not”. Older words get a little fainter.',4:'📖 Read “bad”. The memory now holds the whole sentence.',5:'✅ Only the last memory gives the answer.'};
+const RCAP={1:'💰 Day 1: price 100. The 🧠 memory takes a note.',2:'💰 Day 2: 103. New price + old memory → new memory.',
+  3:'💰 Day 3: 101, a small dip. Older days get a little fainter.',4:'💰 Day 4: 106. The memory now holds the whole story: mostly going up.',5:'✅ Only the last memory gives the guess: Day 5 ≈ 108.'};
 const BRAINX=[50,99,280,460,640,816];
 let rT=null;
 function rStep(k){$$('#rnnA [data-k]').forEach(e=>{const j=+e.dataset.k;e.classList.toggle('on',k>=j);e.classList.toggle('now',k===j);});
@@ -725,7 +736,7 @@ $('#fReplay').onclick=()=>{const f=$('#fade2');f.classList.remove('go');void f.o
 new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('go');o.disconnect();}}),{threshold:.4}).observe($('#fade2'));
 
 // ================= ④ LSTM notebook animation =================
-const LCAP={0:'📓 The notebook remembers: “one boy”.',1:'🧽 New subject! Erase “one boy”.',2:'✍️ Write a new note: “girls” (many).',3:'📢 Use the note now: “The girls ARE…”'};
+const LCAP={0:'📓 The notebook remembers: “going up”.',1:'🧽 Big crash! Erase “going up”.',2:'✍️ Write a new note: “going down”.',3:'📢 Use the note now: tomorrow probably LOWER.'};
 let lT=null;
 function lStep(k){const s=$('#lstmA');[1,2,3].forEach(j=>{s.classList.toggle('a'+j,k>=j);s.classList.toggle('n'+j,k===j);});
   $$('#lSteps [data-k]').forEach(b=>b.classList.toggle('on',+b.dataset.k===k));$('#lCap').textContent=LCAP[k];}
@@ -733,11 +744,11 @@ $$('#lSteps [data-k]').forEach(b=>b.onclick=()=>{clearTimeout(lT);lStep(+b.datas
 $('#lPlayAll').onclick=()=>{clearTimeout(lT);lStep(0);let k=1;const tick=()=>{lStep(k);if(k++<3)lT=setTimeout(tick,2400);};lT=setTimeout(tick,900);};
 
 // ================= ⑤ LSTM architecture walk-through =================
-const ACAP={0:'👁️ One cell per word. The 📓 notebook runs across the top; 4 gates sit below.',
-  1:'🧽 Forget: “girls” is a new subject → dial to 0 → “one boy” is erased.',
-  2:'💡 Candidate drafts “many”. ✍️ Input gate says: important → write it fully.',
+const ACAP={0:'👁️ One cell per day. The 📓 notebook runs across the top; 4 gates sit below.',
+  1:'🧽 Forget: big crash today → dial to 0 → “going up” is erased.',
+  2:'💡 Candidate drafts “going down”. ✍️ Input gate says: big move → write it fully.',
   3:'📓 Update: kept notes + new notes. Only × and +, so notes don’t fade.',
-  4:'📢 Output: a verb is next → read the notebook → say “are”.'};
+  4:'📢 Output: time to guess → read the notebook → say “lower”.'};
 const AON={0:[],1:['f'],2:['g','i'],3:['c'],4:['o']};
 let aT=null;
 function aStep(k){const s=$('#arch');s.classList.toggle('focus',k>0);[1,2,3,4].forEach(j=>s.classList.toggle('s'+j,k===j));

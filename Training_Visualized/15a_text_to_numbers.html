@@ -176,6 +176,80 @@
   .recap .last{border:2px solid var(--green);background:var(--good-bg)}
   .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
+  /* ③ the whole family (roadmap) */
+  .steps{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin:.4rem 0 .8rem}
+  .steps span{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.35rem .7rem;font-size:.95rem;line-height:1.3;text-align:center}
+  .steps span small{display:block;font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+  .steps i{font-style:normal;color:var(--blue);font-weight:800}
+  .docs{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .8rem}
+  .doc{font-family:var(--mono);font-size:.92rem;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.25rem .65rem}
+  .doc b{color:var(--muted);margin-right:.35rem}
+  .eras{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,3.6fr) minmax(0,4.4fr);gap:.6rem}
+  @media (max-width:900px){.eras{grid-template-columns:1fr}}
+  .era{--ec:#2f6fed;--ebg:#e7f0ff;background:#fff;border:1px solid var(--line);border-top:4px solid var(--ec);border-radius:14px;padding:.55rem .65rem}
+  .era.e2,.mpanel.e2{--ec:#e8590c;--ebg:#fff4e6}
+  .era.e3,.mpanel.e3{--ec:#2f9e44;--ebg:#ebfbee}
+  .era h4{margin:0 0 .45rem;font-size:.98rem;color:var(--ec)}
+  .era h4 small{display:block;font-weight:500;color:var(--muted);font-size:.8rem}
+  .pills{display:flex;flex-wrap:wrap;gap:.3rem}
+  .mp{font:inherit;font-size:.84rem;border:1px solid var(--line);background:#fff;border-radius:10px;padding:.25rem .55rem .25rem .3rem;cursor:pointer;color:var(--ink);display:inline-flex;gap:.35rem;align-items:center}
+  .mp .k{display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--soft);font-size:.72rem;font-weight:800}
+  .mp:hover{border-color:var(--ec)}
+  .mp.on{border-color:var(--ec);background:var(--ebg);font-weight:700}
+  .mp.on .k{background:var(--ec);color:#fff}
+  .mpanel{--ec:#2f6fed;--ebg:#e7f0ff;background:#fff;border:2px solid var(--ec);border-radius:18px;padding:.9rem 1.1rem;margin-top:.8rem;min-width:0}
+  .mpanel .top{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .mpanel .top .k{display:inline-grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:var(--ec);color:#fff;font-weight:800}
+  .mpanel h3{margin:0;font-size:1.35rem}
+  .etag{font-size:.75rem;font-weight:700;border-radius:999px;padding:.1rem .6rem;background:var(--ebg);color:var(--ec)}
+  .mpanel .idea{font-size:1.12rem;font-weight:600;margin:.45rem 0 .7rem}
+  .mviz{min-width:0;overflow-x:auto}
+  .mlab{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:.7rem 0 .3rem}
+  .mlab:first-child{margin-top:0}
+  .pc{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.8rem}
+  @media (max-width:640px){.pc{grid-template-columns:1fr}}
+  .pc div{border-radius:10px;padding:.45rem .7rem;font-size:.92rem;line-height:1.4}
+  .pc .g{background:var(--good-bg);color:#2b8a3e}
+  .pc .b{background:var(--bad-bg);color:#c92a2a}
+  .mnav{display:flex;justify-content:space-between;gap:.5rem;margin-top:.8rem}
+  .mt{border-collapse:separate;border-spacing:3px;font-family:var(--mono);font-size:.85rem}
+  .mt th{font-weight:700;padding:.1rem .35rem;color:var(--muted);text-align:center}
+  .mt th.r{text-align:right;color:var(--ink);white-space:nowrap}
+  .mt td{min-width:2.5rem;text-align:center;border-radius:6px;padding:.2rem .35rem;background:var(--soft);border:1px solid var(--line);color:#adb5bd}
+  .mt td.on{background:#e7f0ff;border-color:#a5c4ff;color:#1c4fd1;font-weight:700}
+  .mt td.hot{background:#fff4e6;border-color:#ffc078;color:#d9480f;font-weight:700}
+  .tk{display:inline-block;font-family:var(--mono);font-size:.86rem;background:var(--soft);border:1px solid var(--line);border-radius:7px;padding:.08rem .45rem;margin:.1rem .1rem}
+  .tk.on{background:#e7f0ff;border-color:#a5c4ff;color:#1c4fd1;font-weight:700}
+  .tk.hot{background:#fff4e6;border-color:#ffc078;color:#d9480f;font-weight:700}
+  .tk.miss{background:#fff;border-style:dashed;color:var(--muted)}
+  .vrow{display:grid;grid-template-columns:minmax(5rem,11rem) minmax(0,1fr);gap:.6rem;align-items:center;margin:.25rem 0}
+  .vrow > span{font-family:var(--mono);font-size:.86rem;font-weight:700;text-align:right}
+  .vec{display:grid;gap:2px;max-width:24rem}
+  .vec i{height:1.6rem;border-radius:4px;border:1px solid rgba(0,0,0,.07);font-style:normal;font-family:var(--mono);font-size:.7rem;display:grid;place-items:center;color:#1c2230}
+  .sbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(4rem,9rem) 3rem;gap:.6rem;align-items:center;margin:.3rem 0;font-size:.92rem}
+  .sbar .t{height:.75rem;border-radius:99px;background:var(--soft);overflow:hidden}
+  .sbar .t b{display:block;height:100%;border-radius:99px;background:var(--ec)}
+  .sbar .v{font-family:var(--mono);font-weight:700;text-align:right}
+  .flow2{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+  .flow2 span{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:.3rem .65rem;font-weight:600;font-size:.92rem}
+  .flow2 i{font-style:normal;color:var(--muted);font-weight:800}
+  .buckets{display:grid;grid-template-columns:repeat(8,minmax(3.4rem,1fr));gap:4px}
+  .buckets div{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:.25rem;text-align:center;min-height:4.2rem}
+  .buckets div b{display:block;font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+  .buckets div .tk{font-size:.75rem}
+  .note2{font-size:.88rem;color:var(--muted);margin:.4rem 0 0}
+  .kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.7rem;margin:.6rem 0}
+  .kind{background:#fff;border:1px solid var(--line);border-top:4px solid var(--ec);border-radius:14px;padding:.7rem .85rem}
+  .kind h4{margin:0;font-size:1.05rem;color:var(--ec)}
+  .kind .who2{font-size:.82rem;color:var(--muted);margin:.1rem 0 .5rem}
+  .kind p{font-size:.92rem;margin:.5rem 0 0;line-height:1.4}
+  .kind.e1{--ec:#2f6fed}.kind.e2{--ec:#e8590c}.kind.e3{--ec:#2f9e44}
+  .order{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:.7rem;margin:.5rem 0}
+  .order div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.6rem .85rem}
+  .order h4{margin:0 0 .3rem;font-size:.98rem}
+  .order ol{margin:0;padding-left:1.4rem;font-size:.92rem;line-height:1.55}
+  .order .why{font-size:.82rem;color:var(--muted);margin:.35rem 0 0}
+
   @media (prefers-reduced-motion:reduce){
     .ladder.build .rung,.ladder.build .rung .viz > *{animation:none}
     #map .ring{animation:none;opacity:0}
@@ -213,7 +287,7 @@
   <div class="kicker">Lesson 15a · warm-up for Lesson 15 · ≈ 30 min</div>
   <h1>Text <span class="arrow">→</span> numbers</h1>
   <p class="sub">A model only understands numbers. So every word must become numbers first.</p>
-  <div class="flow"><span>📝 <b>words</b></span><i>➜</i><span>🔢 <b>numbers</b></span><i>➜</i><span>🤖 <b>model</b></span></div>
+  <div class="flow"><span><b>text</b></span><i>➜</i><span><b>tokens</b></span><i>➜</i><span><b>numbers</b></span><i>➜</i><span><b>model</b></span></div>
   <div class="analogy">
     <div class="arow"><div class="who">🐱 ↔ 🐈</div><div><div class="lbl">cat · kitten</div><div class="bar"><i id="ab1" style="background:var(--green)">next door</i></div></div></div>
     <div class="arow"><div class="who">🐱 ↔ 🚗</div><div><div class="lbl">cat · car</div><div class="bar"><i id="ab2" style="background:var(--orange)">far away</i></div></div></div>
@@ -296,9 +370,60 @@
   </div>
 </section>
 
-<!-- ③ the map -->
+<!-- ③ the whole family -->
+<section class="card" id="family">
+  <h2>③ The whole family: 14 ways to turn text into numbers</h2>
+  <p class="bigq">Every method does the same job. Only the middle step changes.</p>
+  <div class="steps">
+    <span><b>Text</b><small>"I love cats"</small></span><i>→</i>
+    <span><b>Tokens</b><small>[i] [love] [cats]</small></span><i>→</i>
+    <span><b>Numbers</b><small>[1, 2, 3] or [0.21, −0.84, …]</small></span><i>→</i>
+    <span><b>Model</b><small>learns from the numbers</small></span>
+  </div>
+  <p class="hint">Click a method. Every example uses these same 3 sentences:</p>
+  <div class="docs">
+    <span class="doc"><b>D1</b>i love cats</span>
+    <span class="doc"><b>D2</b>i love dogs</span>
+    <span class="doc"><b>D3</b>dogs are great</span>
+  </div>
+  <div class="eras">
+    <div class="era e1"><h4>Counting words<small>sparse: long lists, mostly zeros</small></h4><div class="pills" id="pills1"></div></div>
+    <div class="era e2"><h4>Learned word vectors<small>dense: short lists, similar words get similar numbers</small></h4><div class="pills" id="pills2"></div></div>
+    <div class="era e3"><h4>Context<small>the numbers depend on the whole sentence</small></h4><div class="pills" id="pills3"></div></div>
+  </div>
+  <div class="mpanel" id="mPanel" aria-live="polite">
+    <div class="top"><span class="k" id="mK">1</span><h3 id="mName"></h3><span class="etag" id="mEra"></span></div>
+    <div class="idea" id="mIdea"></div>
+    <div class="mviz" id="mViz"></div>
+    <div class="pc"><div class="g" id="mGood"></div><div class="b" id="mBad"></div></div>
+    <div class="mnav"><button class="btn ghost" id="mPrev" type="button">← Previous</button><button class="btn primary" id="mNext" type="button">Next →</button></div>
+  </div>
+
+  <h3 style="margin-top:1.4rem">The big picture: three kinds of numbers</h3>
+  <div class="kinds">
+    <div class="kind e1"><h4>Sparse</h4><div class="who2">Bag of words, TF-IDF, n-grams, hashing</div>
+      <div class="vec" id="kSparse" style="grid-template-columns:repeat(16,minmax(0,1fr))"></div>
+      <p>One slot per word in the vocabulary. Mostly zeros. Tells you <b>which words appear and how often</b>.</p></div>
+    <div class="kind e2"><h4>Dense</h4><div class="who2">Word2Vec, GloVe, FastText</div>
+      <div class="vec" id="kDense" style="grid-template-columns:repeat(8,minmax(0,1fr))"></div>
+      <p>A short list of learned numbers. Tells you <b>what a word means</b>: similar words get similar numbers.</p></div>
+    <div class="kind e3"><h4>Contextual</h4><div class="who2">BERT, Transformers, modern embedding models</div>
+      <div class="vec" id="kCtx1" style="grid-template-columns:repeat(8,minmax(0,1fr));margin-bottom:3px"></div>
+      <div class="vec" id="kCtx2" style="grid-template-columns:repeat(8,minmax(0,1fr))"></div>
+      <p>The same word gets <b>different numbers in different sentences</b>: "river bank" vs "money in the bank".</p></div>
+  </div>
+
+  <h3 style="margin-top:1.2rem">A good order to learn them</h3>
+  <div class="order">
+    <div><h4>1. Beginner: traditional NLP</h4><ol><li>Tokenization</li><li>Integer encoding</li><li>One-hot</li><li>Bag of words</li><li>N-grams</li><li>TF-IDF</li></ol><p class="why">Text becomes counts.</p></div>
+    <div><h4>2. Intermediate: word vectors</h4><ol start="7"><li>Word embeddings</li><li>Word2Vec</li><li>GloVe</li><li>FastText</li></ol><p class="why">Why short dense vectors beat huge sparse ones.</p></div>
+    <div><h4>3. Modern NLP</h4><ol start="11"><li>Contextual embeddings</li><li>Attention</li><li>Transformers, BERT</li><li>Sentence embeddings</li><li>LLM embeddings</li><li>Vector databases, semantic search</li><li>RAG</li></ol><p class="why">Meaning depends on context.</p></div>
+  </div>
+</section>
+
+<!-- ④ the map -->
 <section class="card" id="mapcard">
-  <h2>③ Meaning becomes a place</h2>
+  <h2>④ Meaning becomes a place</h2>
   <p class="bigq">Similar words live close together.</p>
   <p class="hint">👆 Click any word. Your sentence from ② is lit up.</p>
   <div class="maplab">
@@ -340,7 +465,7 @@
 
 <!-- ④ how a model learns the map -->
 <section class="card">
-  <h2>④ Who decides where a word lives?</h2>
+  <h2>⑤ Who decides where a word lives?</h2>
   <p class="bigq">The model learns it: words used in the same sentences end up close.</p>
   <div class="scrollx">
   <table class="company">
@@ -383,6 +508,7 @@ emb(ids).shape   <span class="c"># (1, 5, 32): 32 numbers per word</span></pre>
     <div class="last"><div class="em">🗺️</div><b>Embedding</b><span>a place on the map</span></div>
   </div>
   <p class="bigq" style="text-align:center;margin-top:.8rem">Close numbers = close meaning.</p>
+  <p style="text-align:center;margin:.2rem 0 0"><b style="color:#2f6fed">Sparse</b> (counts) → <b style="color:#e8590c">Dense</b> (learned meaning) → <b style="color:#2f9e44">Contextual</b> (meaning depends on the sentence)</p>
 </section>
 
 <section class="callout think">
@@ -394,6 +520,10 @@ emb(ids).shape   <span class="c"># (1, 5, 32): 32 numbers per word</span></pre>
       <details class="answer"><summary>Answer</summary>They are not in the word list, so both become ❓ &lt;unk&gt;.</details></li>
     <li>What does <b>paris − france + japan</b> give?
       <details class="answer"><summary>Answer</summary><b>tokyo</b>. "Capital of" is a direction on the 🗺️ map.</details></li>
+    <li>In TF-IDF, which word gets a bigger weight in D1: <i>i</i> or <i>cats</i>?
+      <details class="answer"><summary>Answer</summary><b>cats</b>. It appears in only 1 of the 3 sentences, so it is rare and tells us more. <i>i</i> appears in 2 of 3.</details></li>
+    <li>"river bank" and "money in the bank": does Word2Vec give <i>bank</i> two different vectors?
+      <details class="answer"><summary>Answer</summary>No, Word2Vec has one vector per word. Contextual models like BERT give two different vectors.</details></li>
   </ol>
 </section>
 
@@ -591,6 +721,136 @@ function analogy(){
 }
 ['#aA','#aB','#aC'].forEach(s=>$(s).addEventListener('change',analogy));
 $$('#anPre .chip').forEach(c=>c.onclick=()=>{const [a,b,cc]=c.dataset.q.split(',');$('#aA').value=a;$('#aB').value=b;$('#aC').value=cc;analogy();});
+
+// ================= ③ the whole family: 14 methods on the same 3 sentences =================
+const FD=['i love cats','i love dogs','dogs are great'].map(s=>s.split(' '));
+const FV=['i','love','cats','dogs','are','great'];
+const tk=(w,c='')=>`<span class="tk ${c}">${esc(w)}</span>`;
+const lab=t=>`<div class="mlab">${t}</div>`;
+const fmt=x=>Number.isInteger(x)?String(x):x.toFixed(2);
+const vecHtml=(v,txt)=>`<div class="vec" style="grid-template-columns:repeat(${v.length},minmax(2.6rem,1fr))">${v.map((x,k)=>`<i style="background:${col(x)}">${txt?txt[k]:x.toFixed(2)}</i>`).join('')}</div>`;
+const vrow=(name,v)=>`<div class="vrow"><span>${name}</span>${vecHtml(v)}</div>`;
+function matrix(cols,rows,cls){   // rows: [[label, values]]
+  return `<div class="scrollx"><table class="mt"><tr><th></th>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>`
+    +rows.map(([l,vs])=>`<tr><th class="r">${l}</th>${vs.map((v,j)=>`<td class="${cls?cls(v,j,vs):(v?'on':'')}">${fmt(v)}</td>`).join('')}</tr>`).join('')+`</table></div>`;}
+const counts=ws=>FV.map(w=>ws.filter(x=>x===w).length);
+const grams=(ws,n)=>ws.slice(0,ws.length-n+1).map((_,i)=>ws.slice(i,i+n).join(' '));
+const pieces=(w,n=3)=>{const s='<'+w+'>';return Array.from({length:s.length-n+1},(_,i)=>s.slice(i,i+n));};
+const DF=FV.map(w=>FD.filter(d=>d.includes(w)).length),IDF=DF.map(x=>Math.log(FD.length/x));
+const euclid=(a,b)=>Math.sqrt(a.reduce((s,x,i)=>s+(x-b[i])**2,0));
+const sbar=(l,v)=>`<div class="sbar"><span>${l}</span><div class="t"><b style="width:${Math.round(v*100)}%"></b></div><span class="v">${v.toFixed(2)}</span></div>`;
+const flow=items=>`<div class="flow2">${items.map(x=>`<span>${x}</span>`).join('<i>→</i>')}</div>`;
+
+const METHODS=[
+ {era:1,name:'Integer encoding',short:'Integer IDs',idea:'Give every word in the vocabulary a number.',
+  viz:()=>lab('The vocabulary')+FV.map((w,i)=>tk(`${w} → ${i+1}`,'on')).join('')
+    +lab('D1 "i love cats" becomes')+FD[0].map(w=>tk(FV.indexOf(w)+1,'on')).join('')
+    +`<p class="note2">But is dogs (4) "bigger" than cats (3)? Is dogs − cats = 1? These sums mean nothing.</p>`,
+  good:'Very simple: one number per word.',bad:'The numbers suggest an order (4 > 3) that does not exist.'},
+ {era:1,name:'One-hot encoding',short:'One-hot',idea:'One slot per vocabulary word. Switch on the slot of this word, all others 0.',
+  viz:()=>lab('The words of D1')+matrix(FV,FD[0].map(w=>[w,FV.map(v=>+(v===w))]))
+    +`<p class="note2">6 words → 6 slots. A real vocabulary has about 100,000 words → 100,000 slots, all 0 except one.</p>`,
+  good:'No fake order: every word is equally different.',bad:'Huge and mostly zeros. cats is as far from dogs as from great.'},
+ {era:1,name:'Bag of words (counts)',short:'Bag of words',idea:'Throw the words of a sentence into a bag and count them. One list per sentence.',
+  viz:()=>lab('One row per sentence (this is what CountVectorizer does)')
+    +matrix(FV,[...FD.map((d,i)=>[`D${i+1}`,counts(d)]),['"i love cats cats"',counts('i love cats cats'.split(' '))]])
+    +lab('The order is lost')+`<div>${['dog','bites','man'].map(w=>tk(w)).join('')} and ${['man','bites','dog'].map(w=>tk(w)).join('')} → both give <b>dog 1, bites 1, man 1</b></div>`,
+  good:'One fixed-length list for any sentence. Fast and easy.',bad:'Word order is lost: "dog bites man" = "man bites dog".'},
+ {era:1,name:'Binary bag of words',short:'Binary BoW',idea:'Like the bag of words, but only ask: is the word there? Yes = 1, no = 0.',
+  viz:()=>lab('"i love cats cats cats"')+matrix(FV,[['counts',counts('i love cats cats cats'.split(' '))],['binary',counts('i love cats cats cats'.split(' ')).map(x=>+(x>0))]],
+    (v,j,vs)=>v>1?'hot':v?'on':''),
+  good:'Even simpler. Works well for short texts.',bad:'"cats" said 3 times looks the same as once.'},
+ {era:1,name:'N-grams',short:'N-grams',idea:'Also count groups of neighbouring words, not only single words.',
+  viz:()=>{const s='i love machine learning'.split(' ');
+    return lab('Unigrams (1 word)')+s.map(w=>tk(w)).join('')+lab('Bigrams (2 words)')+grams(s,2).map(w=>tk(w,'on')).join('')
+    +lab('Trigrams (3 words)')+grams(s,3).map(w=>tk(w,'on')).join('')
+    +lab('Order comes back (a little)')+`<div>"dog bites man" → ${grams(['dog','bites','man'],2).map(w=>tk(w,'hot')).join('')}</div>`
+    +`<div>"man bites dog" → ${grams(['man','bites','dog'],2).map(w=>tk(w,'hot')).join('')}</div><p class="note2">Different bigrams, so the two sentences are now different.</p>`;},
+  good:'Keeps some word order. "machine learning" becomes one feature.',bad:'Many more slots: every pair of words needs its own.'},
+ {era:1,name:'TF-IDF',short:'TF-IDF',idea:'A bag of words where rare words count more and common words count less.',
+  viz:()=>lab('Step 1: in how many of the 3 sentences is each word? (rare = more useful)')
+    +matrix(FV,[['sentences',DF],['IDF',IDF.map(x=>+x.toFixed(2))]],(v,j)=>DF[j]===1?'hot':'on')
+    +lab('Step 2: TF-IDF = count × IDF')
+    +matrix(FV,FD.map((d,i)=>[`D${i+1}`,counts(d).map((c,j)=>+(c*IDF[j]).toFixed(2))]),(v,j)=>v>1?'hot':v?'on':'')
+    +`<p class="note2">IDF = log(3 ÷ sentences with the word). In D1, <b>cats</b> (1.10) beats <b>i</b> (0.41): cats is rarer, so it tells us more.
+      In real text, "the" is in almost every document → weight near 0. "quantum" is rare → high weight.</p>`,
+  good:'Common words fade out, important words stand out.',bad:'Still a bag: order is lost, and cats and kittens are unrelated.'},
+ {era:1,name:'Hashing trick',short:'Hashing',idea:'No vocabulary list. A hash function sends each word to one of a fixed number of buckets.',
+  viz:()=>{const B=8,bk=w=>hash(w)%B;
+    const cells=Array.from({length:B},(_,b)=>`<div><b>#${b}</b>${FV.filter(w=>bk(w)===b).map(w=>tk(w,FD[0].includes(w)?'on':'')).join('')}</div>`).join('');
+    const v=Array(B).fill(0);FD[0].forEach(w=>v[bk(w)]++);
+    return lab('8 buckets; blue = a word of D1')+`<div class="scrollx"><div class="buckets">${cells}</div></div>`
+      +lab('D1 becomes (count per bucket)')+matrix(Array.from({length:B},(_,b)=>'#'+b),[['D1',v]],x=>x>1?'hot':x?'on':'')
+      +(()=>{const hit=Array.from({length:B},(_,b)=>FV.filter(w=>bk(w)===b)).filter(ws=>ws.length>1);
+        return hit.length?`<p class="note2">Collision: ${hit.map(ws=>ws.map(w=>'<b>'+esc(w)+'</b>').join(' and ')).join('; ')} share a bucket, so the model cannot tell them apart.</p>`:'';})();},
+  good:'Fixed size, no vocabulary to store, new words just work.',bad:'Two different words can land in the same bucket (a collision).'},
+ {era:2,name:'Word2Vec',short:'Word2Vec',idea:'A small network plays a guessing game. As a side effect, every word gets a short vector of learned numbers.',
+  viz:()=>{const cat=[.8,.2,.7],dog=[.79,.21,.72],car=[.1,.9,.1];
+    return lab('Game 1 (CBOW): guess the missing word from its neighbours')+['the','cat'].map(w=>tk(w)).join('')+tk('___','miss')+['on','the','mat'].map(w=>tk(w)).join('')+' → '+tk('sits','hot')
+    +lab('Game 2 (Skip-gram): guess the neighbours from the word')+tk('cat','hot')+' → '+['the','sits','on','mat'].map(w=>tk(w)).join('')
+    +lab('What we keep: one short vector per word (3 numbers here, 300 in real Word2Vec)')+vrow('cat',cat)+vrow('dog',dog)+vrow('car',car)
+    +`<p class="note2">distance(cat, dog) = ${euclid(cat,dog).toFixed(2)}, very close. distance(cat, car) = ${euclid(cat,car).toFixed(2)}, far apart.</p>`;},
+  good:'Short vectors. Similar words get similar numbers.',bad:'One vector per word, whatever the sentence. A word never seen gets nothing.'},
+ {era:2,name:'GloVe',short:'GloVe',idea:'Count which words appear near each other in a huge amount of text, then squeeze those counts into short vectors.',
+  viz:()=>{const cols=['crown','royal','he','she','road'],rows=[['king',[40,35,30,3,1]],['queen',[38,33,3,30,1]],['man',[2,3,45,4,5]],['woman',[2,2,4,44,5]],['car',[0,0,3,3,50]]];
+    return lab('How often each word appears near another (made-up counts)')+matrix(cols,rows,(v,j,vs)=>v===Math.max(...vs)?'hot':v>=20?'on':'')
+    +`<p class="note2">Words used in similar places get similar rows: king and queen share "crown, royal". The difference man → woman is the same as king → queen,
+      so <b>king − man + woman ≈ queen</b>. Try it on the map in ④.</p>`;},
+  good:'Uses the whole text at once. Gives nice word relationships.',bad:'Like Word2Vec: one vector per word, no context.'},
+ {era:2,name:'FastText',short:'FastText',idea:'Build a word\'s vector from its small pieces (3 letters at a time), not only from the whole word.',
+  viz:()=>{const a=pieces('playing'),b=pieces('playng'),sh=b.filter(p=>a.includes(p));
+    return lab('"playing" in pieces (&lt; and &gt; mark the start and end)')+a.map(p=>tk(p,sh.includes(p)?'hot':'')).join('')
+    +lab('Typo "playng" in pieces')+b.map(p=>tk(p,sh.includes(p)?'hot':'')).join('')
+    +`<p class="note2">${sh.length} pieces are shared (orange). So the typo still gets a useful vector, close to "playing". Word2Vec would give it nothing.</p>`;},
+  good:'Handles rare words, typos and words never seen in training.',bad:'Still one vector per word: no context.'},
+ {era:3,name:'Contextual embeddings',short:'Contextual',idea:'The vector of a word depends on the sentence it is in.',
+  viz:()=>{const one=[.3,.5,-.2,.6,.1,-.4],money=[.8,.6,-.5,.2,.1,-.3],river=[-.4,.2,.7,.5,-.6,.3];
+    return lab('Word2Vec: "bank" always gets the same vector')+vrow('money in the bank',one)+vrow('the river bank',one)
+    +lab('Contextual: "bank" gets a different vector in each sentence')+vrow('money in the bank',money)+vrow('the river bank',river)
+    +`<p class="note2">Made-up numbers, to show the idea. The bank that holds money and the bank of a river are different things, so they should get different numbers.</p>`;},
+  good:'One word, many meanings: handled.',bad:'Needs a much bigger model to compute the numbers.'},
+ {era:3,name:'Transformers (BERT and others)',short:'Transformers',idea:'A Transformer reads the whole sentence at once. To build the vector of each word, it looks at all the other words.',
+  viz:()=>lab('To understand "bank", the model looks hardest at one word (attention)')
+    +`<div>${['i','sat','by','the'].map(w=>tk(w)).join('')}${tk('river','on')}${tk('bank','hot')} → bank of a river</div>`
+    +`<div>${['i','put'].map(w=>tk(w)).join('')}${tk('money','on')}${['in','the'].map(w=>tk(w)).join('')}${tk('bank','hot')} → bank for money</div>`
+    +lab('The pipeline')+flow(['whole sentence','Transformer','one vector for every token'])
+    +lab('Famous families')+['BERT','RoBERTa','DeBERTa','T5','GPT'].map(w=>tk(w,'on')).join(''),
+  good:'The best quality. One pre-trained model can be reused for many tasks.',bad:'Big and slower than counting. Needs a GPU to train.'},
+ {era:3,name:'Sentence and document embeddings',short:'Sentence / document',idea:'Turn a whole sentence, or a whole document, into one vector. Then compare meanings.',
+  viz:()=>lab('One sentence → one vector')+flow(['"I love programming"','embedding model','[0.12, −0.43, 0.81, …]'])
+    +`<p class="note2">Usually 384, 768, 1,024 or 1,536 numbers, depending on the model.</p>`
+    +lab('How similar is "I love programming" to… (made-up scores)')+sbar('"Programming is something I enjoy"',.89)+sbar('"I hate rainy weather"',.08)
+    +lab('Same idea for a whole document')+flow(['10-page PDF','embedding model','one vector'])
+    +`<p class="note2">Two documents are compared with <b>cosine similarity</b>: close vectors = similar content, even with different words.</p>`,
+  good:'Compare sentences or documents by meaning, not by shared words.',bad:'One vector for a long document can lose details.'},
+ {era:3,name:'LLM embeddings and RAG',short:'LLM embeddings',idea:'Modern embedding models turn questions and documents into vectors, so a computer can search by meaning.',
+  viz:()=>lab('RAG: Retrieval-Augmented Generation')+flow(['your question','embedding','vector','vector database','most similar documents','LLM writes the answer'])
+    +lab('Used for')+['semantic search','recommendations','duplicate detection','clustering','question answering','RAG'].map(w=>tk(w,'on')).join('')
+    +lab('Can embed')+['words','sentences','documents','queries','code','images'].map(w=>tk(w)).join('')
+    +`<p class="note2">Example: searching "cheap flights" also finds a page about "low-cost airfare", even with no word in common.</p>`,
+  good:'Search by meaning. This is how chatbots find the right documents.',bad:'Needs an embedding model plus a vector database.'}
+];
+const ERAS={1:['e1','Counting words · sparse'],2:['e2','Learned word vectors · dense'],3:['e3','Context · contextual']};
+let MI=0;
+METHODS.forEach((m,i)=>{const b=document.createElement('button');b.type='button';b.className='mp';b.dataset.i=i;
+  b.innerHTML=`<span class="k">${i+1}</span>${esc(m.short)}`;b.onclick=()=>showMethod(i);$('#pills'+m.era).appendChild(b);});
+function showMethod(i){
+  MI=(i+METHODS.length)%METHODS.length;const m=METHODS[MI],[ec,en]=ERAS[m.era];
+  $('#mPanel').className='mpanel '+ec;
+  $('#mK').textContent=MI+1;$('#mName').textContent=m.name;$('#mEra').textContent=en;
+  $('#mIdea').textContent=m.idea;$('#mViz').innerHTML=m.viz();
+  $('#mGood').textContent='Good: '+m.good;$('#mBad').textContent='Problem: '+m.bad;
+  $$('.mp').forEach(b=>b.classList.toggle('on',+b.dataset.i===MI));
+}
+$('#mPrev').onclick=()=>showMethod(MI-1);$('#mNext').onclick=()=>showMethod(MI+1);
+// big picture strips
+(function(){const sp=Array(16).fill(0);[2,7,11].forEach(k=>sp[k]=1);
+  $('#kSparse').innerHTML=sp.map(x=>`<i style="background:${x?'#a5c4ff':'#f8f9fa'}">${x}</i>`).join('');
+  const dense=[.42,-.31,.77,.05,-.66,.18,.53,-.24],c1=[.8,.6,-.5,.2,.1,-.3,.4,.1],c2=[-.4,.2,.7,.5,-.6,.3,-.2,.6];
+  const strip8=v=>v.map(x=>`<i style="background:${col(x)}">${x.toFixed(1)}</i>`).join('');
+  $('#kDense').innerHTML=strip8(dense);$('#kCtx1').innerHTML=strip8(c1);$('#kCtx2').innerHTML=strip8(c2);
+  $('#kCtx1').title='bank (money)';$('#kCtx2').title='bank (river)';})();
+showMethod(0);
 
 // hero bars grow when visible (display only: short = close, long = far)
 const heroBars=[['#ab1','18%'],['#ab2','92%']];
