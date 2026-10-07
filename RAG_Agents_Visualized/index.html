@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG &amp; Agents, Visualized — chat with a PDF, then build an agent</title>
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --bg:#f6f5f1; --panel:#ffffff; --ink:#1c2230; --muted:#5d6678; --line:#e2e4e9; --soft:#f1f3f7;
+    --blue:#2f6fed; --green:#2f9e44;
+    --radius:14px; --shadow:0 1px 2px rgba(20,30,50,.06),0 6px 20px rgba(20,30,50,.06);
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  html{font-size:17px;scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+  a{color:var(--blue)}
+  h1,h2,h3{line-height:1.25;margin:0 0 .5em}
+  h1{font-size:2.1rem;letter-spacing:-.01em}
+  h2{font-size:1.45rem;margin-top:.2em}
+  p{margin:.4em 0 .8em}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  .topbar-in{max-width:1280px;margin:0 auto;padding:.55rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+  .brand{font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}
+  .brand span{color:var(--blue)}
+  .nav{display:flex;gap:.3rem;flex-wrap:wrap}
+  .nav a{display:inline-block;min-width:2rem;text-align:center;padding:.2rem .55rem;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
+  .nav a:hover{background:var(--soft);color:var(--ink)}
+  .nav a.on{background:var(--blue);color:#fff}
+  .wrap{max-width:1280px;margin:0 auto;padding-inline:1rem;padding-block:1.4rem 3rem}
+  .hero{padding:.6rem 0 1rem}
+  .hero .kicker{text-transform:uppercase;letter-spacing:.09em;font-size:.78rem;font-weight:700;color:var(--blue)}
+  .one-liner{font-size:1.2rem;background:var(--panel);border-left:5px solid var(--blue);padding:.8rem 1.1rem;border-radius:10px;box-shadow:var(--shadow);max-width:60rem}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.2rem 1.3rem;margin:1.1rem 0}
+  .muted{color:var(--muted)} .small{font-size:.88rem} .center{text-align:center}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;justify-content:center}
+  .arrow{font-size:1.4rem;color:#adb5bd;font-weight:700}
+  .chip{display:inline-flex;align-items:center;gap:.35rem;border:2px solid var(--line);border-radius:10px;padding:.3rem .6rem;background:#fff;font-weight:600;font-size:.88rem}
+  .chip.blue{border-color:#74a0f5;background:#eef4ff}
+  .chip.green{border-color:#8ce99a;background:#ebfbee}
+  .chip.purple{border-color:#b197fc;background:#f3f0ff}
+  .part{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .5rem}
+  .lessons{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:.9rem}
+  .lesson{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;box-shadow:var(--shadow);transition:transform .12s;position:relative}
+  .lesson:hover{transform:translateY(-3px)}
+  .lesson .num{position:absolute;top:.7rem;right:.9rem;font-weight:800;font-size:1.5rem;color:#e9ecef}
+  .lesson .em{font-size:1.8rem;line-height:1}
+  .lesson h3{margin:.35rem 0 .2rem;font-size:1.05rem}
+  .lesson p{margin:0 0 .45rem;color:var(--muted);font-size:.9rem}
+  .pill{display:inline-block;padding:.08rem .55rem;border-radius:999px;font-size:.78rem;font-weight:700;background:#e7f0ff;color:var(--blue)}
+  .resume{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+  .resume h2{color:#2b8a3e;font-size:1.15rem}
+  .resume ul{margin:.2rem 0;padding-left:1.3rem}
+  .pager{display:flex;justify-content:flex-end;margin-top:2rem}
+  .pager a{min-width:14rem;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;color:var(--ink);box-shadow:var(--shadow);text-align:right}
+  .pager a small{display:block;color:var(--muted)}
+  footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🤖 RAG &amp; Agents, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Last day · interactive · open-source models</div>
+  <h1>Chat with your own PDF, then build an AI agent</h1>
+  <p class="one-liner">Seven small pages, <b>one idea each</b>. First we teach an AI to answer questions from <b>your own PDF</b> (RAG).
+  Then we give it tools and a loop so it can <b>decide what to do next</b> (an agent). No heavy frameworks: just Python, open-source models on Groq, and live Google search with SerpAPI.</p>
+</section>
+
+<section class="card">
+  <h2>🧭 The story, in one line</h2>
+  <div class="flow">
+    <span class="chip">🤷 LLM doesn't know my PDF</span><span class="arrow">→</span>
+    <span class="chip blue">✂️ chunks</span><span class="arrow">→</span>
+    <span class="chip blue">🔢 embeddings</span><span class="arrow">→</span>
+    <span class="chip blue">🔎 search &amp; answer</span><span class="arrow">→</span>
+    <span class="chip purple">🛠️ tools: web search + calculator</span><span class="arrow">→</span>
+    <span class="chip green">🔁 agent loop</span>
+  </div>
+  <p class="small muted center">Each page answers the question the previous page left open.</p>
+</section>
+
+<section class="card">
+  <h2>🗺️ The pages</h2>
+  <div class="part">Get ready</div>
+  <div class="lessons">
+    <a class="lesson" href="00_setup.html"><span class="num">0</span><div class="em">🔑</div><h3>Setup: two free API keys</h3><p>Groq for the LLM, SerpAPI for live Google search. Keep them secret.</p><span class="pill">≈ 10 min</span></a>
+  </div>
+  <div class="part">Part 1 · Chat with a PDF (RAG)</div>
+  <div class="lessons">
+    <a class="lesson" href="01_why_rag.html"><span class="num">1</span><div class="em">📖</div><h3>Why RAG?</h3><p>The LLM never saw your PDF, so it guesses. RAG is an open-book exam.</p><span class="pill">≈ 10 min</span></a>
+    <a class="lesson" href="02_pdf_to_chunks.html"><span class="num">2</span><div class="em">✂️</div><h3>PDF → chunks</h3><p>Read the text and cut it into small, overlapping pieces.</p><span class="pill">≈ 10 min</span></a>
+    <a class="lesson" href="03_embeddings.html"><span class="num">3</span><div class="em">🔢</div><h3>Embeddings</h3><p>Turn meaning into numbers. Similar sentences sit close together.</p><span class="pill">≈ 15 min</span></a>
+    <a class="lesson" href="04_search_and_answer.html"><span class="num">4</span><div class="em">🔎</div><h3>Search &amp; answer</h3><p>Find the 3 closest chunks, hand them to the LLM, get an answer with its page number.</p><span class="pill">≈ 15 min</span></a>
+  </div>
+  <div class="part">Part 2 · Build an agent</div>
+  <div class="lessons">
+    <a class="lesson" href="05_what_is_an_agent.html"><span class="num">5</span><div class="em">🤖</div><h3>What is an agent?</h3><p>An LLM plus tools (web search, calculator) plus a loop. The LLM decides, our code acts.</p><span class="pill">≈ 15 min</span></a>
+    <a class="lesson" href="06_agent_step_by_step.html"><span class="num">6</span><div class="em">🔁</div><h3>An agent, step by step</h3><p>Replay one run that searches Google live: think, search, look, calculate, answer.</p><span class="pill">≈ 15 min</span></a>
+  </div>
+</section>
+
+<section class="resume">
+  <h2>📝 What you can put on your resume after today</h2>
+  <ul>
+    <li>Built a RAG system to chat with PDFs (Python, sentence-transformers, Groq API, Llama 3.3)</li>
+    <li>Built an AI agent from scratch that searches the web live (Python, Groq API, Llama 3.3, SerpAPI)</li>
+  </ul>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>RAG &amp; Agents, Visualized · 7 pages · no install needed to view</footer>
+<script>
+const PAGES=[['index.html','Overview'],['00_setup.html','Setup: two free API keys'],['01_why_rag.html','Why RAG?'],['02_pdf_to_chunks.html','PDF → chunks'],['03_embeddings.html','Embeddings'],['04_search_and_answer.html','Search & answer'],['05_what_is_an_agent.html','What is an agent?'],['06_agent_step_by_step.html','An agent, step by step']];
+document.querySelector('.nav').innerHTML=PAGES.map(([h,t],i)=>`<a href="${h}" class="${i===0?'on':''}" title="${t}">${i===0?'Home':i-1}</a>`).join('');
+document.querySelector('.pager').innerHTML=`<a href="${PAGES[1][0]}"><small>Start →</small>0 · ${PAGES[1][1]}</a>`;
+</script>
+</body>
+</html>

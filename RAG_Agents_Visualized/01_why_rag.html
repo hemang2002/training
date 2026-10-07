@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1 · Why RAG? — RAG &amp; Agents, Visualized</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f6f5f1;--panel:#fff;--ink:#1c2230;--muted:#5d6678;--line:#e2e4e9;--soft:#f1f3f7;--blue:#2f6fed;--green:#2f9e44;--red:#e03131;--purple:#7048e8;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 6px 20px rgba(20,30,50,.06);
+  --mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;--sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+html{font-size:17px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--blue)}
+h1,h2,h3{line-height:1.25;margin:0 0 .5em}h1{font-size:2.1rem}h2{font-size:1.45rem;margin-top:.2em}h3{font-size:1.1rem}
+p{margin:.4em 0 .8em}
+code{font-family:var(--mono);font-size:.9em;background:var(--soft);padding:.08em .35em;border-radius:5px;overflow-wrap:anywhere}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1280px;margin:0 auto;padding:.55rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}.brand span{color:var(--blue)}
+.nav{display:flex;gap:.3rem;flex-wrap:wrap}
+.nav a{display:inline-block;min-width:2rem;text-align:center;padding:.2rem .55rem;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
+.nav a:hover{background:var(--soft);color:var(--ink)}.nav a.on{background:var(--blue);color:#fff}
+.wrap{max-width:1280px;margin:0 auto;padding:1.4rem 1rem 3rem}
+.hero{padding:.6rem 0 1rem}
+.hero .kicker{text-transform:uppercase;letter-spacing:.09em;font-size:.78rem;font-weight:700;color:var(--blue)}
+.one-liner{font-size:1.2rem;background:var(--panel);border-left:5px solid var(--blue);padding:.8rem 1.1rem;border-radius:10px;box-shadow:var(--shadow);max-width:60rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:1.2rem 1.3rem;margin:1.1rem 0}
+.card > h2:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:1rem}
+.muted{color:var(--muted)}.small{font-size:.88rem}
+.btn{font:inherit;font-size:.92rem;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.45rem .85rem;border-radius:9px;cursor:pointer}
+.btn:hover{background:var(--soft)}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{font:inherit;font-size:.88rem;border:0;background:transparent;padding:.38rem .7rem;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--blue);color:#fff}
+.banner{padding:.6rem .9rem;border-radius:10px;font-weight:600;margin:.5rem 0}
+.banner.good{background:#ebfbee;color:var(--green);border:1px solid #b2f2bb}
+.banner.bad{background:#fff5f5;color:var(--red);border:1px solid #ffc9c9}
+.banner.info{background:#e7f5ff;color:#1864ab;border:1px solid #a5d8ff}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;justify-content:center}
+.callout{border-radius:12px;padding:.9rem 1.1rem;margin:1rem 0;border-left:5px solid}
+.callout h3{margin:0 0 .35rem}
+.try{background:#fff8db;border-color:#f0b400}
+ol.challenges{padding-left:1.3rem;margin-bottom:0}ol.challenges > li{margin:.55rem 0}
+details.answer{margin:.3rem 0 .2rem;background:rgba(255,255,255,.7);border-radius:8px;padding:.3rem .7rem}
+details.answer summary{cursor:pointer;font-weight:600;color:var(--purple);font-size:.9rem}
+details.answer[open]{padding-bottom:.6rem}
+.say{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+.say h3{margin:0 0 .3rem;color:#2b8a3e}.say ol{margin:.2rem 0;padding-left:1.3rem}.say li{margin:.2rem 0}
+.start{background:linear-gradient(135deg,#e7f5ff 0%,#f3f0ff 100%);border:2px solid #a5d8ff;border-radius:18px;padding:1.1rem 1.3rem;margin:1rem 0 1.4rem}
+.start > h2{margin:0 0 .7rem;font-size:1.35rem}
+.start .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.8rem}
+.start .box{background:#fff;border-radius:14px;padding:.8rem 1rem;box-shadow:0 1px 3px rgba(20,30,50,.06)}
+.start .box h3{font-size:1rem;margin:0 0 .35rem;color:var(--blue)}
+.start .box p{margin:.2rem 0}.start .box ol{margin:.2rem 0;padding-left:1.2rem}.start .box ol li{margin:.25rem 0}
+.start .story{font-size:1.08rem}
+.start .words{margin-top:.8rem;background:#fff;border-radius:14px;padding:.6rem 1rem;font-size:.93rem}
+.start .words span{display:inline-block;margin:.15rem 1.1rem .15rem 0}
+.pager{display:flex;justify-content:space-between;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+.pager a{flex:1;min-width:14rem;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;color:var(--ink);box-shadow:var(--shadow)}
+.pager a small{display:block;color:var(--muted)}.pager a.next{text-align:right}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+@media (max-width:600px){.wrap,.topbar-in{padding-left:16px;padding-right:16px}h1{font-size:1.7rem}.card,.start{padding:1rem}}
+.arrow{font-size:1.4rem;color:#adb5bd;font-weight:700}
+.chip{display:inline-flex;align-items:center;gap:.35rem;border:2px solid var(--line);border-radius:10px;padding:.3rem .6rem;background:#fff;font-weight:600;font-size:.88rem}
+.chip small{font-weight:500;color:var(--muted)}
+.chip.blue{border-color:#74a0f5;background:#eef4ff}.chip.green{border-color:#8ce99a;background:#ebfbee}
+.chip.orange{border-color:#ffc078;background:#fff4e6}.chip.purple{border-color:#b197fc;background:#f3f0ff}
+.chip.grey{border-color:#dee2e6;background:#f8f9fa;color:#495057}
+/* page */
+  .qs{display:flex;flex-direction:column;gap:.4rem;margin:.4rem 0 .8rem}
+  .qs button{text-align:left}
+  .chat{border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem;background:#fff}
+  .chat .q{font-weight:700;margin-bottom:.4rem}
+  .chat .a{border-radius:10px;padding:.55rem .75rem}
+  .chat .a.guess{background:#fff5f5;border:2px solid #ffa8a8}
+  .chat .a.right{background:#ebfbee;border:2px solid #8ce99a}
+  .src{display:inline-block;margin-top:.35rem;font-size:.8rem;font-weight:700;color:#2b8a3e}
+  .steps-map li{margin:.2rem 0}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🤖 RAG &amp; Agents, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 1 of 6 · ≈ 10 min</div>
+  <h1>Why RAG? Chat with your own PDF</h1>
+  <p class="one-liner">An LLM learned from the internet. It has <b>never seen your PDF</b>, so when you ask about it, it <b>guesses</b>.
+  <b>RAG</b> fixes this: first we <b>find</b> the right part of the PDF, then we give it to the LLM to answer from.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p><b>Closed-book exam:</b> you answer from memory, and when you don't know, you guess.
+      <b>Open-book exam:</b> you look up the right page first, then answer. RAG turns the LLM's closed-book exam into an open-book exam.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, pick a question about the handbook.</li>
+      <li>Switch between <b>LLM alone</b> and <b>LLM + RAG</b>.</li><li>Look at the 5 steps in ②.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>With RAG the answer is <b>correct</b> and shows <b>where it came from</b> (the page), so you can check it.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>LLM</b> = the model that writes answers (we use Llama 3.3 on Groq)</span>
+    <span><b>RAG</b> = Retrieval-Augmented Generation: find, then answer</span><span><b>Retrieve</b> = find and fetch</span>
+    <span><b>Source</b> = the page the answer came from</span></div>
+</section>
+
+<section class="card">
+  <h2>① Ask about the Acme Corp Employee Handbook</h2>
+  <p class="small muted">Acme Corp is a made-up company. Its handbook is our sample PDF. The LLM has never read it.</p>
+  <div class="grid2">
+    <div>
+      <b>Pick a question:</b>
+      <div class="qs" id="qs"></div>
+      <div class="seg" id="mode"><button data-m="alone" class="on">🧠 LLM alone</button><button data-m="rag">📄 LLM + RAG</button></div>
+    </div>
+    <div class="chat" id="chat"></div>
+  </div>
+  <div id="note" class="banner info" style="margin-top:.7rem"></div>
+</section>
+
+<section class="card">
+  <h2>② The whole idea in 5 steps</h2>
+  <div class="flow">
+    <span class="chip grey">📄 PDF</span><span class="arrow">→</span>
+    <span class="chip orange">✂️ chunks<small>small pieces</small></span><span class="arrow">→</span>
+    <span class="chip purple">🔢 numbers<small>embeddings</small></span><span class="arrow">→</span>
+    <span class="chip blue">🔎 find closest<small>top 3 pieces</small></span><span class="arrow">→</span>
+    <span class="chip green">🧠 LLM answers<small>from those pieces</small></span>
+  </div>
+  <ul class="steps-map small">
+    <li><b>Page 2:</b> 📄 PDF → ✂️ chunks (read the text, cut it into pieces)</li>
+    <li><b>Page 3:</b> 🔢 embeddings (turn each piece into numbers)</li>
+    <li><b>Page 4:</b> 🔎 find the closest pieces and 🧠 let the LLM answer</li>
+  </ul>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Why does the "LLM alone" answer sound so confident even when it's wrong?
+      <details class="answer"><summary>Answer</summary>An LLM always writes fluent text. It does not know that it doesn't know. It gives a "typical company" answer, not Acme's answer.</details></li>
+    <li>Could we just retrain the LLM on our PDF instead?
+      <details class="answer"><summary>Answer</summary>That is slow and costly, and you'd redo it every time the PDF changes. With RAG you just swap the PDF.</details></li>
+    <li>Why is the "(page 1)" source useful?
+      <details class="answer"><summary>Answer</summary>You can open the PDF and check the answer yourself. You don't have to just trust the model.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>RAG &amp; Agents, Visualized · works offline</footer>
+<script>
+const PAGES=[['index.html','Overview'],['00_setup.html','Setup: two free API keys'],['01_why_rag.html','Why RAG?'],['02_pdf_to_chunks.html','PDF → chunks'],['03_embeddings.html','Embeddings'],['04_search_and_answer.html','Search & answer'],['05_what_is_an_agent.html','What is an agent?'],['06_agent_step_by_step.html','An agent, step by step']];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+(function(){const here=decodeURIComponent(location.pathname.split('/').pop()||'index.html'),idx=PAGES.findIndex(p=>p[0]===here);
+  $('.nav').innerHTML=PAGES.map(([h,t],i)=>`<a href="${h}" class="${h===here?'on':''}" title="${t}">${i===0?'Home':i-1}</a>`).join('');
+  const pg=$('nav.pager[data-auto]');if(pg&&idx>=0){const pr=PAGES[idx-1],nx=PAGES[idx+1];
+    pg.innerHTML=(pr?`<a href="${pr[0]}"><small>← Previous</small>${idx-1>0?(idx-2)+' · ':''}${pr[1]}</a>`:'<span></span>')+
+      (nx?`<a class="next" href="${nx[0]}"><small>Next →</small>${idx} · ${nx[1]}</a>`:'<a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>');}})();
+const Q=[
+  {q:'How many days of annual leave do I get?',
+   alone:'Most companies give around 20 to 25 days of paid leave per year, depending on your country and contract.',
+   rag:'You get <b>18 days</b> of annual leave per year, plus <b>2 extra days</b> for every 3 full years of service.'},
+  {q:'How long is the notice period?',
+   alone:'Notice periods are usually 30 days, or one month. Please check your contract.',
+   rag:'The notice period is <b>60 days</b>.'},
+  {q:'How many days can I work from home?',
+   alone:'Many companies today allow flexible or hybrid work. It depends on your manager and team.',
+   rag:'You can work from home <b>up to 2 days per week</b>.'}];
+let qi=0,mode='alone';
+$('#qs').innerHTML=Q.map((x,i)=>`<button class="btn${i===0?' primary':''}" data-i="${i}">${x.q}</button>`).join('');
+function show(){
+  $$('#qs button').forEach(b=>b.classList.toggle('primary',+b.dataset.i===qi));
+  $$('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));
+  const x=Q[qi],n=$('#note');
+  if(mode==='alone'){
+    $('#chat').innerHTML=`<div class="q">🙋 ${x.q}</div><div class="a guess">🧠 ${x.alone}</div>`;
+    n.className='banner bad';n.innerHTML='❌ <b>A guess.</b> It sounds sure, but it is a "typical company" answer, not what Acme\'s handbook says. And there is no source to check.';
+  }else{
+    $('#chat').innerHTML=`<div class="q">🙋 ${x.q}</div><div class="a right">🧠 ${x.rag}<br><span class="src">📄 Source: Acme Employee Handbook (page 1)</span></div>`;
+    n.className='banner good';n.innerHTML='✅ <b>Correct.</b> RAG found the right piece of the handbook and gave it to the LLM. The answer comes with its source.';
+  }
+}
+$$('#qs button').forEach(b=>b.onclick=()=>{qi=+b.dataset.i;show();});
+$$('#mode button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;show();});
+show();
+</script>
+</body>
+</html>

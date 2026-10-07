@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 · An agent, step by step — RAG &amp; Agents, Visualized</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f6f5f1;--panel:#fff;--ink:#1c2230;--muted:#5d6678;--line:#e2e4e9;--soft:#f1f3f7;--blue:#2f6fed;--green:#2f9e44;--purple:#7048e8;
+  --try:#fff8db;--try-line:#f0b400;--radius:14px;--shadow:0 1px 2px rgba(20,30,50,.06),0 6px 20px rgba(20,30,50,.06);
+  --mono:ui-monospace,"Cascadia Code","Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;--sans:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif}
+html{font-size:17px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--blue)}
+h1,h2,h3{line-height:1.25;margin:0 0 .5em}h1{font-size:2.1rem}h2{font-size:1.45rem;margin-top:.2em}h3{font-size:1.1rem}
+p{margin:.4em 0 .8em}
+code{font-family:var(--mono);font-size:.9em;background:var(--soft);padding:.08em .35em;border-radius:5px;overflow-wrap:anywhere}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1280px;margin:0 auto;padding:.55rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}.brand span{color:var(--blue)}
+.nav{display:flex;gap:.3rem;flex-wrap:wrap}
+.nav a{display:inline-block;min-width:2rem;text-align:center;padding:.2rem .55rem;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
+.nav a:hover{background:var(--soft);color:var(--ink)}.nav a.on{background:var(--blue);color:#fff}
+.wrap{max-width:1280px;margin:0 auto;padding:1.4rem 1rem 3rem}
+.hero{padding:.6rem 0 1rem}
+.hero .kicker{text-transform:uppercase;letter-spacing:.09em;font-size:.78rem;font-weight:700;color:var(--blue)}
+.one-liner{font-size:1.2rem;background:var(--panel);border-left:5px solid var(--blue);padding:.8rem 1.1rem;border-radius:10px;box-shadow:var(--shadow);max-width:60rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.2rem 1.3rem;margin:1.1rem 0}
+.card > h2:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:1rem}
+.muted{color:var(--muted)}.small{font-size:.88rem}
+.btn{font:inherit;font-size:.92rem;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.45rem .85rem;border-radius:9px;cursor:pointer}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.primary:hover{background:#2159cc}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;flex-wrap:wrap;gap:.45rem;margin:.5rem 0;align-items:center}
+.banner{padding:.6rem .9rem;border-radius:10px;font-weight:600;margin:.5rem 0}
+.banner.good{background:#ebfbee;color:var(--green);border:1px solid #b2f2bb}
+.callout{border-radius:12px;padding:.9rem 1.1rem;margin:1rem 0;border-left:5px solid}
+.callout h3{margin:0 0 .35rem}
+.try{background:var(--try);border-color:var(--try-line)}
+ol.challenges{padding-left:1.3rem;margin-bottom:0}ol.challenges > li{margin:.55rem 0}
+details.answer{margin:.3rem 0 .2rem;background:rgba(255,255,255,.7);border-radius:8px;padding:.3rem .7rem}
+details.answer summary{cursor:pointer;font-weight:600;color:var(--purple);font-size:.9rem}
+.start{background:linear-gradient(135deg,#e7f5ff 0%,#f3f0ff 100%);border:2px solid #a5d8ff;border-radius:18px;padding:1.1rem 1.3rem;margin:1rem 0 1.4rem}
+.start > h2{margin:0 0 .7rem;font-size:1.35rem}
+.start .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.8rem}
+.start .box{background:#fff;border-radius:14px;padding:.8rem 1rem}
+.start .box h3{font-size:1rem;margin:0 0 .35rem;color:var(--blue)}
+.start .box p{margin:.2rem 0}.start .box ol{margin:.2rem 0;padding-left:1.2rem}
+.start .story{font-size:1.08rem}
+.start .words{margin-top:.8rem;background:#fff;border-radius:14px;padding:.6rem 1rem;font-size:.93rem}
+.start .words span{display:inline-block;margin:.15rem 1.1rem .15rem 0}
+.say{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+.say h3{margin:0 0 .3rem;color:#2b8a3e}.say ol{margin:.2rem 0;padding-left:1.3rem}
+.dg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.8rem 1rem}
+.pill{display:inline-block;padding:.1rem .6rem;border-radius:999px;font-size:.8rem;font-weight:700;background:var(--soft);color:var(--muted)}
+.pill.llm{background:#f3f0ff;color:var(--purple)}.pill.code{background:#fff4e6;color:#d9480f}
+.big{font-size:1.25rem;font-weight:700;margin:.4rem 0}
+.mem{margin:.3rem 0;padding-left:1.2rem}.mem li{margin:.3rem 0}.mem li.new{background:#fff3bf;border-radius:6px}
+.pager{display:flex;justify-content:space-between;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+.pager a{flex:1;min-width:14rem;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;color:var(--ink);box-shadow:var(--shadow)}
+.pager a small{display:block;color:var(--muted)}.pager a.next{text-align:right}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🤖 RAG &amp; Agents, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 6 of 6 · ≈ 10 min</div>
+  <h1>An agent, step by step</h1>
+  <p class="one-liner">Let's replay one real run of our agent, one step at a time.
+  The question: <b>"How old was the Eiffel Tower when the Burj Khalifa opened?"</b> No LLM knows this by heart for sure, so the agent must <b>search the web</b> and <b>do the maths</b>.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>The intern gets the question. They Google one fact, then another, then use the calculator, and only then write the answer.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Press <b>Next ▶</b> to go one step forward.</li>
+      <li>Watch the badge: who did this step?</li><li>Watch the memory on the right grow.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>The LLM only ever <b>decides</b> and <b>writes</b>. Every search and every sum is run by <b>our Python code</b>.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>web_search</b> = our tool: asks Google (via SerpAPI) and returns the top results</span>
+    <span><b>calculator</b> = our tool: does exact maths</span><span><b>Memory</b> = everything the LLM has seen so far</span></div>
+</section>
+
+<section class="card">
+  <h2>① Replay the run</h2>
+  <div class="btn-row"><button class="btn" id="back">◀ Back</button><button class="btn primary" id="next">Next ▶</button>
+    <span class="small muted" id="count"></span></div>
+  <div class="grid2">
+    <div class="dg">
+      <div id="badge"></div>
+      <div class="big" id="title"></div>
+      <p id="text"></p>
+    </div>
+    <div class="dg">
+      <h3>🗒️ Memory (what the LLM has seen)</h3>
+      <ul class="mem" id="mem"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Put it on your CV</h2>
+  <div class="banner good">📄 Built an AI agent from scratch that searches the web live (Python, Groq API, Llama 3.3, SerpAPI)</div>
+  <p class="small muted">True after this lesson: a plain Python loop, no framework, two tools, real live answers.</p>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>How many times did the LLM get called in this run?
+      <details class="answer"><summary>Answer</summary>4 times: three times it picked a tool (search, search, calculator), and the fourth time it wrote the final answer.</details></li>
+    <li>Why not let the LLM just do 2010 − 1889 in its head?
+      <details class="answer"><summary>Answer</summary>LLMs predict words, they don't really calculate. Easy sums usually work, but harder ones can go wrong. A calculator is always right.</details></li>
+    <li>What would happen if the question needed 7 rounds?
+      <details class="answer"><summary>Answer</summary>Our loop stops after 5 rounds, so the agent would stop without a final answer. That limit keeps it from running forever.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>RAG &amp; Agents, Visualized · works offline</footer>
+<script>
+/* top nav + prev/next pager */
+const PAGES=[['index.html','Overview'],['00_setup.html','Setup: two free API keys'],['01_why_rag.html','Why RAG?'],['02_pdf_to_chunks.html','PDF → chunks'],['03_embeddings.html','Embeddings'],['04_search_and_answer.html','Search & answer'],['05_what_is_an_agent.html','What is an agent?'],['06_agent_step_by_step.html','An agent, step by step']];
+const $=s=>document.querySelector(s);
+(function(){
+  const here=decodeURIComponent(location.pathname.split('/').pop()||'index.html'),idx=PAGES.findIndex(p=>p[0]===here);
+  $('.nav').innerHTML=PAGES.map(([h,t],i)=>`<a href="${h}" class="${h===here?'on':''}" title="${t}">${i===0?'Home':i-1}</a>`).join('');
+  const pager=$('nav.pager[data-auto]');
+  if(pager&&idx>=0){const prev=PAGES[idx-1],next=PAGES[idx+1];
+    pager.innerHTML=(prev?`<a href="${prev[0]}"><small>← Previous</small>${idx-1>0?(idx-2)+' · ':''}${prev[1]}</a>`:'<span></span>')+
+      (next?`<a class="next" href="${next[0]}"><small>Next →</small>${idx} · ${next[1]}</a>`:`<a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>`);}
+})();
+
+/* ① the run: who: 'llm' | 'code' | '' ; mem: bullet added to the memory (or none) */
+const LLM='<span class="pill llm">🧠 LLM decided</span>',CODE='<span class="pill code">🐍 our code ran it</span>';
+const STEPS=[
+  {who:'',t:'❓ The question arrives',x:'Our code sends the question to Llama 3.3 on Groq, together with the list of tools it may use.',
+   mem:'❓ Question: How old was the Eiffel Tower when the Burj Khalifa opened?'},
+  {who:LLM,t:'🤔 Think',x:'"I need the year the Eiffel Tower was finished. I will call <code>web_search("Eiffel Tower completed year")</code>."',
+   mem:'🧠 I decided: search "Eiffel Tower completed year"'},
+  {who:CODE,t:'🛠️ Act: web_search',x:'Our code calls SerpAPI, which runs a real Google search right now.'},
+  {who:CODE,t:'👀 Observe',x:'Top result: "The Eiffel Tower was completed in March 1889…" Our code adds it to the memory.',
+   mem:'👀 Search said: the Eiffel Tower was completed in March 1889.'},
+  {who:LLM,t:'🤔 Think',x:'"Now I need when the Burj Khalifa opened. I will call <code>web_search("Burj Khalifa opening date")</code>."',
+   mem:'🧠 I decided: search "Burj Khalifa opening date"'},
+  {who:CODE,t:'🛠️ Act: web_search',x:'Our code calls SerpAPI again: a second live Google search.'},
+  {who:CODE,t:'👀 Observe',x:'Top result: "The Burj Khalifa officially opened on 4 January 2010…" Added to the memory.',
+   mem:'👀 Search said: the Burj Khalifa opened on 4 January 2010.'},
+  {who:LLM,t:'🤔 Think',x:'"I have both years. I must subtract. I will call <code>calculator("2010 - 1889")</code>."',
+   mem:'🧠 I decided: calculate 2010 − 1889'},
+  {who:CODE,t:'🛠️ Act: calculator',x:'Our code runs the calculator function on <code>2010 - 1889</code>.'},
+  {who:CODE,t:'👀 Observe',x:'The calculator returns <b>121</b>. Added to the memory.',mem:'👀 Calculator said: 121'},
+  {who:LLM,t:'✅ Final answer',x:'"<b>About 121 years old</b> (finished 1889, Burj Khalifa opened 2010)." No more tools needed, so the loop stops.',
+   mem:'✅ Answer: about 121 years old.'}
+];
+let i=0;
+function show(){
+  const s=STEPS[i];
+  $('#badge').innerHTML=s.who||'<span class="pill">▶ start</span>';
+  $('#title').textContent=s.t;$('#text').innerHTML=s.x;
+  $('#count').textContent=`Step ${i} of ${STEPS.length-1}`;
+  const items=STEPS.slice(0,i+1).filter(x=>x.mem);
+  $('#mem').innerHTML=items.map(x=>`<li class="${x===s?'new':''}">${x.mem}</li>`).join('');
+  $('#back').disabled=i===0;$('#next').disabled=i===STEPS.length-1;
+}
+$('#next').onclick=()=>{if(i<STEPS.length-1){i++;show();}};
+$('#back').onclick=()=>{if(i>0){i--;show();}};
+show();
+</script>
+</body>
+</html>

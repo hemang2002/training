@@ -817,21 +817,3 @@ Versions seen on the official docs that day: **PyTorch 2.14**, **torchvision 0.2
      https://www.jeremyjordan.me/ml-projects-guide/
      Blog · B/I · 30 min
      *Why:* project scoping, baselines and iteration. Useful framing for student capstones.
-
----
-
-## 12. Visual explainers (bonus)
-
-152. **Jay Alammar: Visualizing machine learning one concept at a time**
-     https://jalammar.github.io/
-     Blog · B/I · browse
-     *Why:* famous illustrated explainers (NumPy, neural nets, Transformers). Borrow the visual style for slides; share with students who want to go beyond CNNs.
-
----
-
-### Link count
-152 links in total: 118 teaching links (sections 1–9) + 14 cloud links (section 10) + 20 MLOps and bonus links (sections 11–12).
-**Removed during verification:**
-- the PyTorch "Flask REST API" tutorial (it now redirects away);
-- the pytorch.org "introducing-torchao" blog URL (404; replaced by #35);
-- a Medium mAP article (403 to automated checks; replaced by #68).

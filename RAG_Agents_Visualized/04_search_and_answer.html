@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4 · Search &amp; answer — RAG &amp; Agents, Visualized</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f6f5f1;--panel:#fff;--ink:#1c2230;--muted:#5d6678;--line:#e2e4e9;--soft:#f1f3f7;--blue:#2f6fed;--orange:#f08c00;--green:#2f9e44;--red:#e03131;--purple:#7048e8;--info:#e7f5ff;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 6px 20px rgba(20,30,50,.06);--mono:ui-monospace,"Cascadia Code",Consolas,Menlo,monospace;--sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+html{font-size:17px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--blue)}
+h1,h2,h3{line-height:1.25;margin:0 0 .5em}h1{font-size:2.1rem}h2{font-size:1.45rem}h3{font-size:1.1rem}
+p{margin:.4em 0 .8em}
+code{font-family:var(--mono);font-size:.9em;background:var(--soft);padding:.08em .35em;border-radius:5px}
+svg{max-width:100%}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1280px;margin:0 auto;padding:.55rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}.brand span{color:var(--blue)}
+.nav{display:flex;gap:.3rem;flex-wrap:wrap}
+.nav a{min-width:2rem;text-align:center;padding:.2rem .55rem;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
+.nav a:hover{background:var(--soft)}.nav a.on{background:var(--blue);color:#fff}
+.wrap{max-width:1280px;margin:0 auto;padding:1.4rem 1rem 3rem}
+.hero{padding:.6rem 0 1rem}
+.kicker{text-transform:uppercase;letter-spacing:.09em;font-size:.78rem;font-weight:700;color:var(--blue)}
+.one-liner{font-size:1.2rem;background:var(--panel);border-left:5px solid var(--blue);padding:.8rem 1.1rem;border-radius:10px;box-shadow:var(--shadow);max-width:60rem}
+.start{background:linear-gradient(135deg,#e7f5ff,#f3f0ff);border:2px solid #a5d8ff;border-radius:18px;padding:1.1rem 1.3rem;margin:1rem 0 1.4rem}
+.start>h2{margin:0 0 .7rem;font-size:1.35rem}
+.start .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.8rem}
+.start .box{background:#fff;border-radius:14px;padding:.8rem 1rem}
+.start .box h3{font-size:1rem;margin:0 0 .35rem;color:var(--blue)}
+.start .box p,.start .box ol{margin:.2rem 0}.start .box ol{padding-left:1.2rem}
+.start .story{font-size:1.08rem}
+.start .words{margin-top:.8rem;background:#fff;border-radius:14px;padding:.6rem 1rem;font-size:.93rem}
+.start .words span{display:inline-block;margin:.15rem 1.1rem .15rem 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:1.2rem 1.3rem;margin:1.1rem 0}
+.card>h2:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:1rem}
+.muted{color:var(--muted)}.small{font-size:.88rem}.center{text-align:center}
+.btn{font:inherit;font-size:.92rem;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.45rem .85rem;border-radius:9px;cursor:pointer}
+.btn:hover{background:var(--soft)}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;flex-wrap:wrap;gap:.45rem;margin:.5rem 0}
+.banner{padding:.6rem .9rem;border-radius:10px;font-weight:600;margin:.5rem 0}
+.banner.good{background:#ebfbee;color:var(--green);border:1px solid #b2f2bb}
+.banner.bad{background:#fff5f5;color:var(--red);border:1px solid #ffc9c9}
+.banner.info{background:var(--info);color:#1864ab;border:1px solid #a5d8ff}
+.dg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.8rem}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;justify-content:center}
+.arrow{font-size:1.4rem;color:#adb5bd;font-weight:700}
+.chip{display:inline-flex;align-items:center;gap:.35rem;border:2px solid var(--line);border-radius:10px;padding:.3rem .6rem;background:#fff;font-weight:600;font-size:.88rem}
+.chip small{font-weight:500;color:var(--muted)}
+.chip.blue{border-color:#74a0f5;background:#eef4ff}.chip.green{border-color:#8ce99a;background:#ebfbee}
+.chip.orange{border-color:#ffc078;background:#fff4e6}.chip.red{border-color:#ffa8a8;background:#fff5f5}.chip.purple{border-color:#b197fc;background:#f3f0ff}
+.say{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+.say h3{margin:0 0 .3rem;color:#2b8a3e}.say ol{margin:.2rem 0;padding-left:1.3rem}
+.callout{border-radius:12px;padding:.9rem 1.1rem;margin:1rem 0;border-left:5px solid}
+.try{background:#fff8db;border-color:#f0b400}
+ol.challenges{padding-left:1.3rem}ol.challenges>li{margin:.55rem 0}
+details.answer{margin:.3rem 0 .2rem;background:rgba(255,255,255,.7);border-radius:8px;padding:.3rem .7rem}
+details.answer summary{cursor:pointer;font-weight:600;color:var(--purple);font-size:.9rem}
+.pager{display:flex;justify-content:space-between;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+.pager a{flex:1;min-width:14rem;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;color:var(--ink);box-shadow:var(--shadow)}
+.pager a small{display:block;color:var(--muted)}.pager a.next{text-align:right}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+  .dots{display:flex;gap:.4rem;justify-content:center;margin:.3rem 0 .6rem}
+  .dots span{width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--soft);color:var(--muted)}
+  .dots span.on{background:var(--blue);color:#fff}
+  #stage{min-height:15rem}
+  .nums{font-family:var(--mono);background:#0f1729;color:#ffcf70;border-radius:10px;padding:.5rem .8rem;margin:.4rem 0;font-size:.9rem;overflow-x:auto}
+  .bar{display:grid;grid-template-columns:3rem 1fr;gap:.6rem;align-items:center;margin:.35rem 0;font-size:.9rem}
+  .bar b{font-family:var(--mono)}
+  .bar .fill{border-radius:6px;padding:.2rem .5rem;background:#e9ecef;color:var(--muted)}
+  .bar.top .fill{background:#d3f9d8;color:var(--ink);font-weight:600}
+  .prompt{background:#0f1729;color:#e6edf7;border-radius:12px;padding:.8rem 1rem;font-family:var(--mono);font-size:.86rem;white-space:pre-wrap;margin:.5rem 0}
+  .prompt .r{color:#ffcf70}.prompt .c{color:#8ce99a}.prompt .q{color:#a5d8ff}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🤖 RAG &amp; Agents, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 4 of 6 · ≈ 12 min</div>
+  <h1>Search &amp; answer: the RAG moment</h1>
+  <p class="one-liner">Everything comes together here. We <b>search</b> the handbook for the 3 chunks that best match the question,
+  paste them into the prompt, and ask Llama to answer <b>only from those chunks</b>. That is RAG: find first, then answer.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>An open-book exam. Before answering, you flip to the right pages and put them on the desk.
+      Then you write your answer <b>from those pages</b>, not from memory.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, press <b>Next ▶</b> to walk through the 5 steps.</li>
+      <li>In ②, ask a question the handbook cannot answer.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Llama never sees the whole PDF. It only sees the <b>3 chunks</b> we picked, plus the question.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Retrieve</b> = find and fetch the best chunks</span>
+    <span><b>Prompt</b> = the full message we send to the LLM</span><span><b>Context</b> = the chunks we paste into the prompt</span>
+    <span><b>Source</b> = the page the answer came from</span></div>
+</section>
+
+<section class="card">
+  <h2>① One question, five steps</h2>
+  <div class="dots" id="dots"></div>
+  <div id="stage"></div>
+  <div class="btn-row" style="justify-content:center"><button class="btn" id="back">◀ Back</button><button class="btn primary" id="next">Next ▶</button></div>
+</section>
+
+<section class="card">
+  <h2>② What if the answer is not in the PDF?</h2>
+  <div class="flow"><span class="chip purple">❓ What is the office dress code?</span><button class="btn primary" id="ask">Ask</button></div>
+  <div id="noRes" class="banner info">Press Ask. The handbook says nothing about a dress code.</div>
+  <p class="small muted">Search still returns the 3 "closest" chunks, but none of them is about clothes.</p>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>In step ③, why do we send only the top 3 chunks and not the whole handbook?
+      <details class="answer"><summary>Answer</summary>A real handbook can be hundreds of pages. Sending only the best 3 chunks is faster, cheaper, and keeps Llama focused on the right part.</details></li>
+    <li>Where did "22 days" come from? Is it written anywhere in the PDF?
+      <details class="answer"><summary>Answer</summary>Not as one number. Llama read two chunks: "18 days" and "2 extra days for every 3 full years". 6 years = two blocks of 3, so 18 + 2 + 2 = 22.</details></li>
+    <li>What could go wrong if we removed the words "ONLY from the context"?
+      <details class="answer"><summary>Answer</summary>Llama might guess from what it learned about other companies, like "Most offices have a smart-casual dress code". It sounds right, but it is not in our handbook.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>RAG &amp; Agents, Visualized · works offline</footer>
+<script>
+const PAGES=[['index.html','Overview'],['00_setup.html','Setup: two free API keys'],['01_why_rag.html','Why RAG?'],['02_pdf_to_chunks.html','PDF → chunks'],['03_embeddings.html','Embeddings'],['04_search_and_answer.html','Search & answer'],['05_what_is_an_agent.html','What is an agent?'],['06_agent_step_by_step.html','An agent, step by step']];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+(()=>{const here=decodeURIComponent(location.pathname.split('/').pop()||'index.html'),idx=PAGES.findIndex(p=>p[0]===here);
+  $('.nav').innerHTML=PAGES.map(([h,t],i)=>`<a href="${h}" class="${h===here?'on':''}" title="${t}">${i===0?'Home':i-1}</a>`).join('');
+  const pg=$('nav.pager[data-auto]');if(pg&&idx>=0){const p=PAGES[idx-1],n=PAGES[idx+1];
+  pg.innerHTML=(p?`<a href="${p[0]}"><small>← Previous</small>${idx-1>0?(idx-2)+' · ':''}${p[1]}</a>`:'<span></span>')+(n?`<a class="next" href="${n[0]}"><small>Next →</small>${idx} · ${n[1]}</a>`:`<a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>`);}})();
+const Qn='How many leave days do I get after 6 years?';
+const scores=[[.78,'You get 2 extra leave days for every 3 full years of service. (p1)'],[.71,'Annual leave is 18 days per year. (p1)'],
+  [.52,'You can carry forward at most 5 unused leave days. (p1)'],[.44,'Sick leave is 10 days per year. (p1)'],
+  [.21,'The notice period is 60 days. (p2)'],[.15,'You may work from home up to 2 days per week. (p2)'],[.06,'Your laptop is replaced every 3 years. (p3)']];
+const S=[
+  `<h3>① The question is typed</h3><div class="flow"><span class="chip purple">❓ ${Qn}</span></div><p class="center muted">The user types a normal question, in plain English.</p>`,
+  `<h3>② The question becomes numbers</h3><div class="flow"><span class="chip purple">❓ ${Qn}</span><span class="arrow">→ all-MiniLM-L6-v2 →</span></div>
+   <div class="nums">[0.09, -0.14, 0.27, 0.31, -0.02, … 384 numbers]</div><p class="muted">The same embedding model we used for the chunks on page 3. Now the question and the chunks speak the same "number language".</p>`,
+  `<h3>③ Compare with every chunk, keep the top 3</h3>`+scores.map(([s,t],i)=>`<div class="bar ${i<3?'top':''}"><b>${s.toFixed(2)}</b><div class="fill" style="width:${Math.max(s*100,30)}%">${i<3?'✅ ':''}${t}</div></div>`).join('')+
+   `<p class="small muted">A score for every chunk: how close its meaning is to the question (0 to 1). The 3 highest win.</p>`,
+  `<h3>④ Build the prompt</h3><div class="prompt"><span class="r">Answer ONLY from the context below.
+If the answer is not there, say "I don't know".</span>
+
+Context:
+<span class="c">[page 1] You get 2 extra leave days for every 3 full years of service.
+[page 1] Annual leave is 18 days per year.
+[page 1] You can carry forward at most 5 unused leave days.</span>
+
+Question: <span class="q">${Qn}</span></div><p class="muted">Three parts: the <b>rule</b>, the <b>context</b> (our 3 chunks), and the <b>question</b>. This is sent to Llama 3.3 70B on Groq.</p>`,
+  `<h3>⑤ Llama answers, with the source</h3><div class="banner good">🦙 You get <b>22 days</b>: 18 base days + 2 × 2 extra days for 6 full years of service.<br><span class="small">📄 Source: Acme Corp Employee Handbook, page 1</span></div>
+   <p class="muted">The answer comes from our PDF, not from Llama's memory. The page number lets anyone check it.</p>`];
+let k=0;
+function show(){$('#stage').innerHTML=S[k];$('#dots').innerHTML=S.map((_,i)=>`<span class="${i===k?'on':''}">${i+1}</span>`).join('');
+  $('#back').disabled=k===0;$('#next').disabled=k===S.length-1;}
+$('#back').onclick=()=>{if(k>0){k--;show();}};$('#next').onclick=()=>{if(k<S.length-1){k++;show();}};show();
+$('#ask').onclick=()=>{const r=$('#noRes');r.className='banner bad';
+  r.innerHTML='🦙 "I don\'t know based on the document."<br><span class="small">Good! The rule <b>"Answer ONLY from the context"</b> stops Llama from making up an answer. An honest "I don\'t know" is better than a confident wrong answer.</span>';};
+</script>
+</body>
+</html>

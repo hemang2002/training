@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3 · Embeddings — RAG &amp; Agents, Visualized</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f6f5f1;--panel:#fff;--ink:#1c2230;--muted:#5d6678;--line:#e2e4e9;--soft:#f1f3f7;--blue:#2f6fed;--orange:#f08c00;--green:#2f9e44;--red:#e03131;--purple:#7048e8;--info:#e7f5ff;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 6px 20px rgba(20,30,50,.06);--mono:ui-monospace,"Cascadia Code",Consolas,Menlo,monospace;--sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+html{font-size:17px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--blue)}
+h1,h2,h3{line-height:1.25;margin:0 0 .5em}h1{font-size:2.1rem}h2{font-size:1.45rem}h3{font-size:1.1rem}
+p{margin:.4em 0 .8em}
+code{font-family:var(--mono);font-size:.9em;background:var(--soft);padding:.08em .35em;border-radius:5px}
+svg{max-width:100%}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1280px;margin:0 auto;padding:.55rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}.brand span{color:var(--blue)}
+.nav{display:flex;gap:.3rem;flex-wrap:wrap}
+.nav a{min-width:2rem;text-align:center;padding:.2rem .55rem;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
+.nav a:hover{background:var(--soft)}.nav a.on{background:var(--blue);color:#fff}
+.wrap{max-width:1280px;margin:0 auto;padding:1.4rem 1rem 3rem}
+.hero{padding:.6rem 0 1rem}
+.kicker{text-transform:uppercase;letter-spacing:.09em;font-size:.78rem;font-weight:700;color:var(--blue)}
+.one-liner{font-size:1.2rem;background:var(--panel);border-left:5px solid var(--blue);padding:.8rem 1.1rem;border-radius:10px;box-shadow:var(--shadow);max-width:60rem}
+.start{background:linear-gradient(135deg,#e7f5ff,#f3f0ff);border:2px solid #a5d8ff;border-radius:18px;padding:1.1rem 1.3rem;margin:1rem 0 1.4rem}
+.start>h2{margin:0 0 .7rem;font-size:1.35rem}
+.start .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.8rem}
+.start .box{background:#fff;border-radius:14px;padding:.8rem 1rem}
+.start .box h3{font-size:1rem;margin:0 0 .35rem;color:var(--blue)}
+.start .box p,.start .box ol{margin:.2rem 0}.start .box ol{padding-left:1.2rem}
+.start .story{font-size:1.08rem}
+.start .words{margin-top:.8rem;background:#fff;border-radius:14px;padding:.6rem 1rem;font-size:.93rem}
+.start .words span{display:inline-block;margin:.15rem 1.1rem .15rem 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:1.2rem 1.3rem;margin:1.1rem 0}
+.card>h2:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:1rem}
+.muted{color:var(--muted)}.small{font-size:.88rem}.center{text-align:center}
+.btn{font:inherit;font-size:.92rem;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.45rem .85rem;border-radius:9px;cursor:pointer}
+.btn:hover{background:var(--soft)}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;flex-wrap:wrap;gap:.45rem;margin:.5rem 0}
+.banner{padding:.6rem .9rem;border-radius:10px;font-weight:600;margin:.5rem 0}
+.banner.good{background:#ebfbee;color:var(--green);border:1px solid #b2f2bb}
+.banner.bad{background:#fff5f5;color:var(--red);border:1px solid #ffc9c9}
+.banner.info{background:var(--info);color:#1864ab;border:1px solid #a5d8ff}
+.dg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.8rem}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;justify-content:center}
+.arrow{font-size:1.4rem;color:#adb5bd;font-weight:700}
+.chip{display:inline-flex;align-items:center;gap:.35rem;border:2px solid var(--line);border-radius:10px;padding:.3rem .6rem;background:#fff;font-weight:600;font-size:.88rem}
+.chip small{font-weight:500;color:var(--muted)}
+.chip.blue{border-color:#74a0f5;background:#eef4ff}.chip.green{border-color:#8ce99a;background:#ebfbee}
+.chip.orange{border-color:#ffc078;background:#fff4e6}.chip.red{border-color:#ffa8a8;background:#fff5f5}.chip.purple{border-color:#b197fc;background:#f3f0ff}
+.say{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+.say h3{margin:0 0 .3rem;color:#2b8a3e}.say ol{margin:.2rem 0;padding-left:1.3rem}
+.callout{border-radius:12px;padding:.9rem 1.1rem;margin:1rem 0;border-left:5px solid}
+.try{background:#fff8db;border-color:#f0b400}
+ol.challenges{padding-left:1.3rem}ol.challenges>li{margin:.55rem 0}
+details.answer{margin:.3rem 0 .2rem;background:rgba(255,255,255,.7);border-radius:8px;padding:.3rem .7rem}
+details.answer summary{cursor:pointer;font-weight:600;color:var(--purple);font-size:.9rem}
+.pager{display:flex;justify-content:space-between;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+.pager a{flex:1;min-width:14rem;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;color:var(--ink);box-shadow:var(--shadow)}
+.pager a small{display:block;color:var(--muted)}.pager a.next{text-align:right}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+  #map{width:100%;max-width:560px;display:block;margin:0 auto}
+  #map .dot{cursor:pointer;stroke:#fff;stroke-width:2}
+  #map .dot.hi{stroke:#1c2230;stroke-width:3}
+  #map .grp{font:700 13px var(--sans)}
+  #tip{min-height:2.6rem}
+  .rank{list-style:none;padding:0;margin:.5rem 0}
+  .rank li{display:flex;gap:.6rem;align-items:center;margin:.3rem 0;font-size:.92rem}
+  .rank b{font-family:var(--mono);min-width:3rem}
+  .nums{font-family:var(--mono);background:#0f1729;color:#ffcf70;border-radius:10px;padding:.5rem .8rem;margin:.4rem 0;font-size:.9rem;overflow-x:auto}
+  .pair{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:.5rem 0}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🤖 RAG &amp; Agents, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 3 of 6 · ≈ 12 min</div>
+  <h1>Embeddings: turning meaning into numbers</h1>
+  <p class="one-liner">We have small chunks of the handbook. Now we need to find the right chunk for a question.
+  An <b>embedding model</b> turns each chunk into a list of numbers. Chunks that <b>mean</b> similar things get similar numbers, so they sit <b>close together</b>.</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A library that shelves books by <b>meaning</b>, not by title. All the cooking books stand together, all the travel books stand together.
+      To find an answer, you walk to the right shelf and grab the nearest books.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>Hover or tap the dots in ① to read each chunk.</li>
+      <li>Press a question button. A pin drops on the map.</li><li>See which 3 chunks are closest.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>The question "How many leave days?" lands next to the <b>leave</b> chunks, even though it does not use the same words.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Embedding</b> = a list of numbers that stands for the meaning of a text</span>
+    <span><b>Embedding model</b> = the program that makes those numbers (we use all-MiniLM-L6-v2, free, on your laptop)</span>
+    <span><b>Similarity score</b> = how close two meanings are, from 0 (not related) to 1 (same meaning)</span></div>
+</section>
+
+<section class="card">
+  <h2>① The meaning map of our handbook</h2>
+  <div class="btn-row" id="qs">
+    <button class="btn" data-q="0">How many leave days do I get?</button>
+    <button class="btn" data-q="1">Can I work from home on Friday?</button>
+    <button class="btn" data-q="2">How much money for travel?</button>
+    <button class="btn" data-q="3">When do I get a new laptop?</button>
+  </div>
+  <div class="grid2">
+    <div class="dg"><svg id="map" viewBox="0 0 520 340" role="img" aria-label="Map of handbook chunks grouped by meaning"></svg></div>
+    <div>
+      <div id="tip" class="banner info">Hover or tap a dot to read the chunk.</div>
+      <div id="res"><p class="muted">Pick a question above to drop a pin.</p></div>
+      <p class="small muted">The real embedding has <b>384 numbers</b> per chunk. Nobody can draw 384 directions, so we squash it down to 2 to put it on a flat map. The idea stays the same: close = similar meaning.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② One sentence becomes 384 numbers</h2>
+  <div class="flow"><span class="chip blue">"Annual leave is 18 days per year."</span><span class="arrow">→ embedding model →</span></div>
+  <div class="nums">[0.12, -0.05, 0.33, 0.08, -0.21, … 384 numbers]</div>
+  <p>One number alone means nothing to us. What matters: <b>similar sentences get similar numbers</b>. Compare the question with two chunks:</p>
+  <div class="pair"><span class="chip purple">❓ How many leave days?</span><span class="arrow">vs</span><span class="chip green">Annual leave is 18 days</span><span class="chip green"><b>0.71</b> <small>close</small></span></div>
+  <div class="pair"><span class="chip purple">❓ How many leave days?</span><span class="arrow">vs</span><span class="chip red">Laptop replaced every 3 years</span><span class="chip red"><b>0.08</b> <small>far</small></span></div>
+  <p class="small muted">The score tells how much the two lists of numbers "point the same way". Near 1 = same meaning. Near 0 = not related.</p>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Pick "How much money for travel?". Why is the laptop chunk on the list at all?
+      <details class="answer"><summary>Answer</summary>We always take the top 3. The laptop chunk is only third, with a low score. It is in the same "money &amp; equipment" area, but it is not really about travel.</details></li>
+    <li>The question "Can I work from home on Friday?" has no word "week" in it. How does it still find "up to 2 days per week"?
+      <details class="answer"><summary>Answer</summary>Embeddings match <b>meaning</b>, not exact words. "Friday" and "per week" are both about days you work, so the numbers end up close.</details></li>
+    <li>Does the embedding model need the internet or a paid key?
+      <details class="answer"><summary>Answer</summary>No. all-MiniLM-L6-v2 is open-source and runs on your own laptop. Only the final answer (page 4) uses the Groq API.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>RAG &amp; Agents, Visualized · works offline</footer>
+<script>
+const PAGES=[['index.html','Overview'],['00_setup.html','Setup: two free API keys'],['01_why_rag.html','Why RAG?'],['02_pdf_to_chunks.html','PDF → chunks'],['03_embeddings.html','Embeddings'],['04_search_and_answer.html','Search & answer'],['05_what_is_an_agent.html','What is an agent?'],['06_agent_step_by_step.html','An agent, step by step']];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+(()=>{const here=decodeURIComponent(location.pathname.split('/').pop()||'index.html'),idx=PAGES.findIndex(p=>p[0]===here);
+  $('.nav').innerHTML=PAGES.map(([h,t],i)=>`<a href="${h}" class="${h===here?'on':''}" title="${t}">${i===0?'Home':i-1}</a>`).join('');
+  const pg=$('nav.pager[data-auto]');if(pg&&idx>=0){const p=PAGES[idx-1],n=PAGES[idx+1];
+  pg.innerHTML=(p?`<a href="${p[0]}"><small>← Previous</small>${idx-1>0?(idx-2)+' · ':''}${p[1]}</a>`:'<span></span>')+(n?`<a class="next" href="${n[0]}"><small>Next →</small>${idx} · ${n[1]}</a>`:`<a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>`);}})();
+const G={leave:['#2f6fed','Leave'],work:['#f08c00','Work rules'],money:['#7048e8','Money & equipment']};
+const C=[
+  ['leave',110,90,'Annual leave is 18 days per year. (page 1)'],
+  ['leave',160,135,'You get 2 extra leave days for every 3 full years of service. (page 1)'],
+  ['leave',70,150,'Sick leave is 10 days per year. (page 1)'],
+  ['leave',175,75,'You can carry forward at most 5 unused leave days. (page 1)'],
+  ['work',380,85,'You may work from home up to 2 days per week. (page 2)'],
+  ['work',450,150,'The notice period is 60 days. (page 2)'],
+  ['work',410,60,'Ask your manager before your work-from-home days. (page 2)'],
+  ['work',470,95,'Send your resignation to HR by email. (page 2)'],
+  ['money',220,270,'Your laptop is replaced every 3 years. (page 3)'],
+  ['money',320,260,'Travel allowance is ₹2,500 per day. (page 3)'],
+  ['money',350,300,'Keep the bills for every travel claim. (page 3)'],
+  ['money',180,300,'Report a broken laptop to IT at once. (page 3)']];
+const Q=[{x:140,y:100,top:[[0,.71],[1,.58],[3,.49]]},{x:375,y:60,top:[[4,.74],[6,.52],[7,.22]]},
+  {x:330,y:280,top:[[9,.69],[10,.55],[8,.18]]},{x:205,y:280,top:[[8,.76],[11,.51],[9,.20]]}];
+const svg=$('#map');
+svg.innerHTML=`<text class="grp" x="60" y="40" fill="${G.leave[0]}">🌴 Leave</text><text class="grp" x="380" y="35" fill="${G.work[0]}">🏢 Work rules</text><text class="grp" x="190" y="232" fill="${G.money[0]}">💰 Money &amp; equipment</text><g id="lines"></g>`+
+  C.map((c,i)=>`<circle class="dot" data-i="${i}" cx="${c[1]}" cy="${c[2]}" r="9" fill="${G[c[0]][0]}"><title>${c[3]}</title></circle>`).join('')+'<g id="pin"></g>';
+function tip(i){const c=C[i];$('#tip').innerHTML=`<span style="color:${G[c[0]][0]}">●</span> ${G[c[0]][1]}: "${c[3]}"`;}
+$$('#map .dot').forEach(d=>{d.onmouseenter=()=>tip(+d.dataset.i);d.onclick=()=>tip(+d.dataset.i);});
+$$('#qs button').forEach(b=>b.onclick=()=>{
+  const q=Q[+b.dataset.q];$$('#qs button').forEach(x=>x.classList.toggle('primary',x===b));
+  $$('#map .dot').forEach(d=>d.classList.toggle('hi',q.top.some(t=>t[0]===+d.dataset.i)));
+  $('#lines').innerHTML=q.top.map(([i])=>`<line x1="${q.x}" y1="${q.y}" x2="${C[i][1]}" y2="${C[i][2]}" stroke="#1c2230" stroke-width="2" stroke-dasharray="4 3"/>`).join('');
+  $('#pin').innerHTML=`<text x="${q.x}" y="${q.y}" font-size="26" text-anchor="middle">📍</text>`;
+  $('#res').innerHTML=`<p><b>❓ ${b.textContent}</b><br>The 3 closest chunks:</p><ol class="rank">${q.top.map(([i,s],k)=>`<li><b style="color:${s>.4?'var(--green)':'var(--muted)'}">${s.toFixed(2)}</b><span>${k+1}. ${C[i][3]}</span></li>`).join('')}</ol>`;
+});
+</script>
+</body>
+</html>

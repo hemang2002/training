@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2 · PDF → text → chunks — RAG &amp; Agents, Visualized</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#f6f5f1;--panel:#fff;--ink:#1c2230;--muted:#5d6678;--line:#e2e4e9;--soft:#f1f3f7;--blue:#2f6fed;--green:#2f9e44;--red:#e03131;--purple:#7048e8;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 6px 20px rgba(20,30,50,.06);
+  --mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;--sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+html{font-size:17px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+a{color:var(--blue)}
+h1,h2,h3{line-height:1.25;margin:0 0 .5em}h1{font-size:2.1rem}h2{font-size:1.45rem;margin-top:.2em}h3{font-size:1.1rem}
+p{margin:.4em 0 .8em}
+code{font-family:var(--mono);font-size:.9em;background:var(--soft);padding:.08em .35em;border-radius:5px;overflow-wrap:anywhere}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1280px;margin:0 auto;padding:.55rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.brand{font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}.brand span{color:var(--blue)}
+.nav{display:flex;gap:.3rem;flex-wrap:wrap}
+.nav a{display:inline-block;min-width:2rem;text-align:center;padding:.2rem .55rem;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:.9rem}
+.nav a:hover{background:var(--soft);color:var(--ink)}.nav a.on{background:var(--blue);color:#fff}
+.wrap{max-width:1280px;margin:0 auto;padding:1.4rem 1rem 3rem}
+.hero{padding:.6rem 0 1rem}
+.hero .kicker{text-transform:uppercase;letter-spacing:.09em;font-size:.78rem;font-weight:700;color:var(--blue)}
+.one-liner{font-size:1.2rem;background:var(--panel);border-left:5px solid var(--blue);padding:.8rem 1.1rem;border-radius:10px;box-shadow:var(--shadow);max-width:60rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:1.2rem 1.3rem;margin:1.1rem 0}
+.card > h2:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:1rem}
+.muted{color:var(--muted)}.small{font-size:.88rem}
+.btn{font:inherit;font-size:.92rem;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.45rem .85rem;border-radius:9px;cursor:pointer}
+.btn:hover{background:var(--soft)}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{font:inherit;font-size:.88rem;border:0;background:transparent;padding:.38rem .7rem;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--blue);color:#fff}
+.banner{padding:.6rem .9rem;border-radius:10px;font-weight:600;margin:.5rem 0}
+.banner.good{background:#ebfbee;color:var(--green);border:1px solid #b2f2bb}
+.banner.bad{background:#fff5f5;color:var(--red);border:1px solid #ffc9c9}
+.banner.info{background:#e7f5ff;color:#1864ab;border:1px solid #a5d8ff}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;justify-content:center}
+.callout{border-radius:12px;padding:.9rem 1.1rem;margin:1rem 0;border-left:5px solid}
+.callout h3{margin:0 0 .35rem}
+.try{background:#fff8db;border-color:#f0b400}
+ol.challenges{padding-left:1.3rem;margin-bottom:0}ol.challenges > li{margin:.55rem 0}
+details.answer{margin:.3rem 0 .2rem;background:rgba(255,255,255,.7);border-radius:8px;padding:.3rem .7rem}
+details.answer summary{cursor:pointer;font-weight:600;color:var(--purple);font-size:.9rem}
+details.answer[open]{padding-bottom:.6rem}
+.say{background:#ebfbee;border-left:5px solid var(--green);border-radius:12px;padding:.8rem 1.1rem;margin:1rem 0}
+.say h3{margin:0 0 .3rem;color:#2b8a3e}.say ol{margin:.2rem 0;padding-left:1.3rem}.say li{margin:.2rem 0}
+.start{background:linear-gradient(135deg,#e7f5ff 0%,#f3f0ff 100%);border:2px solid #a5d8ff;border-radius:18px;padding:1.1rem 1.3rem;margin:1rem 0 1.4rem}
+.start > h2{margin:0 0 .7rem;font-size:1.35rem}
+.start .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.8rem}
+.start .box{background:#fff;border-radius:14px;padding:.8rem 1rem;box-shadow:0 1px 3px rgba(20,30,50,.06)}
+.start .box h3{font-size:1rem;margin:0 0 .35rem;color:var(--blue)}
+.start .box p{margin:.2rem 0}.start .box ol{margin:.2rem 0;padding-left:1.2rem}.start .box ol li{margin:.25rem 0}
+.start .story{font-size:1.08rem}
+.start .words{margin-top:.8rem;background:#fff;border-radius:14px;padding:.6rem 1rem;font-size:.93rem}
+.start .words span{display:inline-block;margin:.15rem 1.1rem .15rem 0}
+.pager{display:flex;justify-content:space-between;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+.pager a{flex:1;min-width:14rem;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;color:var(--ink);box-shadow:var(--shadow)}
+.pager a small{display:block;color:var(--muted)}.pager a.next{text-align:right}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem}
+@media (max-width:600px){.wrap,.topbar-in{padding-left:16px;padding-right:16px}h1{font-size:1.7rem}.card,.start{padding:1rem}}
+.ctl{margin:.55rem 0}
+.ctl label{display:flex;justify-content:space-between;gap:.5rem;font-size:.9rem;font-weight:600}
+.ctl label .val{font-family:var(--mono);color:var(--blue);font-weight:700}
+.ctl input[type=range]{width:100%;accent-color:var(--blue)}
+.stats{display:flex;flex-wrap:wrap;gap:.6rem;margin:.6rem 0}
+.stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:.45rem .8rem;min-width:7.5rem}
+.stat b{display:block;font-family:var(--mono);font-size:1.25rem;color:var(--ink)}
+.stat span{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stat.good b{color:var(--green)}.stat.blue b{color:var(--blue)}
+.termlabel{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:.8rem 0 -.2rem}
+/* page */
+  .chunks{display:flex;flex-direction:column;gap:.45rem;margin-top:.6rem}
+  .ck{border:2px solid;border-radius:10px;padding:.45rem .65rem;font-size:.88rem;line-height:1.5}
+  .ck .tag{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.15rem}
+  .ck mark{background:rgba(255,212,59,.55);border-radius:3px;padding:0 .1rem}
+  .src{font-size:.88rem;background:#f8f9fa;border:1px solid var(--line);border-radius:10px;padding:.6rem .8rem;line-height:1.55}
+  .cut{color:var(--red);font-weight:700}
+  .fact{background:#d3f9d8;border-radius:3px;padding:0 .1rem}
+  .broken{background:#ffe3e3;border-radius:3px;padding:0 .1rem}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a class="brand" href="index.html">🤖 RAG &amp; Agents, <span>Visualized</span></a>
+  <nav class="nav"></nav>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="kicker">Step 2 of 6 · ≈ 10 min</div>
+  <h1>PDF → text → chunks</h1>
+  <p class="one-liner">First we <b>read the text</b> out of the PDF (with <code>pypdf</code>). Then we <b>cut it into small pieces</b>, called <b>chunks</b>.
+  Each piece is about <b>500 characters</b>, and neighbours share <b>100 characters</b> (the overlap).</p>
+</section>
+<section class="start">
+  <h2>👋 New here? The 30-second version</h2>
+  <div class="row">
+    <div class="box story"><h3>🧸 Think of it like this</h3><p>A 300-page book is too much to read for one question. So you cut it into <b>index cards</b>, one small topic per card.
+      To answer a question, you only pick up the <b>few cards</b> that matter.</p></div>
+    <div class="box"><h3>👆 Do this</h3><ol><li>In ①, move the <b>chunk size</b> slider.</li>
+      <li>Watch how many chunks you get.</li><li>In ②, switch overlap off and on.</li></ol></div>
+    <div class="box"><h3>👀 Notice this</h3><p>Small chunks = more cards, each about <b>one thing</b>. The <span style="background:rgba(255,212,59,.55);padding:0 .2rem;border-radius:3px">yellow</span> part is repeated from the card before.</p></div>
+  </div>
+  <div class="words">📖 <b>Words, made easy:</b><br><span><b>Chunk</b> = one small piece of the text</span><span><b>Chunk size</b> = how many characters in each piece</span>
+    <span><b>Overlap</b> = the bit each piece repeats from the one before</span><span><b>Character</b> = one letter, digit, space or comma</span></div>
+</section>
+
+<section class="card">
+  <h2>① Cut the handbook into chunks</h2>
+  <p class="small muted">Why cut at all? The LLM can't read 300 pages for every question, and a small piece about one topic is much easier to find.</p>
+  <div class="grid2">
+    <div>
+      <div class="ctl"><label>Chunk size <span class="val" id="sizeV">500 characters</span></label><input type="range" id="size" min="200" max="800" step="50" value="500"></div>
+      <div class="ctl"><label>Overlap <span class="val">100 characters (fixed)</span></label></div>
+      <div class="stats"><div class="stat blue"><b id="nCk">0</b><span>chunks</span></div><div class="stat"><b id="nCh">0</b><span>characters of text</span></div></div>
+      <div class="termlabel">The text we read from the PDF</div>
+      <div class="src" id="src"></div>
+    </div>
+    <div><div class="termlabel">The chunks</div><div class="chunks" id="chunks"></div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>② Why the overlap?</h2>
+  <p>Question: <b>"How much unused leave can I carry forward?"</b></p>
+  <div class="seg" id="ov"><button data-o="no" class="on">✂️ No overlap</button><button data-o="yes">🔁 With overlap</button></div>
+  <div id="ovBox"></div>
+</section>
+
+<section class="callout try">
+  <h3>🧪 Try this (guess first!)</h3>
+  <ol class="challenges">
+    <li>Move the slider to 200. Then to 800. What happens to the number of chunks?
+      <details class="answer"><summary>Answer</summary>Smaller chunks give more pieces. Bigger chunks give fewer pieces, but each one mixes several topics.</details></li>
+    <li>Why not make one giant chunk of the whole PDF?
+      <details class="answer"><summary>Answer</summary>Then every search returns "everything". The LLM gets lots of text that has nothing to do with the question. Small pieces keep the answer precise.</details></li>
+    <li>Why not make chunks of just 20 characters?
+      <details class="answer"><summary>Answer</summary>A piece that small can't hold a full idea, like "18 days of annual leave per year". About 500 characters is a good middle.</details></li>
+  </ol>
+</section>
+
+<nav class="pager" data-auto></nav>
+</main>
+<footer>RAG &amp; Agents, Visualized · works offline</footer>
+<script>
+const PAGES=[['index.html','Overview'],['00_setup.html','Setup: two free API keys'],['01_why_rag.html','Why RAG?'],['02_pdf_to_chunks.html','PDF → chunks'],['03_embeddings.html','Embeddings'],['04_search_and_answer.html','Search & answer'],['05_what_is_an_agent.html','What is an agent?'],['06_agent_step_by_step.html','An agent, step by step']];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+(function(){const here=decodeURIComponent(location.pathname.split('/').pop()||'index.html'),idx=PAGES.findIndex(p=>p[0]===here);
+  $('.nav').innerHTML=PAGES.map(([h,t],i)=>`<a href="${h}" class="${h===here?'on':''}" title="${t}">${i===0?'Home':i-1}</a>`).join('');
+  const pg=$('nav.pager[data-auto]');if(pg&&idx>=0){const pr=PAGES[idx-1],nx=PAGES[idx+1];
+    pg.innerHTML=(pr?`<a href="${pr[0]}"><small>← Previous</small>${idx-1>0?(idx-2)+' · ':''}${pr[1]}</a>`:'<span></span>')+
+      (nx?`<a class="next" href="${nx[0]}"><small>Next →</small>${idx} · ${nx[1]}</a>`:'<a class="next" href="index.html"><small>Done! →</small>Back to the overview</a>');}})();
+const TEXT="Welcome to Acme Corp! This handbook explains the main rules about leave, working hours and benefits. Please read it carefully. Annual leave: Every employee gets 18 days of annual leave per year. For every 3 full years of service, you get 2 extra days. Sick leave: You get 10 days of sick leave per year. Tell your manager on the first day you are sick. Carry forward: Unused annual leave can be carried forward to the next year, up to a maximum of 5 days. Work from home: You may work from home up to 2 days per week, with your manager's approval. Notice period: If you resign, the notice period is 60 days. Equipment: Your laptop is replaced every 3 years. Travel: When you travel for work, you get a travel allowance of ₹2,500 per day.";
+const OVER=100,COL=[['#74a0f5','#eef4ff'],['#8ce99a','#ebfbee'],['#ffc078','#fff4e6'],['#b197fc','#f3f0ff'],['#ffa8a8','#fff5f5']];
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function cut(size){const out=[];for(let s=0;s<TEXT.length;s+=size-OVER){out.push([s,TEXT.slice(s,s+size)]);if(s+size>=TEXT.length)break;}return out;}
+function draw(){
+  const size=+$('#size').value,ck=cut(size);
+  $('#sizeV').textContent=size+' characters';$('#nCk').textContent=ck.length;$('#nCh').textContent=TEXT.length;
+  $('#chunks').innerHTML=ck.map(([s,t],i)=>{const [b,bg]=COL[i%COL.length];
+    const body=i?`<mark>${esc(t.slice(0,OVER))}</mark>${esc(t.slice(OVER))}`:esc(t);
+    return `<div class="ck" style="border-color:${b};background:${bg}"><span class="tag">Chunk ${i+1} · ${t.length} chars</span>${body}</div>`;}).join('');
+}
+$('#src').textContent=TEXT;$('#size').oninput=draw;draw();
+const OV={
+  no:`<div class="grid2" style="margin-top:.6rem">
+    <div class="ck" style="border-color:#74a0f5;background:#eef4ff"><span class="tag">Chunk 2</span>…Tell your manager on the first day you are sick. Carry forward: <span class="broken">Unused annual leave can be carried</span><span class="cut"> ✂️</span></div>
+    <div class="ck" style="border-color:#8ce99a;background:#ebfbee"><span class="tag">Chunk 3</span><span class="cut">✂️ </span><span class="broken">forward to the next year, up to a maximum of 5 days.</span> Work from home: …</div></div>
+    <div class="banner bad">❌ The sentence is cut in half. Neither chunk holds the whole fact, so the search may miss it.</div>`,
+  yes:`<div class="grid2" style="margin-top:.6rem">
+    <div class="ck" style="border-color:#74a0f5;background:#eef4ff"><span class="tag">Chunk 2</span>…Tell your manager on the first day you are sick. Carry forward: Unused annual leave can be carried</div>
+    <div class="ck" style="border-color:#8ce99a;background:#ebfbee"><span class="tag">Chunk 3</span><mark>…on the first day you are sick. Carry forward: </mark><span class="fact">Unused annual leave can be carried forward to the next year, up to a maximum of 5 days.</span> Work from home: …</div></div>
+    <div class="banner good">✅ Chunk 3 repeats the end of chunk 2, so the whole sentence is in one piece: <b>max 5 days</b>.</div>`};
+function showOv(k){$$('#ov button').forEach(b=>b.classList.toggle('on',b.dataset.o===k));$('#ovBox').innerHTML=OV[k];}
+$$('#ov button').forEach(b=>b.onclick=()=>showOv(b.dataset.o));showOv('no');
+</script>
+</body>
+</html>
