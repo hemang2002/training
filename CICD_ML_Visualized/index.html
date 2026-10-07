@@ -73,62 +73,43 @@
   .howread .big{font-size:1.5rem}
 </style>
 </head>
-<body class="simple">
+<body>
 <header class="topbar"><div class="topbar-in">
   <a class="brand" href="#top">🔁 CI/CD for ML, <span>Visualized</span></a>
   <nav class="nav">
     <a href="#why" title="Why?">1</a><a href="#three" title="What changes in ML">2</a><a href="#pipe" title="The pipeline">3</a>
     <a href="#code" title="Code structure">4</a><a href="#sum" title="Summary">5</a>
   </nav>
-  <button class="modebtn" id="modeBtn" type="button">👶 Simple view</button>
 </div></header>
 
 <main class="wrap" id="top">
 <section class="hero">
   <div class="kicker">Theory only · ≈ 40 min · no installation needed</div>
   <h1>CI/CD for machine learning</h1>
-  <p class="one-liner">A <b>CI/CD pipeline</b> is a <b>robot with a checklist</b>. Every time something changes (the <b>code</b>, the <b>data</b> or the <b>model</b>),
-  the robot runs the same steps in the same order: <b>check it → train it → test it → pack it → give it to a few users → give it to everyone → keep watching</b>.
-  If any step goes wrong, the robot <b>stops</b>, and users simply keep the old model.</p>
+  <p class="one-liner">A <b>CI/CD pipeline</b> is a robot with a checklist. Every time the <b>code</b>, the <b>data</b> or the <b>model</b> changes,
+  it runs the same steps in the same order. If a step fails, it stops and users keep the old model.</p>
 </section>
 
 <section class="start">
-  <h2>👋 New here? The 1-minute version</h2>
-  <div class="row">
-    <div class="box story"><h3>🧸 Think of a restaurant kitchen</h3><p>A cook invents a new dish. Before any guest eats it, the chef checks the recipe, checks the ingredients,
-      cooks it and <b>tastes</b> it. Then it goes to <b>one table</b> first. Only if they like it does it go on the menu for everyone.
-      A waiter keeps asking guests how it tastes. The pipeline does exactly this, for ML models.</p></div>
-    <div class="box"><h3>👆 How to use this page</h3><ol><li>Read ① and ② (2 minutes).</li>
-      <li>In ③, press <b>Next ▶</b> through the ✅ good story. Read the box under the pipeline at every step.</li>
-      <li>Then try the ❌ stories: see <b>where</b> each problem is stopped.</li>
-      <li>In ④, click the ⭐ files: each step is just a small script.</li></ol></div>
-    <div class="box"><h3>👀 The one thing to remember</h3><p>A red step is <b>good news</b>. It means the pipeline caught a problem <b>before</b> any user saw it.
-      Without a pipeline, the users would have found it.</p></div>
-  </div>
-
-  <h3 style="margin-top:1rem">🍳 Kitchen ↔ pipeline: the whole idea in one table</h3>
+  <h2>The idea in one table</h2>
   <div class="tbl-wrap"><table class="plain map">
     <tr><th>In the kitchen</th><th>In the ML pipeline</th><th>Name</th></tr>
-    <tr><td>📝 Check the recipe is written correctly</td><td>Automatic tests check the code</td><td rowspan="4"><b>CI</b><br><span class="small muted">check &amp; build</span></td></tr>
-    <tr><td>🥕 Check the ingredients are fresh</td><td>Check the new data is clean</td></tr>
-    <tr><td>🍲 Cook the dish, exactly by the recipe</td><td>Train the model</td></tr>
-    <tr><td>👅 Chef tastes it: better than the old dish?</td><td>Test the model, compare with the live one</td></tr>
-    <tr><td>🍽️ Serve to one table, then to everyone</td><td>Give the model to 10% of users, then 100%</td><td><b>CD</b><br><span class="small muted">release</span></td></tr>
-    <tr><td>🙋 Waiter asks: still tasty? Tastes changed? → cook a new version</td><td>Watch the live model; if the world changed, retrain it</td><td><b>CT</b><br><span class="small muted">retrain</span></td></tr>
+    <tr><td>Check the recipe is written correctly</td><td>Automatic tests check the code</td><td rowspan="4"><b>CI</b><br><span class="small muted">check &amp; build</span></td></tr>
+    <tr><td>Check the ingredients are fresh</td><td>Check the new data is clean</td></tr>
+    <tr><td>Cook the dish, exactly by the recipe</td><td>Train the model</td></tr>
+    <tr><td>Taste it: better than the old dish?</td><td>Test the model, compare with the live one</td></tr>
+    <tr><td>Serve to one table, then to everyone</td><td>Give the model to 10% of users, then 100%</td><td><b>CD</b><br><span class="small muted">release</span></td></tr>
+    <tr><td>Guests' taste changed → cook a new version</td><td>Watch the live model; if the world changed, retrain it</td><td><b>CT</b><br><span class="small muted">retrain</span></td></tr>
   </table></div>
 
-  <div class="words">📖 <b>Hard words, made easy:</b><br>
-    <span><b>CI</b> (Continuous Integration) = check every change automatically</span>
-    <span><b>CD</b> (Continuous Delivery / Deployment) = release every good change automatically and safely</span>
-    <span><b>CT</b> (Continuous Training) = retrain automatically when new data arrives or the world changes</span>
-    <span><b>Pipeline</b> = the fixed list of steps the robot runs</span>
-    <span><b>Unit test</b> = a tiny automatic check: "give this input, expect this output"</span>
-    <span><b>Quality gate</b> = the pass mark a model must reach to go further</span>
-    <span><b>Model registry</b> = a shelf of numbered models (v7, v8…), one labelled "live"</span>
-    <span><b>Staging</b> = a private copy of the real system, for a final try-out</span>
-    <span><b>Canary</b> = give the new model to a few users first (like a test table)</span>
+  <div class="words"><b>Words</b><br>
+    <span><b>CI</b> = check every change automatically</span>
+    <span><b>CD</b> = release every good change safely</span>
+    <span><b>CT</b> = retrain automatically when the data changes</span>
+    <span><b>Quality gate</b> = the pass mark a model must reach</span>
+    <span><b>Canary</b> = the new model for a few users first</span>
     <span><b>Rollback</b> = switch back to the old model</span>
-    <span><b>Drift</b> = the live data slowly stops looking like the training data</span></div>
+    <span><b>Drift</b> = live data stops looking like the training data</span></div>
 </section>
 
 <!-- ① WHY -->
@@ -136,21 +117,21 @@
   <h2>① Why do we need it?</h2>
   <div class="grid2">
     <div>
-      <h3>😰 Without a pipeline (by hand)</h3>
+      <h3>😰 By hand</h3>
       <ol class="steps">
-        <li><b>"It works on my laptop."</b> The model was trained with a different library version, and in production it gives other answers.</li>
-        <li><b>Nobody ran the tests.</b> A tiny change in preprocessing flips the image colours. Accuracy silently drops.</li>
-        <li><b>Which model is live?</b> "model_final_v2_NEW.pth"… trained on which data? Nobody knows.</li>
-        <li><b>Rollback takes hours.</b> Someone must find the old file and copy it to the server at night.</li>
+        <li><b>"It works on my laptop."</b> Different library versions give different answers.</li>
+        <li><b>Nobody ran the tests.</b> A small preprocessing change silently lowers accuracy.</li>
+        <li><b>Which model is live?</b> "model_final_v2_NEW.pth", trained on what?</li>
+        <li><b>Rollback takes hours.</b></li>
       </ol>
     </div>
     <div>
-      <h3>😌 With a pipeline (automatic)</h3>
+      <h3>😌 With a pipeline</h3>
       <ol class="steps">
-        <li><b>Same steps every time,</b> in a clean, identical environment (a container).</li>
-        <li><b>Tests and data checks run on every change,</b> in minutes, not "when someone remembers".</li>
-        <li><b>Every model has a version and a recipe:</b> this code + this data + these settings.</li>
-        <li><b>Rollback is one click:</b> point "production" back to the previous version.</li>
+        <li><b>Same steps every time,</b> in a clean container.</li>
+        <li><b>Tests and data checks</b> run on every change.</li>
+        <li><b>Every model has a version</b> and a recipe.</li>
+        <li><b>Rollback is one click.</b></li>
       </ol>
     </div>
   </div>
@@ -159,33 +140,30 @@
 <!-- ② THREE THINGS -->
 <section class="card" id="three">
   <h2>② What is different in ML?</h2>
-  <p>In a normal app, only the <b>code</b> changes, so the pipeline only tests the code. In ML there are <b>three</b> things that can change,
-  and each one can break the app <b>silently</b>: no error message, no crash, just <b>worse answers</b>. So the ML pipeline checks all three.</p>
+  <p>In normal software only the <b>code</b> changes. In ML <b>three</b> things can change, and each can break the app <b>silently</b>: no error, just worse answers.</p>
   <div class="tri">
-    <div><div class="big">💻</div><h3>1. Code</h3><p>The Python files: how pictures are prepared, the network, the API.</p>
-      <p class="small"><b>Silent failure:</b> someone changes the picture size from 96 to 64. Everything still runs, but the model gets worse.</p><p class="small"><b>Checked by:</b> small automatic tests (🧹 Code checks).</p></div>
-    <div><div class="big">📊</div><h3>2. Data</h3><p>The pictures and their labels. New ones arrive every week.</p>
-      <p class="small"><b>Silent failure:</b> a new camera makes all photos darker, or 10% of the labels are missing.</p><p class="small"><b>Checked by:</b> data checks: counts, sizes, missing labels, "does it look like before?" (📊 Data checks).</p></div>
-    <div><div class="big">🧠</div><h3>3. Model</h3><p>What training produces from code + data. You can't read it like code.</p>
-      <p class="small"><b>Silent failure:</b> the total accuracy looks fine, but "cat" is now often wrong.</p><p class="small"><b>Checked by:</b> an exam with a pass mark, and a comparison with the live model (🎯 Evaluate).</p></div>
+    <div><div class="big">💻</div><h3>1. Code</h3>
+      <p class="small"><b>Breaks when:</b> the picture size changes from 96 to 64.</p><p class="small"><b>Checked by:</b> unit tests.</p></div>
+    <div><div class="big">📊</div><h3>2. Data</h3>
+      <p class="small"><b>Breaks when:</b> a new camera makes photos darker, or labels are missing.</p><p class="small"><b>Checked by:</b> data checks.</p></div>
+    <div><div class="big">🧠</div><h3>3. Model</h3>
+      <p class="small"><b>Breaks when:</b> total accuracy looks fine, but "cat" is often wrong.</p><p class="small"><b>Checked by:</b> an exam with a pass mark.</p></div>
   </div>
-  <div class="explain" style="margin-top:.7rem">💡 <b>So:</b> "the tests passed" is <b>not</b> enough in ML. Good code can still produce a bad model, because of bad data.</div>
   <div class="tbl-wrap"><table class="plain" style="margin-top:.8rem">
-    <tr><th>What starts the robot? (the "trigger")</th><th>Example</th><th>Which part runs</th></tr>
-    <tr><td>🔔 Code pushed to git</td><td>New augmentation in <code>train.py</code></td><td>CI → (if merged) training → CD</td></tr>
-    <tr><td>📥 New data arrives</td><td>This week's labelled pictures</td><td>Data checks → training → CD</td></tr>
-    <tr><td>⏰ Schedule</td><td>Every Monday at 02:00</td><td>Retraining (CT) → CD</td></tr>
-    <tr><td>🚨 Monitoring alert</td><td>Live pictures look different from training data (drift)</td><td>Retraining (CT) → CD</td></tr>
+    <tr><th>What starts the robot?</th><th>Which part runs</th></tr>
+    <tr><td>🔔 Code pushed to git</td><td>CI → training → CD</td></tr>
+    <tr><td>📥 New data arrives</td><td>Data checks → training → CD</td></tr>
+    <tr><td>⏰ Schedule (e.g. every Monday)</td><td>Retraining (CT) → CD</td></tr>
+    <tr><td>🚨 Monitoring alert (drift)</td><td>Retraining (CT) → CD</td></tr>
   </table></div>
 </section>
 
 <!-- ③ PIPELINE PLAYER -->
 <section class="card" id="pipe">
   <h2>③ The ML pipeline, step by step</h2>
-  <p>The robot's checklist has <b>10 steps</b> in two parts. The top row (<b>CI</b>) checks and builds the model. The bottom row (<b>CD</b>) gives it to users, carefully.
-  Every step asks <b>one question</b>. If the answer is "no", the robot stops.</p>
-  <p>Pick a story, then press <b>Next ▶</b>. Colours: <b style="color:var(--blue)">blue</b> = working now, <b style="color:var(--green)">green</b> = OK,
-  <b style="color:var(--red)">red</b> = problem found, stopped here, grey = never reached. 👆 You can also <b>click any step</b> to read what it does.</p>
+  <p><b>10 steps</b> in two rows. <b>CI</b> (top) checks and builds the model. <b>CD</b> (bottom) releases it. Each step asks one question; if the answer is "no", the robot stops.</p>
+  <p>Pick a story and press <b>Next ▶</b>. <b style="color:var(--blue)">Blue</b> = running, <b style="color:var(--green)">green</b> = OK,
+  <b style="color:var(--red)">red</b> = stopped here, grey = not reached. Click any step to read about it.</p>
   <div class="lab">
     <aside class="controls">
       <h3>Story</h3>
@@ -210,80 +188,58 @@
         <div><div class="canvas-title">📦 What the pipeline has produced</div><div class="shelf" id="shelf"></div></div>
         <div><div class="canvas-title">👥 Which model answers the users</div><div class="serve" id="serve"></div><div class="small muted" id="serveTxt"></div></div>
       </div>
-      <details class="answer" style="margin-top:.5rem" open><summary>The whole story</summary><ol class="story" id="story"></ol></details>
     </div>
   </div>
-  <div class="explain adv" style="margin-top:.8rem"><b>Detailed: what each step really checks</b>
-    <div class="tbl-wrap"><table class="plain small" style="margin-top:.4rem">
-      <tr><th>Step</th><th>Typical checks</th></tr>
-      <tr><td>🧹 Code checks</td><td>Lint/format, unit tests (preprocessing shape and range, label mapping), a tiny "smoke" training on 50 pictures to prove the code runs.</td></tr>
-      <tr><td>📊 Data checks</td><td>Schema (columns, types, image size), missing values, class balance, duplicates, and train–test leakage. Drift: compare statistics with the last training set.</td></tr>
-      <tr><td>🏋️ Train</td><td>Fixed seed, pinned library versions, data version recorded, all parameters logged (experiment tracking).</td></tr>
-      <tr><td>🎯 Evaluate</td><td>Metrics on a fixed test set, compared with thresholds <b>and</b> with the current production model. Per-class recall, latency, size, fairness slices.</td></tr>
-      <tr><td>📦 Package</td><td>Export (e.g. ONNX, int8), build a container image, register the model with its recipe (commit, data version, metrics).</td></tr>
-      <tr><td>🧪 Staging</td><td>Deploy to a copy of production. Smoke tests: health endpoint, one known picture gives the known answer, latency budget.</td></tr>
-      <tr><td>🐤 Canary → 🚀 Full</td><td>A small share of real traffic first; compare error rate and latency with the old model; then 100%, or automatic rollback.</td></tr>
-      <tr><td>👀 Monitor</td><td>Latency, errors, prediction distribution, input drift, and accuracy once true labels arrive. Alerts can trigger retraining.</td></tr>
-    </table></div></div>
 </section>
 
-<!-- ⑦ CODE STRUCTURE -->
+<!-- ④ CODE STRUCTURE -->
 <section class="card" id="code">
-  <h2>④ What it looks like in a project (basic structure)</h2>
-  <p>There is no magic inside. A pipeline is just <b>a to-do list</b> plus <b>a few small scripts</b>:</p>
+  <h2>④ What it looks like in a project</h2>
+  <p>A pipeline is <b>a to-do list</b> plus <b>a few small scripts</b>. Click a file; start with the ⭐ ones. They are short skeletons, not meant to be run.</p>
   <div class="howread">
-    <div><div class="big">📋</div><b>1. The to-do list</b> (<code>ci.yml</code>)<br>A workflow file. Each <code>run:</code> line is one step of the checklist, from top to bottom.</div>
-    <div><div class="big">🐍</div><b>2. The workers</b> (<code>validate.py</code>, <code>evaluate.py</code>…)<br>Normal Python scripts, one per step. The same code you would write in a notebook.</div>
-    <div><div class="big">🚦</div><b>3. The traffic light</b><br>Each script ends with <code>sys.exit(0)</code> = 🟢 OK, go on, or <code>sys.exit(1)</code> = 🔴 stop the robot.</div>
-    <div><div class="big">⚙️</div><b>4. The settings</b> (<code>params.yaml</code>)<br>All numbers in one file: data version, learning rate, and the pass mark of the exam.</div>
+    <div><div class="big">📋</div><b>The to-do list</b> (<code>ci.yml</code>)<br>Each <code>run:</code> line is one step.</div>
+    <div><div class="big">🐍</div><b>The workers</b> (<code>validate.py</code>, <code>evaluate.py</code>)<br>One Python script per step.</div>
+    <div><div class="big">🚦</div><b>The traffic light</b><br><code>sys.exit(0)</code> = OK, <code>sys.exit(1)</code> = stop.</div>
+    <div><div class="big">⚙️</div><b>The settings</b> (<code>params.yaml</code>)<br>All numbers in one file, including the pass mark.</div>
   </div>
-  <p>Click a file on the left. <b>Start with the ⭐ files</b>, in this order. These are short skeletons to show the idea, not meant to be run.</p>
   <div class="codegrid">
     <div class="tree" id="tree"></div>
     <div style="min-width:0"><div class="fileinfo" id="finfo"></div><pre class="code" id="fcode" style="margin-top:0"></pre></div>
   </div>
-  <div class="explain" style="margin-top:.6rem">💡 <b>The one rule behind all of it:</b> every step is a script that <b>exits with 0 when OK</b> and <b>non-zero when not</b>.
-    The pipeline tool (GitHub Actions, GitLab CI, Jenkins, Azure DevOps…) just runs them in order and stops at the first non-zero exit.</div>
 </section>
 
 <!-- SUMMARY -->
 <section class="card" id="sum">
-  <h2>⑤ CI vs CD vs CT, in one table</h2>
+  <h2>⑤ CI vs CD vs CT</h2>
   <div class="tbl-wrap"><table class="plain">
     <tr><th></th><th>CI: Continuous Integration</th><th>CD: Continuous Delivery / Deployment</th><th>CT: Continuous Training</th></tr>
-    <tr><td><b>In plain words</b></td><td>🍳 Check the recipe, the ingredients and the taste</td><td>🍽️ Serve to one table, then to everyone</td><td>🙋 Guests' taste changed → cook a new version</td></tr>
     <tr><td><b>Question</b></td><td>Is this change safe to merge?</td><td>Can we release it to users safely?</td><td>Is the live model still good for today's data?</td></tr>
-    <tr><td><b>Starts when</b></td><td>Code pushed / pull request</td><td>A build passed CI and the gate</td><td>New data, schedule, or drift alert</td></tr>
-    <tr><td><b>ML-specific steps</b></td><td>Data checks, small training run, tests of preprocessing</td><td>Model registry, staging, canary, rollback</td><td>Retrain, evaluate against production, re-release</td></tr>
-    <tr><td><b>Output</b></td><td>✅/❌ on the commit, a packaged model</td><td>A new model serving users</td><td>A fresher model (through CD again)</td></tr>
+    <tr><td><b>Starts when</b></td><td>Code pushed</td><td>A build passed CI and the gate</td><td>New data, schedule, or drift alert</td></tr>
+    <tr><td><b>ML-specific steps</b></td><td>Data checks, small training run, preprocessing tests</td><td>Model registry, staging, canary, rollback</td><td>Retrain, evaluate against production, re-release</td></tr>
   </table></div>
-  <p class="small muted" style="margin-top:.5rem"><b>Delivery vs deployment:</b> continuous <i>delivery</i> stops before production and a human clicks "release"; continuous <i>deployment</i> releases automatically once all gates pass.</p>
 </section>
 
 <section class="callout try">
-  <h3>🧪 Try this (guess first, then check!)</h3>
+  <h3>🧪 Try this</h3>
   <ol class="challenges">
-    <li><b>Where is each problem caught?</b> In ③, play every ❌ story. Write down the step where it stops.
-      <details class="answer"><summary>Answer</summary>Code bug → 🧹 Code checks (a unit test). Bad data → 📊 Data checks. Worse model → 🎯 Evaluate (quality gate). Problem with real users → 🐤 Canary, with automatic rollback.
-      The earlier a problem is caught, the cheaper it is: the code bug costs a few minutes; the canary problem reached 10% of users for a short time.</details></li>
+    <li><b>Where is each problem caught?</b> Play every ❌ story in ③.
+      <details class="answer"><summary>Answer</summary>Code bug → code checks. Bad data → data checks. Worse model → evaluate (quality gate). Problem with real users → canary, then automatic rollback. The earlier it is caught, the cheaper it is.</details></li>
     <li><b>Red is good?</b> In the ❌ stories, did any user get a bad answer?
-      <details class="answer"><summary>Answer</summary>In the first three, no: the pipeline stopped before release, and users kept the old model. Only in the canary story did some users (the 10%) see the problem, for a short time, before the automatic rollback. That's why we release gradually.</details></li>
-    <li><b>The model didn't change, but it got worse.</b> In the 🔁 drift story, nobody changed any code. Why did the pipeline run?
-      <details class="answer"><summary>Answer</summary>The world changed: the live pictures no longer look like the training pictures (drift). Monitoring noticed and triggered retraining on fresh data. This is what makes ML different from normal software: a model can go stale even when nothing in the repository changes.</details></li>
-    </ol>
+      <details class="answer"><summary>Answer</summary>Only in the canary story, and only the 10% group, briefly. In the others the pipeline stopped before release.</details></li>
+    <li><b>The model didn't change, but it got worse.</b> In the drift story, why did the pipeline run?
+      <details class="answer"><summary>Answer</summary>Drift: the live pictures stopped looking like the training pictures. Monitoring noticed and triggered retraining. A model can go stale even when nothing in the repository changes.</details></li>
+  </ol>
 </section>
 
 <section class="callout think">
   <h3>🤔 Check yourself</h3>
   <ol class="challenges">
     <li>Why is "the tests passed" not enough to release an ML model?
-      <details class="answer"><summary>Answer</summary>Tests check the <b>code</b>. The model can still be worse because of the <b>data</b> or the training. You also need data checks and a quality gate on the model's metrics, compared with the current production model.</details></li>
+      <details class="answer"><summary>Answer</summary>Tests check the <b>code</b>. The model can still be worse because of the <b>data</b>. You also need data checks and a quality gate compared with the production model.</details></li>
     <li>What four things must be recorded to rebuild a model exactly?
-      <details class="answer"><summary>Answer</summary>The code version (git commit), the data version, the settings (hyper-parameters and seed) and the environment (library versions / container image).</details></li>
-    <li>What's the difference between continuous delivery and continuous deployment?
-      <details class="answer"><summary>Answer</summary>Delivery: every good build is <i>ready</i> to release, but a human presses the button. Deployment: it's released automatically when all gates pass.</details></li>
-    <li>Why keep old models in the registry?
-      <details class="answer"><summary>Answer</summary>For instant rollback, to compare new models against them, and to explain past predictions (audits).</details></li>
+      <details class="answer"><summary>Answer</summary>The code version, the data version, the settings (hyper-parameters and seed), and the environment (library versions).</details></li>
+    <li>Continuous delivery vs continuous deployment?
+      <details class="answer"><summary>Answer</summary>Delivery: a human presses the release button. Deployment: it is released automatically when all gates pass.</details></li>
   </ol>
 </section>
 </main>
@@ -297,66 +253,66 @@ const put=(el,html)=>el.replaceChildren(document.createRange().createContextualF
 // ================= ③ pipeline player =================
 const STAGES=[['🔔','Trigger'],['🧹','Code checks'],['📊','Data checks'],['🏋️','Train'],['🎯','Evaluate'],['📦','Package &amp; register'],
               ['🧪','Staging'],['🐤','Canary 10%'],['🚀','Full release'],['👀','Monitor']];
-// what each step is for, in plain words: [question it answers, what happens, kitchen, if it fails]
+// what each step is for: [question it answers, what happens, if it fails]
 const INFO=[
-  ['Did something change?','The robot wakes up by itself when code is pushed to git, new data arrives, a timer rings (e.g. every Monday), or monitoring raises an alarm. Nobody has to remember to start it.','A new order arrives in the kitchen.','Nothing to fail: this step only starts the others.'],
-  ['Does the code still do what it should?','Small automatic tests run in a few seconds, e.g. "a 640 × 480 photo must come out as 3 × 96 × 96". A style checker also looks for obvious mistakes.','Check that the recipe is written correctly.','The developer gets a red ❌ within minutes and fixes the code. Nothing is trained.'],
-  ['Is the data clean, and does it look like before?','The robot counts pictures, checks their size, looks for missing or unknown labels, and compares the new data with the last training data.','Check that the ingredients are fresh, not rotten.','Training on bad data would teach the model wrong things, so the robot stops and sends a report to the data team.'],
-  ['Can we build the model the same way every time?','Training runs in a clean container with fixed settings (seed, versions). The robot writes down the <b>recipe</b>: which code + which data + which settings.','Cook the dish, following the recipe exactly.','Rare: usually a crash or "out of memory". The robot stops and shows the log.'],
-  ['Is the new model good enough, and better than the live one?','The model takes an exam on a fixed test set. It must reach the <b>pass mark</b> (the quality gate) and must not be worse than the model users have now. Speed and size are checked too.','The chef tastes the dish and compares it with the old one.','The new model is thrown away. Users keep the old one. The report shows which rule failed.'],
-  ['Is it saved with a version number and its recipe?','The model is exported, packed into a container image, and put on the shelf (the model registry) as a new version, e.g. v8, with its scores and recipe.','Pack the dish and put a label on it: date, recipe, taste score.','Rare: e.g. the container doesn\'t build.'],
-  ['Does it work in a copy of the real system?','The container is started in staging, a private copy of production. A few quick "smoke tests": is it up? does a known cat picture give "cat"? is it fast enough?','The kitchen staff eat it first.','It never reaches users. Fix and try again.'],
-  ['Does it work for a few real users?','Only 10% of real users get the new model (the "canary"). The robot compares its errors and speed with the old model for a while.','Serve it to one table first and watch their faces.','<b>Automatic rollback</b>: everyone goes back to the old model within a minute. Only the 10% saw the problem, briefly.'],
-  ['Everyone gets it. Can we go back quickly?','100% of users get the new model. The old one stays on the shelf, so going back is one click.','Put the dish on the menu, but keep the old recipe.','Roll back: point "live" to the previous version.'],
-  ['Is it still working well today?','The robot keeps watching speed, errors, what kind of pictures arrive, and (when correct labels come in) accuracy. If the world changes, it starts the robot again.','The waiter keeps asking guests: still tasty?','An alarm. It can start retraining automatically (continuous training).']];
+  ['Did something change?','Starts by itself on a git push, new data, a timer, or a monitoring alarm.','Nothing to fail: this step only starts the others.'],
+  ['Does the code still work?','Small automatic tests, e.g. a 640 × 480 photo must come out as 3 × 96 × 96.','The developer gets a red ❌ in minutes. Nothing is trained.'],
+  ['Is the data clean and similar to before?','Counts pictures, checks sizes and labels, compares with the last training data.','Training stops. The data team gets a report.'],
+  ['Can we build the model the same way every time?','Trains in a clean container with fixed settings. Writes down the recipe: code + data + settings.','Rare (a crash, out of memory). The robot stops and shows the log.'],
+  ['Is the new model good enough, and better than the live one?','An exam on a fixed test set. It must reach the pass mark and not be worse than the live model.','The new model is thrown away. Users keep the old one.'],
+  ['Is it saved with a version and its recipe?','Exported, packed into a container and put on the shelf (the model registry) as a new version, e.g. v8.','Rare, e.g. the container does not build.'],
+  ['Does it work in a copy of the real system?','Runs in staging with quick smoke tests: is it up? does a known cat picture give "cat"?','It never reaches users. Fix and try again.'],
+  ['Does it work for a few real users?','10% of users get the new model (the canary). Its errors and speed are compared with the old model.','<b>Automatic rollback</b> to the old model within a minute. Only the 10% saw the problem.'],
+  ['Everyone gets it. Can we go back quickly?','100% of users get the new model. The old one stays on the shelf.','Roll back: point "live" to the previous version.'],
+  ['Is it still working well today?','Watches speed, errors, incoming pictures and (when labels arrive) accuracy.','An alarm. It can start retraining (continuous training).']];
 const OLD='v7';
 // one step = [stage index or null, 'pass'|'fail'|'stop', short status, sentence, {shelf:[...], serve:[old%, new%], bad, loop}]
 const S={
   good:[
-    [0,'pass','git push','A data scientist adds random flips to the training pictures (to help the model learn) and pushes the code. The robot starts by itself.',{shelf:['💻 code a1b2c3']}],
-    [1,'pass','12 tests ✔','All 12 automatic tests pass: the code still turns every photo into the right shape (3 × 96 × 96).'],
-    [2,'pass','data OK','50,000 pictures, 10 classes, no missing labels, right sizes, and they look like last time\'s pictures.',{shelf:['📊 data v12']}],
-    [3,'pass','model v8','The new model v8 is trained. Its recipe is written down: code a1b2c3 + data v12 + settings.',{shelf:['🧠 model v8']}],
-    [4,'pass','90.1% ≥ 89.4%','Exam: v8 gets 90.1%. The live model v7 got 89.4%. Every class is at least 70% right, and it answers in 18 ms. Passed!'],
-    [5,'pass','v8 on shelf','v8 is packed into a container and put on the shelf (registry) with its scores and recipe.',{shelf:['🐳 container v8','🗄️ shelf: v8']}],
-    [6,'pass','works ✔','v8 is started in staging (a private copy). It is up, and the test cat picture gives "cat".'],
-    [7,'pass','no new errors','10% of real users now get v8. For 30 minutes: no more errors than v7, same speed.',{serve:[90,10]}],
-    [8,'pass','100% v8','All users now get v8. v7 stays on the shelf, just in case.',{serve:[0,100]}],
-    [9,'pass','all normal','The robot keeps watching. All normal. 🎉 Done, and nobody copied a file by hand.']],
+    [0,'pass','git push','A data scientist adds random flips to the training pictures and pushes the code.',{shelf:['💻 code a1b2c3']}],
+    [1,'pass','12 tests ✔','All 12 tests pass.'],
+    [2,'pass','data OK','50,000 pictures, no missing labels, right sizes.',{shelf:['📊 data v12']}],
+    [3,'pass','model v8','Model v8 is trained. Recipe: code a1b2c3 + data v12 + settings.',{shelf:['🧠 model v8']}],
+    [4,'pass','90.1% ≥ 89.4%','v8 gets 90.1%, the live v7 got 89.4%. Passed.'],
+    [5,'pass','v8 on shelf','v8 is packed and put on the shelf (registry).',{shelf:['🐳 container v8','🗄️ shelf: v8']}],
+    [6,'pass','works ✔','v8 runs in staging. The test cat picture gives "cat".'],
+    [7,'pass','no new errors','10% of users get v8. For 30 minutes: no more errors than v7.',{serve:[90,10]}],
+    [8,'pass','100% v8','All users get v8. v7 stays on the shelf.',{serve:[0,100]}],
+    [9,'pass','all normal','All normal. Done, and nobody copied a file by hand.']],
   code:[
-    [0,'pass','git push','Someone "tidies up" the code that prepares the pictures, and pushes it.',{shelf:['💻 code f00d42']}],
-    [1,'fail','1 test ✘','❌ One test fails: it expected a 3 × 96 × 96 picture but got 96 × 96 × 3 (the colour channels are in the wrong place). The robot stops here.',{bad:true}],
-    [null,'stop','','Nothing is trained or released. The developer sees a red ❌ within minutes and fixes it. Users keep v7 and never notice.',{bad:true}]],
+    [0,'pass','git push','Someone tidies up the picture-preparation code and pushes it.',{shelf:['💻 code f00d42']}],
+    [1,'fail','1 test ✘','A test fails: it expected 3 × 96 × 96 but got 96 × 96 × 3. The robot stops.',{bad:true}],
+    [null,'stop','','Nothing is trained or released. Users keep v7.',{bad:true}]],
   data:[
-    [0,'pass','new data','This week\'s new labelled pictures arrive. The robot starts by itself (no code changed).',{shelf:['📊 data v13 (new)']}],
-    [1,'pass','12 tests ✔','The code hasn\'t changed, so the tests pass.'],
-    [2,'fail','12% no label','❌ 12% of the new pictures have no label, and 3,000 are the wrong size. Training on this would teach the model wrong things.',{bad:true}],
-    [null,'stop','','The robot stops before training. The data team gets a report and fixes the data. Users keep v7.',{bad:true}]],
+    [0,'pass','new data','New labelled pictures arrive. The robot starts by itself.',{shelf:['📊 data v13 (new)']}],
+    [1,'pass','12 tests ✔','The code did not change, so the tests pass.'],
+    [2,'fail','12% no label','12% of the new pictures have no label and 3,000 have the wrong size.',{bad:true}],
+    [null,'stop','','The robot stops before training. Users keep v7.',{bad:true}]],
   worse:[
-    [0,'pass','git push','Someone makes the model smaller to save money, and pushes the code.',{shelf:['💻 code 9e1d77']}],
-    [1,'pass','12 tests ✔','The code works: all tests pass.'],
-    [2,'pass','data OK','Same data as last time (v12).',{shelf:['📊 data v12']}],
-    [3,'pass','model v8','Training finishes. No error anywhere.',{shelf:['🧠 model v8']}],
-    [4,'fail','87.2% < 89.4%','❌ Exam: v8 gets only 87.2%, worse than the live v7 (89.4%), and "cat" is right only 61% of the time. Code fine, data fine, but the model is worse.',{bad:true}],
-    [null,'stop','','v8 is not released. The report says exactly which rule failed. This is why ML needs an exam, not only code tests.',{bad:true}]],
+    [0,'pass','git push','Someone makes the model smaller to save money.',{shelf:['💻 code 9e1d77']}],
+    [1,'pass','12 tests ✔','Tests pass.'],
+    [2,'pass','data OK','Same data (v12).',{shelf:['📊 data v12']}],
+    [3,'pass','model v8','Training finishes with no error.',{shelf:['🧠 model v8']}],
+    [4,'fail','87.2% < 89.4%','v8 gets 87.2%, worse than the live v7 (89.4%). Code and data are fine, but the model is worse.',{bad:true}],
+    [null,'stop','','v8 is not released. This is why ML needs an exam, not only code tests.',{bad:true}]],
   canary:[
     [0,'pass','git push','The API is changed to accept bigger photos.',{shelf:['💻 code 5c0ffe']}],
     [1,'pass','12 tests ✔','Tests pass.'],
     [2,'pass','data OK','Same data (v12).',{shelf:['📊 data v12']}],
     [3,'pass','model v8','Trained.',{shelf:['🧠 model v8']}],
     [4,'pass','90.0%','The exam passes.'],
-    [5,'pass','v8 on shelf','Packed and put on the shelf.',{shelf:['🐳 container v8','🗄️ shelf: v8']}],
-    [6,'pass','works ✔','Staging tests pass (but they only use small test pictures).'],
-    [7,'fail','errors 4.8%','❌ Real users send big phone photos, and the new container runs out of memory: 4.8% errors, while v7 had 0.2%. The canary check fails.',{serve:[90,10],bad:true}],
-    [null,'stop','','↩ Automatic rollback: everyone is back on v7 within a minute. Only the 10% group saw errors, briefly. This is why we release to a few users first.',{serve:[100,0],bad:true}]],
+    [5,'pass','v8 on shelf','Packed and on the shelf.',{shelf:['🐳 container v8','🗄️ shelf: v8']}],
+    [6,'pass','works ✔','Staging passes (with small test pictures only).'],
+    [7,'fail','errors 4.8%','Real users send big photos and the container runs out of memory: 4.8% errors, v7 had 0.2%.',{serve:[90,10],bad:true}],
+    [null,'stop','','Automatic rollback: everyone is back on v7. Only the 10% saw errors, briefly.',{serve:[100,0],bad:true}]],
   drift:[
-    [9,'fail','drift!','👀 Nobody changed anything, but this month\'s photos are much darker (a popular new phone camera). They don\'t look like the training pictures any more, and accuracy fell from 89% to 81%.',{bad:true,loop:true}],
-    [0,'pass','retrain','🔁 The alarm starts the robot again. No code change: this is continuous training (CT).',{loop:true}],
+    [9,'fail','drift!','Nobody changed anything, but this month\'s photos are darker. Accuracy fell from 89% to 81%.',{bad:true,loop:true}],
+    [0,'pass','retrain','The alarm starts the robot again: continuous training (CT).',{loop:true}],
     [1,'pass','12 tests ✔','Same code, tests pass.'],
-    [2,'pass','data v13','New data v13 = the old pictures + 8,000 recent, darker, labelled pictures.',{shelf:['📊 data v13']}],
+    [2,'pass','data v13','New data v13 = old pictures + 8,000 recent labelled ones.',{shelf:['📊 data v13']}],
     [3,'pass','model v8','Retrained on v13.',{shelf:['🧠 model v8']}],
-    [4,'pass','88.9% vs 81%','Exam with recent pictures included: v8 gets 88.9%, the live v7 only 81.0%. Passed.'],
-    [5,'pass','v8 on shelf','Packed and put on the shelf.',{shelf:['🐳 container v8','🗄️ shelf: v8']}],
+    [4,'pass','88.9% vs 81%','v8 gets 88.9%, the live v7 only 81.0%. Passed.'],
+    [5,'pass','v8 on shelf','Packed and on the shelf.',{shelf:['🐳 container v8','🗄️ shelf: v8']}],
     [6,'pass','works ✔','Staging OK.'],
     [7,'pass','no new errors','10% of users: fine.',{serve:[90,10]}],
     [8,'pass','100% v8','Everyone is on v8.',{serve:[0,100]}],
@@ -369,10 +325,10 @@ function buildPipe(){const mk=(a,b)=>STAGES.slice(a,b).map((s,j)=>`${j?'<span cl
 function showInfo(){
   const cur=S[P.k][P.i],g=P.sel!==null?P.sel:cur&&cur[0]!==null?cur[0]:P.i<0?0:null;
   $$('.node').forEach(n=>n.classList.toggle('sel',P.sel!==null&&+n.dataset.g===P.sel));
-  if(g===null){put($('#info'),'<h4>⛔ The robot stopped</h4><p class="small" style="margin:0">Every step after the red one was never started. Click any step above to read what it does.</p>');return;}
-  const [q,what,kitchen,fail]=INFO[g];
+  if(g===null){put($('#info'),'<h4>⛔ The robot stopped</h4><p class="small" style="margin:0">The steps after the red one never started.</p>');return;}
+  const [q,what,fail]=INFO[g];
   put($('#info'),`<h4>${STAGES[g][0]} Step ${g+1} of 10: ${STAGES[g][1]} <span class="small muted">(${g<6?'CI':'CD'})</span></h4>
-    <div class="q">❓ ${q}</div><dl><dt>What happens</dt><dd>${what}</dd><dt>🍳 In the kitchen</dt><dd>${kitchen}</dd><dt>❌ If it fails</dt><dd>${fail}</dd></dl>`);}
+    <div class="q">❓ ${q}</div><dl><dt>What happens</dt><dd>${what}</dd><dt>❌ If it fails</dt><dd>${fail}</dd></dl>`);}
 function showPipe(){
   const steps=S[P.k],st=STAGES.map(()=>['','']),kind=c=>c.split(' ').slice(0,2).join(' ');
   let shelf=[],serve=[100,0],loop=false;const fresh=new Set();
@@ -391,7 +347,6 @@ function showPipe(){
   const [o,nw]=serve;
   put($('#serve'),`<span style="width:${o}%;background:var(--blue)">${o?OLD+' '+o+'%':''}</span><span style="width:${nw}%;background:${x.bad?'var(--red)':'var(--orange)'}">${nw?'v8 '+nw+'%':''}</span>`);
   $('#serveTxt').textContent=nw===0?`Everyone is served by the old model ${OLD}.`:nw===100?'Everyone is on the new model v8.':`${nw}% of users try the new model; the rest stay on ${OLD}.`;
-  put($('#story'),steps.map((s,j)=>`<li class="${j===P.i?'now':''}" style="${j>P.i?'opacity:.35':''}">${s[0]===null?'⛔':STAGES[s[0]][0]} ${s[3]}</li>`).join(''));
   $('#back').disabled=P.i<0;$('#next').disabled=P.i>=steps.length-1;
   P.sel=null;showInfo();
 }
@@ -407,7 +362,7 @@ buildPipe();showPipe();
 
 // ================= ④ repo skeleton =================
 const FILES={
-'.github/workflows/ci.yml':{tags:['🧹','📊','🏋️','🎯'],lang:'yaml',what:'<b>The to-do list for CI.</b> <code>on:</code> says <i>when</i> the robot starts (every push). Below it, each <code>run:</code> line is one step, top to bottom. If one line fails, the lines below it never run. Read the comments on the right: they match the steps in ③.',code:
+'.github/workflows/ci.yml':{tags:['🧹','📊','🏋️','🎯'],lang:'yaml',what:'<b>The to-do list for CI.</b> Each <code>run:</code> line is one step, top to bottom. If one fails, the lines below never run.',code:
 `# Runs on every push / pull request
 name: ci
 on: [push, pull_request]
@@ -428,7 +383,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4   # keep the model + report
         with: {name: model, path: artifacts/}`},
-'.github/workflows/cd.yml':{tags:['📦','🧪','🐤','🚀'],lang:'yaml',what:'<b>CD workflow.</b> Runs only after CI passed on <code>main</code>. Builds the container, tries it in staging, then releases gradually.',code:
+'.github/workflows/cd.yml':{tags:['📦','🧪','🐤','🚀'],lang:'yaml',what:'<b>CD workflow.</b> Runs only after CI passed on <code>main</code>: container, staging, then a gradual release.',code:
 `# Runs when CI passed on the main branch
 name: cd
 on:
@@ -451,7 +406,7 @@ jobs:
       - run: ./deploy.sh canary 10          # 🐤 10% of users
       - run: python src/watch_canary.py     #    compare errors / speed, roll back if bad
       - run: ./deploy.sh production 100     # 🚀 everyone`},
-'.github/workflows/retrain.yml':{tags:['🔔','🔁'],lang:'yaml',what:'<b>Continuous training.</b> Starts on a schedule, or when monitoring sends a drift alert. It re-runs the same checks and training, then CD as usual.',code:
+'.github/workflows/retrain.yml':{tags:['🔔','🔁'],lang:'yaml',what:'<b>Continuous training.</b> Starts on a schedule or a drift alert, then runs the same checks, training and CD.',code:
 `# Continuous training (CT)
 name: retrain
 on:
@@ -462,7 +417,7 @@ jobs:
   retrain:
     uses: ./.github/workflows/ci.yml            # same checks + train + gate
     with: {data_version: latest}`},
-'params.yaml':{tags:['⚙️'],lang:'yaml',what:'<b>All settings in one file</b>, saved in git with the code. The <code>gate:</code> part is the pass mark of the exam. Changing a number here counts as a code change, so the robot checks it too.',code:
+'params.yaml':{tags:['⚙️'],lang:'yaml',what:'<b>All settings in one file.</b> The <code>gate:</code> part is the pass mark of the exam.',code:
 `seed: 42
 data:
   version: v12
@@ -477,7 +432,7 @@ gate:                       # the quality-gate rules
   min_class_recall: 0.70
   max_latency_ms: 50
   max_size_mb: 20`},
-'src/data/validate.py':{tags:['📊'],lang:'py',what:'<b>The data check.</b> A list of simple questions about the data. Every "no" is written into <code>problems</code>. The last line is the traffic light: no problems → <code>exit(0)</code> 🟢, any problem → <code>exit(1)</code> 🔴 and training never starts.',code:
+'src/data/validate.py':{tags:['📊'],lang:'py',what:'<b>The data check.</b> Every "no" goes into <code>problems</code>. No problems → <code>exit(0)</code> = go on. Any problem → <code>exit(1)</code> = stop, training never starts.',code:
 `# 📊 Data checks — stop BEFORE training on bad data
 import sys
 
@@ -498,7 +453,7 @@ def main():
 
 if __name__ == "__main__":
     main()`},
-'src/train.py':{tags:['🏋️'],lang:'py',what:'<b>Training.</b> Same as a notebook, but as a script: it reads the settings from <code>params.yaml</code>, fixes the seed, and saves the model with its recipe.',code:
+'src/train.py':{tags:['🏋️'],lang:'py',what:'<b>Training as a script.</b> Reads <code>params.yaml</code>, fixes the seed, saves the model with its recipe.',code:
 `# 🏋️ Train — reproducible: same inputs → same model
 import yaml, torch
 
@@ -513,7 +468,7 @@ save(model, "artifacts/model.pt")
 save_json({"commit": git_commit(),                # the recipe
            "data_version": params["data"]["version"],
            "params": params}, "artifacts/recipe.json")`},
-'src/evaluate.py':{tags:['🎯'],lang:'py',what:'<b>The exam (quality gate).</b> Both models, the new one and the live one, take the same test. The new model passes only if <b>all</b> rules are true: good enough, not worse than the live one, no weak class, fast and small enough. The pass marks come from <code>params.yaml</code>.',code:
+'src/evaluate.py':{tags:['🎯'],lang:'py',what:'<b>The exam (quality gate).</b> The new model passes only if <b>all</b> rules are true. The pass marks come from <code>params.yaml</code>.',code:
 `# 🎯 Evaluate — the quality gate
 import sys, yaml
 
@@ -529,23 +484,7 @@ ok = (new.accuracy     >= gate["min_accuracy"] and
 
 save_json(new.report(), "artifacts/metrics.json")
 sys.exit(0 if ok else 1)`},
-'src/serve/app.py':{tags:['🚀','👀'],lang:'py',what:'<b>The API</b> that users call. It loads whatever model the registry marks as production, and logs what it sees for monitoring.',code:
-`# 🚀 Serving — loads the "production" model from the registry
-from fastapi import FastAPI
-
-app = FastAPI()
-model = registry.load("production")               # v7 today, v8 after promotion
-
-@app.get("/health")
-def health():
-    return {"ok": True, "model": model.version}
-
-@app.post("/predict")
-def predict(picture):
-    answer = model(preprocess(picture))
-    log_for_monitoring(picture_stats(picture), answer)   # 👀 feeds the drift checks
-    return answer`},
-'tests/test_preprocess.py':{tags:['🧹'],lang:'py',what:'<b>Unit tests</b> for the code that is easiest to break silently: preprocessing and the label list.',code:
+'tests/test_preprocess.py':{tags:['🧹'],lang:'py',what:'<b>Unit tests</b> for the code that breaks silently: preprocessing and the label list.',code:
 `# 🧹 Unit tests — small, fast, run on every push
 def test_shape_and_range():
     x = preprocess(fake_picture(width=640, height=480))
@@ -556,37 +495,11 @@ def test_labels_are_stable():
     assert CLASSES[3] == "cat"                     # renaming classes breaks old models
 
 def test_model_runs_on_one_picture():
-    assert model(preprocess(fake_picture())).shape == (1, 10)`},
-'tests/smoke/test_api.py':{tags:['🧪'],lang:'py',what:'<b>Smoke tests</b> against the deployed staging service: is it up, and does a known picture give the known answer?',code:
-`# 🧪 Smoke tests — run against staging after deploy
-def test_health(url):
-    assert get(url + "/health").json()["ok"]
-
-def test_known_picture(url):
-    answer = post(url + "/predict", file="tests/data/cat.png").json()
-    assert answer["label"] == "cat"
-
-def test_fast_enough(url):
-    assert timed_post(url + "/predict", file="tests/data/cat.png") < 0.05   # seconds`},
-'data/images.dvc':{tags:['📊'],lang:'yaml',what:'<b>Data version pointer.</b> The pictures live in cloud storage; git stores only this small file with their fingerprint (hash), for example with DVC.',code:
-`# Stored in git instead of 170 MB of pictures
-outs:
-  - md5: 3f9a1c0e7b2d...        # fingerprint of this exact data version
-    size: 178120395
-    path: images`},
-'Dockerfile':{tags:['📦'],lang:'docker',what:'<b>The environment.</b> The same container is used for training in CI and for serving, so "works on my laptop" problems disappear.',code:
-`# 📦 One environment for CI and production
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt      # pinned versions
-COPY src/ src/
-COPY artifacts/model.onnx artifacts/
-CMD ["uvicorn", "src.serve.app:app", "--host", "0.0.0.0", "--port", "8000"]`}
+    assert model(preprocess(fake_picture())).shape == (1, 10)`}
 };
 const TREE=[['d','ml-project/',0],['d','.github/workflows/',1],['f','ci.yml ⭐1',2,'.github/workflows/ci.yml'],['f','cd.yml',2,'.github/workflows/cd.yml'],['f','retrain.yml',2,'.github/workflows/retrain.yml'],
-  ['d','data/',1],['f','images.dvc',2,'data/images.dvc'],['d','src/',1],['f','data/validate.py ⭐2',2,'src/data/validate.py'],['f','train.py',2,'src/train.py'],['f','evaluate.py ⭐3',2,'src/evaluate.py'],['f','serve/app.py',2,'src/serve/app.py'],
-  ['d','tests/',1],['f','test_preprocess.py',2,'tests/test_preprocess.py'],['f','smoke/test_api.py',2,'tests/smoke/test_api.py'],['f','params.yaml ⭐4',1,'params.yaml'],['f','Dockerfile',1,'Dockerfile'],['f','requirements.txt',1,null]];
+  ['d','src/',1],['f','data/validate.py ⭐2',2,'src/data/validate.py'],['f','train.py',2,'src/train.py'],['f','evaluate.py ⭐3',2,'src/evaluate.py'],
+  ['d','tests/',1],['f','test_preprocess.py',2,'tests/test_preprocess.py'],['f','params.yaml ⭐4',1,'params.yaml']];
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function hl(code,lang){const KW=/\b(import|from|def|return|if|else|for|in|and|or|not|assert|FROM|WORKDIR|COPY|RUN|CMD)\b/g;
   return code.split('\n').map(line=>{let i=-1,q=null;
@@ -600,11 +513,6 @@ function openFile(p){$$('#tree a').forEach(a=>a.classList.toggle('on',a.dataset.
   put($('#finfo'),`<code>${p}</code> · steps: ${f.tags.map(t=>`<span class="stagetag">${t}</span>`).join('')}<br>${f.what}`);put($('#fcode'),hl(f.code,f.lang));}
 put($('#tree'),TREE.map(([t,n,d,p])=>t==='d'?`<div class="dir i${d}">📁 ${n}</div>`:p?`<a class="i${d}" data-p="${p}">📄 ${n}</a>`:`<div class="dir i${d}">📄 ${n}</div>`).join(''));
 $$('#tree a').forEach(a=>a.onclick=()=>openFile(a.dataset.p));openFile('.github/workflows/ci.yml');
-
-// ================= simple / detailed =================
-(function(){const b=$('#modeBtn');let m='simple';try{m=localStorage.getItem('cicd-mode')||'simple';}catch(e){}
-  const set=s=>{document.body.classList.toggle('simple',s);b.textContent=s?'👶 Simple view (click for details)':'🎓 Detailed view (click to simplify)';};
-  set(m==='simple');b.onclick=()=>{const s=!document.body.classList.contains('simple');set(s);try{localStorage.setItem('cicd-mode',s?'simple':'detailed');}catch(e){}};})();
 </script>
 </body>
 </html>
