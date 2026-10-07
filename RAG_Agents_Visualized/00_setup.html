@@ -140,8 +140,8 @@ ol.steps > li::before{content:counter(s);position:absolute;left:0;top:.3rem;widt
     <div class="seg" id="os"><button data-o="win" class="on">🪟 Windows</button><button data-o="mac">🍎 Mac / Linux</button><button data-o="ask">🙋 Just ask me</button></div></div>
   <div id="osBox"></div>
   <div class="termlabel">Install the libraries (once)</div>
-  <div class="term" id="install"><div class="cmd">pip install groq pypdf sentence-transformers ipywidgets numpy requests</div></div>
-  <p class="small muted">SerpAPI needs no special library: we call it with plain <code>requests</code>. The first time, <code>sentence-transformers</code> downloads a small free model (about 90 MB). That is normal.</p>
+  <div class="term" id="install"><div class="cmd">pip install -r Day5_Thinking_Like_an_ML_Engineer/requirements.txt</div></div>
+  <p class="small muted">This installs the exact tested versions (Groq, pypdf, sentence-transformers, CrewAI, SerpAPI). <b>On Google Colab</b> you skip this: the first cell of each notebook installs the same versions, and you add both keys once in the 🔑 <b>Secrets</b> panel on the left. The first time, <code>sentence-transformers</code> downloads a small free model (about 90 MB). That is normal.</p>
 </section>
 
 <section class="card">

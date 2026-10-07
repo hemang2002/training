@@ -1,0 +1,22 @@
+# Day 5: Chat with a PDF (01_pdf_qa_rag.ipynb) + AI agents with CrewAI (02_agentic_system.ipynb)
+# Python 3.10 - 3.13. Tested on Python 3.12 (same as Google Colab).
+#
+# Laptop:  pip install -r requirements.txt
+# Colab:   nothing to do here, the first cell of each notebook installs these same versions.
+#
+# numpy, torch and ipywidgets are NOT pinned on purpose: Colab already has them,
+# and forcing other versions breaks Colab. They are installed automatically on a laptop.
+
+# Notebook 01: chat with a PDF (RAG)
+groq==1.7.0                    # Groq API: runs open-source Llama 3.3 in the cloud
+pypdf==6.19.0                  # reads text from PDF files
+sentence-transformers==6.1.0   # open-source embedding model (all-MiniLM-L6-v2), runs on your laptop
+
+# Notebook 02: AI agents with CrewAI
+crewai[litellm]==1.15.23       # agent framework; [litellm] lets CrewAI talk to Groq
+litellm==1.104.0
+crewai-tools==1.15.23          # ready-made tools, incl. SerpApiGoogleSearchTool
+serpapi==1.1.2                 # used by the SerpAPI Google search tool
+
+# Only needed outside Colab (Colab already has it)
+jupyterlab
