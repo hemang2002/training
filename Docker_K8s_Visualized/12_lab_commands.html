@@ -23,7 +23,7 @@
 <section class="hero">
   <div class="kicker">Step 12 of 12 · ≈ 75 min</div>
   <h1>Hands-on lab: every command, with its real output</h1>
-  <p class="one-liner">Do the steps <b>in order</b>. Each one says <b>why</b>, gives the <b>command</b> (press <i>copy</i>), shows the <b>output we got</b> on the trainer's PC on 29 Sep 2026, and what to <b>look for</b>.
+  <p class="one-liner">Do the steps <b>in order</b>. Each one says <b>why</b>, gives the <b>command</b> (press <i>copy</i>), shows the <b>output we got</b> on the trainer's PC (Part A–B: 29 Sep 2026; Part C: 8 Oct 2026, Docker Desktop's kind cluster, Kubernetes v1.37), and what to <b>look for</b>.
   Your IDs, pod names, IP addresses and times will be different. That's normal. Tick a step when your output matches.</p>
   <p class="small muted">Honest note: in Part A our test containers had other names/ports (e.g. <code>demo-api</code> on 5001); here they are shown with the names and ports used in the commands. Some long outputs are shortened (…). Everything else is exactly what the commands printed.</p>
 </section>
@@ -32,7 +32,7 @@
   <div class="row">
     <div class="box"><h3>✅ Installed?</h3><p>Docker Desktop running ("Engine running") and Kubernetes switched on (green). If not: <a href="00_install.html">Step 0</a>.</p></div>
     <div class="box"><h3>📂 Where?</h3><p>Part A–B: in <code>Day4_Docker_Kubernetes_Cloud/ml-app</code>. Part C: in <code>Day4_Docker_Kubernetes_Cloud</code>. Each part says it again.</p></div>
-    <div class="box"><h3>🪟 Windows PowerShell</h3><p>Use <b>curl.exe</b> (not <code>curl</code>). The commands below already do. The JSON patches work as written in PowerShell and in Git Bash.</p></div>
+    <div class="box"><h3>🪟 Windows PowerShell</h3><p>Use <b>curl.exe</b> (not <code>curl</code>). The commands below already do. Every Part C command was tested as written in Windows PowerShell 5.1; the patches avoid inner <code>"</code> quotes, so they also work in PowerShell 7 and Git Bash.</p></div>
   </div>
 </section>
 <div id="prog" class="small"><b id="progTxt">0 of 0 steps done</b> <button class="btn" id="resetTicks" style="padding:.15rem .5rem;font-size:.8rem;margin-left:.5rem">untick all</button></div>
@@ -121,9 +121,20 @@ ml-app-ui-1    cifar-ui:v1    ui        Up (<span class="ok">healthy</span>)   0
 
 <h2 class="part-h">☸️ Part C · The same app on Kubernetes <span class="pill blue">in Day4_Docker_Kubernetes_Cloud/</span></h2>
 
-<div class="stepcard"><h3><input type="checkbox"> C1 · Check the cluster, then deploy everything</h3>
-  <div class="term"><div class="cmd">cd ..</div><div class="cmd">kubectl get nodes</div><pre>NAME             STATUS   ROLES           AGE   VERSION
-docker-desktop   <span class="ok">Ready</span>    control-plane   19h   v1.36.1</pre><div class="cmd">kubectl apply -k k8s/</div><pre>namespace/ml-demo created
+<div class="stepcard"><h3><input type="checkbox"> C0 · Check the cluster, and give it your images</h3>
+  <div class="term"><div class="cmd">cd ..</div><div class="cmd">kubectl get nodes</div><pre>NAME                           STATUS   ROLES           AGE   VERSION
+docker-desktop-control-plane   <span class="ok">Ready</span>    control-plane   28m   v1.37.0</pre></div>
+  <p class="why">Docker Desktop makes one of two cluster types. <b>Kubeadm</b>: the node is called <code>docker-desktop</code> and it already sees the images you built: skip to C1. <b>kind</b>: the node is called <code>docker-desktop-control-plane</code> and it runs in its <b>own</b> container with its own image store, so it can't see <code>cifar-api:v1</code> (you'd get <code>ImagePullBackOff</code>). Copy your images into it once (PowerShell, ≈ 30 s):</p>
+  <div class="term"><div class="cmd">foreach ($n in (docker ps --filter "label=io.x-k8s.kind.cluster" --format "{{.Names}}")) { foreach ($i in "cifar-api:v1","cifar-ui:v1") { docker save $i -o img.tar; docker cp img.tar "${n}:/img.tar"; docker exec $n ctr -n k8s.io images import /img.tar; docker exec $n rm /img.tar } }; Remove-Item img.tar</div><pre>docker.io/library/cifar api:v1          	saved
+Importing	elapsed: 5.4 s	total:   0.0 B	(0.0 B/s)
+docker.io/library/cifar ui:v1           	saved
+Importing	elapsed: 4.6 s	total:   0.0 B	(0.0 B/s)</pre><div class="cmd">docker exec docker-desktop-control-plane crictl images | Select-String cifar</div><pre>docker.io/library/cifar-api                     v1                   fbd6eb10ac168       115MB
+docker.io/library/cifar-ui                      v1                   c661901b4ffb4       176MB</pre></div>
+  <p class="why">👀 Both images listed. Rebuilt an image later? Run the loop again. <code>error: current-context is not set</code> from <code>kubectl get nodes</code>? See the table at the bottom.</p>
+</div>
+
+<div class="stepcard"><h3><input type="checkbox"> C1 · Deploy everything</h3>
+  <div class="term"><div class="cmd">kubectl apply -k k8s/</div><pre>namespace/ml-demo created
 configmap/cifar-config created
 service/cifar-api created
 service/cifar-ui created
@@ -135,113 +146,170 @@ horizontalpodautoscaler.autoscaling/cifar-api created</pre></div>
 
 <div class="stepcard"><h3><input type="checkbox"> C2 · Watch the pods start</h3>
   <div class="term"><div class="cmd">kubectl -n ml-demo get pods</div><pre>NAME                         READY   STATUS              RESTARTS   AGE
-cifar-api-68c5fb8c48-ch29k   0/1     ContainerCreating   0          4s
-cifar-api-68c5fb8c48-frr26   0/1     Running             0          4s
-cifar-ui-55f9dd7b6b-6297t    0/1     Running             0          4s</pre><div class="cmd">kubectl -n ml-demo get pods</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
-cifar-api-68c5fb8c48-ch29k   <span class="ok">1/1</span>     Running   0          11s
-cifar-api-68c5fb8c48-frr26   <span class="ok">1/1</span>     Running   0          11s
-cifar-ui-55f9dd7b6b-6297t    <span class="ok">1/1</span>     Running   0          11s</pre></div>
-  <p class="why">👀 All <b>1/1 Running</b> (10–60 s). Tip: <code>kubectl -n ml-demo get pods -w</code> keeps watching; Ctrl + C stops it. Page 6.</p>
+cifar-api-687b6dd557-kz95m   0/1     ContainerCreating   0          0s
+cifar-api-687b6dd557-nqwqk   0/1     ContainerCreating   0          0s
+cifar-ui-59d47cc676-dzjkl    0/1     ContainerCreating   0          0s</pre><div class="cmd">kubectl -n ml-demo get pods</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+cifar-api-687b6dd557-8hvkh   <span class="ok">1/1</span>     Running   0          6s
+cifar-api-687b6dd557-ssn9l   <span class="ok">1/1</span>     Running   0          6s
+cifar-ui-59d47cc676-kjdhr    <span class="ok">1/1</span>     Running   0          6s</pre></div>
+  <p class="why">👀 All <b>1/1 Running</b> (10–60 s). Tip: <code>kubectl -n ml-demo get pods -w</code> keeps watching; Ctrl + C stops it. Still <code>ImagePullBackOff</code>? Do C0. Page 6.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C3 · Everything at a glance</h3>
   <div class="term"><div class="cmd">kubectl -n ml-demo get all</div><pre>NAME                             READY   STATUS    RESTARTS   AGE
-pod/cifar-api-68c5fb8c48-ch29k   1/1     Running   0          11s
-pod/cifar-api-68c5fb8c48-frr26   1/1     Running   0          11s
-pod/cifar-ui-55f9dd7b6b-6297t    1/1     Running   0          11s
+pod/cifar-api-687b6dd557-8hvkh   1/1     Running   0          6s
+pod/cifar-api-687b6dd557-ssn9l   1/1     Running   0          6s
+pod/cifar-ui-59d47cc676-kjdhr    1/1     Running   0          6s
 
-NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-service/cifar-api   ClusterIP   10.99.144.91     &lt;none&gt;        5000/TCP         12s
-service/cifar-ui    NodePort    10.101.246.165   &lt;none&gt;        8501:30080/TCP   12s
+NAME                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/cifar-api   ClusterIP   10.96.49.143    &lt;none&gt;        5000/TCP         6s
+service/cifar-ui    NodePort    10.96.240.191   &lt;none&gt;        8501:30080/TCP   6s
 
 NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/cifar-api   2/2     2            2           11s
-deployment.apps/cifar-ui    1/1     1            1           11s
+deployment.apps/cifar-api   2/2     2            2           6s
+deployment.apps/cifar-ui    1/1     1            1           6s
 
 NAME                                   DESIRED   CURRENT   READY   AGE
-replicaset.apps/cifar-api-68c5fb8c48   2         2         2       11s
-replicaset.apps/cifar-ui-55f9dd7b6b    1         1         1       11s
+replicaset.apps/cifar-api-687b6dd557   2         2         2       6s
+replicaset.apps/cifar-ui-59d47cc676    1         1         1       6s
 
-NAME                                            REFERENCE              TARGETS              MINPODS   MAXPODS   REPLICAS
-horizontalpodautoscaler.autoscaling/cifar-api   Deployment/cifar-api   cpu: &lt;unknown&gt;/60%   2         6         0</pre></div>
+NAME                                            REFERENCE              TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/cifar-api   Deployment/cifar-api   cpu: &lt;unknown&gt;/60%   2         6         2          6s</pre></div>
   <p class="why">👀 Deployment → ReplicaSet → Pods, two Services, and the HPA (<code>&lt;unknown&gt;</code> is normal without metrics-server, page 11).</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C4 · Open the app, and look at a pod closely</h3>
-  <div class="term"><div class="cmd">curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://localhost:30080</div><pre><span class="ok">HTTP 200</span></pre><div class="cmd">kubectl -n ml-demo describe pod -l app=cifar-api</div><pre>Controlled By:  ReplicaSet/cifar-api-68c5fb8c48
+  <div class="term"><div class="cmd">curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://localhost:30080</div><pre><span class="ok">HTTP 200</span></pre><div class="cmd">kubectl -n ml-demo describe pod -l app=cifar-api</div><pre>Controlled By:  ReplicaSet/cifar-api-687b6dd557
     Ready:          True
-    Limits:   cpu: 1     memory: 512Mi
-    Requests: cpu: 250m  memory: 256Mi
+    Limits:
+      cpu:     1
+      memory:  512Mi
+    Requests:
+      cpu:      250m
+      memory:   256Mi
+…
 Events:
-  Normal  Scheduled  Successfully assigned ml-demo/cifar-api-… to docker-desktop
-  Normal  Pulled     Container image "cifar-api:v1" already present on machine
-  Normal  Started    Container started</pre></div>
-  <p class="why">👀 Open <b>http://localhost:30080</b> in the browser: the same UI, now on Kubernetes. Predict a few times and look at "Served by pod".</p>
+  Normal  Scheduled  7s  default-scheduler  Successfully assigned ml-demo/cifar-api-687b6dd557-kz95m to docker-desktop-control-plane
+  Normal  Pulled     6s  kubelet            spec.containers{api}: Container image "cifar-api:v1" already present on machine and can be accessed by the pod
+  Normal  Created    6s  kubelet            spec.containers{api}: Container created
+  Normal  Started    6s  kubelet            spec.containers{api}: Container started</pre></div>
+  <p class="why">👀 Open <b>http://localhost:30080</b> in the browser: the same UI, now on Kubernetes. Predict a few times and look at "Served by pod". (No <code>HTTP 200</code>? Use <code>kubectl -n ml-demo port-forward svc/cifar-ui 30080:8501</code> in a second terminal and try again.)</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C5 · See the Service spread requests over pods</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
-cifar-api   10.1.1.16:5000,10.1.1.17:5000</pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "import urllib.request as u,json;[print(json.loads(u.urlopen('http://cifar-api:5000/').read())['pod']) for _ in range(8)]"</div><pre>cifar-api-68c5fb8c48-frr26
-cifar-api-68c5fb8c48-ch29k
-cifar-api-68c5fb8c48-frr26
-cifar-api-68c5fb8c48-ch29k
-cifar-api-68c5fb8c48-ch29k
-cifar-api-68c5fb8c48-ch29k
-cifar-api-68c5fb8c48-frr26
-cifar-api-68c5fb8c48-frr26</pre></div>
-  <p class="why">👀 Both pod names appear. (A "Warning: v1 Endpoints is deprecated" line is harmless.) Page 8.</p>
+  <div class="term"><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME        ENDPOINTS                           AGE
+cifar-api   10.244.0.12:5000,10.244.0.13:5000   35s</pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "import urllib.request as u,json;[print(json.loads(u.urlopen('http://cifar-api:5000/').read())['pod']) for _ in range(8)]"</div><pre>cifar-api-687b6dd557-ssn9l
+cifar-api-687b6dd557-ssn9l
+cifar-api-687b6dd557-ssn9l
+cifar-api-687b6dd557-8hvkh
+cifar-api-687b6dd557-ssn9l
+cifar-api-687b6dd557-ssn9l
+cifar-api-687b6dd557-8hvkh
+cifar-api-687b6dd557-ssn9l</pre></div>
+  <p class="why">👀 Both pod names appear (the mix is random, not strictly alternating). The "Endpoints is deprecated" warning is harmless. Page 8.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C6 · Self-healing: delete a pod</h3>
   <p class="why">Copy <b>one</b> of <b>your</b> cifar-api pod names from C2 into the command.</p>
-  <div class="term"><div class="cmd">kubectl -n ml-demo delete pod cifar-api-68c5fb8c48-ch29k</div><pre>pod "cifar-api-68c5fb8c48-ch29k" deleted from ml-demo namespace</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
-cifar-api-68c5fb8c48-frr26   1/1     Running   0          22s
-cifar-api-68c5fb8c48-<span class="ok">z7q9c</span>   0/1     Running   0          4s    <span class="c">← new pod, created automatically</span></pre></div>
+  <div class="term"><div class="cmd">kubectl -n ml-demo delete pod cifar-api-687b6dd557-8hvkh</div><pre>pod "cifar-api-687b6dd557-8hvkh" deleted from ml-demo namespace</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+cifar-api-687b6dd557-<span class="ok">9pc88</span>   0/1     Running   0          1s    <span class="c">← new pod, created automatically</span>
+cifar-api-687b6dd557-ssn9l   1/1     Running   0          37s</pre></div>
   <p class="why">👀 Still 2 pods. The ReplicaSet saw "want 2, have 1" and made one. Page 7.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C7 · Scale up and down by hand</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo scale deployment cifar-api --replicas=4</div><pre>deployment.apps/cifar-api scaled</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS              RESTARTS   AGE
-cifar-api-68c5fb8c48-frr26   1/1     Running             0          32s
-cifar-api-68c5fb8c48-fsrk2   0/1     ContainerCreating   0          5s
-cifar-api-68c5fb8c48-l2x6m   0/1     ContainerCreating   0          5s
-cifar-api-68c5fb8c48-z7q9c   1/1     Running             0          14s</pre><div class="cmd">kubectl -n ml-demo scale deployment cifar-api --replicas=2</div><pre>deployment.apps/cifar-api scaled</pre></div>
+  <div class="term"><div class="cmd">kubectl -n ml-demo scale deployment cifar-api --replicas=4</div><pre>deployment.apps/cifar-api scaled</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+cifar-api-687b6dd557-99mw7   0/1     Running   0          3s
+cifar-api-687b6dd557-9pc88   1/1     Running   0          4s
+cifar-api-687b6dd557-l29g8   0/1     Running   0          3s
+cifar-api-687b6dd557-ssn9l   1/1     Running   0          40s</pre><div class="cmd">kubectl -n ml-demo scale deployment cifar-api --replicas=2</div><pre>deployment.apps/cifar-api scaled</pre></div>
   <p class="why">⚠️ On a PC with little memory, 4 extra pods can make Kubernetes slow (we saw <code>TLS handshake timeout</code>): scale back to 2 soon.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C8 · Change a setting with a rolling restart</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo patch configmap cifar-config -p "{\"data\":{\"DEFAULT_MODEL\":\"fp32\"}}"</div><pre>configmap/cifar-config patched</pre><div class="cmd">kubectl -n ml-demo rollout restart deployment/cifar-api</div><pre>deployment.apps/cifar-api restarted</pre><div class="cmd">kubectl -n ml-demo rollout status deployment/cifar-api</div><pre>Waiting for deployment "cifar-api" rollout to finish: 1 out of 2 new replicas have been updated...
+  <div class="term"><div class="cmd">kubectl -n ml-demo patch configmap cifar-config -p 'data: {DEFAULT_MODEL: fp32}'</div><pre>configmap/cifar-config patched</pre><div class="cmd">kubectl -n ml-demo rollout restart deployment/cifar-api</div><pre>deployment.apps/cifar-api restarted</pre><div class="cmd">kubectl -n ml-demo rollout status deployment/cifar-api</div><pre>Waiting for deployment "cifar-api" rollout to finish: 1 out of 2 new replicas have been updated...
 Waiting for deployment "cifar-api" rollout to finish: 1 old replicas are pending termination...
 deployment "cifar-api" <span class="ok">successfully rolled out</span></pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "import urllib.request as u,json;d=json.loads(u.urlopen('http://cifar-api:5000/models').read());print({k:v['default'] for k,v in d['variants'].items()})"</div><pre>{'fp32': <span class="ok">True</span>, 'int8': False}</pre></div>
-  <p class="why">👀 Before the change the same command printed <code>{'fp32': False, 'int8': True}</code>. Page 9.</p>
+  <p class="why">👀 Before the change the same command printed <code>{'fp32': False, 'int8': True}</code>. The patch is written as YAML (<code>data: {…}</code>) on purpose: no inner <code>"</code> quotes, so it works the same in PowerShell 5.1, PowerShell 7 and Git Bash. Page 9.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C9 · Ship a broken version, then roll back</h3>
   <div class="term"><div class="cmd">kubectl -n ml-demo set image deployment/cifar-api api=cifar-api:v2-typo</div><pre>deployment.apps/cifar-api image updated</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS             RESTARTS   AGE
-cifar-api-5894975d59-6dtp9   0/1     <span class="bad">ImagePullBackOff</span>   0          25s
-cifar-api-67999ddcdf-mtgtf   1/1     Running            0          41s
-cifar-api-67999ddcdf-r7l8c   1/1     Running            0          36s</pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>Warning: resource deployments/cifar-api was previously managed with 'kubectl apply'. …
-deployment.apps/cifar-api <span class="ok">rolled back</span></pre><div class="cmd">kubectl -n ml-demo get rs</div><pre>NAME                   DESIRED   CURRENT   READY
-cifar-api-5894975d59   0         0         0
-cifar-api-67999ddcdf   2         2         2
-cifar-api-68c5fb8c48   0         0         0
-cifar-ui-55f9dd7b6b    1         1         1</pre></div>
-  <p class="why">👀 While the new pod was broken, the two old pods kept answering: zero downtime. The warning is normal. Page 7.</p>
+cifar-api-64fb7f4f45-qbkw6   0/1     <span class="bad">ImagePullBackOff</span>   0          25s
+cifar-api-898d867b9-7pc4l    1/1     Running            0          32s
+cifar-api-898d867b9-cqvvn    1/1     Running            0          29s</pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>Warning: resource deployments/cifar-api was previously managed with 'kubectl apply'. …
+deployment.apps/cifar-api <span class="ok">rolled back</span></pre><div class="cmd">kubectl -n ml-demo get rs</div><pre>NAME                   DESIRED   CURRENT   READY   AGE
+cifar-api-64fb7f4f45   0         0         0       25s
+cifar-api-69656b58     0         0         0       85s
+cifar-api-75cbddf48f   0         0         0       64s
+cifar-api-898d867b9    2         2         2       32s
+cifar-ui-59d47cc676    1         1         1       2m13s</pre></div>
+  <p class="why">👀 While the new pod was broken, the two old pods kept answering: zero downtime. The warning is normal. Only the last 3 old ReplicaSets are kept (<code>revisionHistoryLimit: 3</code>). Page 7.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C10 · Break the Service's selector, then fix it</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo patch service cifar-api -p "{\"spec\":{\"selector\":{\"app\":\"cifar-apii\"}}}"</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
-cifar-api   <span class="bad">&lt;none&gt;</span></pre><div class="cmd">kubectl -n ml-demo patch service cifar-api -p "{\"spec\":{\"selector\":{\"app\":\"cifar-api\"}}}"</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
-cifar-api   10.1.1.28:5000,10.1.1.29:5000</pre></div>
+  <div class="term"><div class="cmd">kubectl -n ml-demo patch service cifar-api -p 'spec: {selector: {app: cifar-apii}}'</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS   AGE
+cifar-api   <span class="bad">&lt;none&gt;</span>      2m20s</pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "import urllib.request as u;print(u.urlopen('http://cifar-api:5000/health',timeout=3).read())"</div><pre>…
+urllib.error.URLError: &lt;urlopen error [Errno 111] <span class="bad">Connection refused</span>&gt;
+command terminated with exit code 1</pre><div class="cmd">kubectl -n ml-demo patch service cifar-api -p 'spec: {selector: {app: cifar-api}}'</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS                           AGE
+cifar-api   10.244.0.22:5000,10.244.0.23:5000   2m21s</pre></div>
   <p class="why">👀 In between, the UI said "API not reachable" (<code>Connection refused</code>) although every pod was healthy. Page 8.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C11 · Break the readiness probe, then undo</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo patch deployment cifar-api --type=json -p "[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/readinessProbe/httpGet/path\",\"value\":\"/nope\"}]"</div><pre>deployment.apps/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
-cifar-api-67999ddcdf-mtgtf   1/1     Running   0          99s
-cifar-api-67999ddcdf-r7l8c   1/1     Running   0          94s
-cifar-api-855468cbbb-4jjrn   <span class="bad">0/1</span>     Running   0          42s</pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>deployment.apps/cifar-api rolled back</pre></div>
-  <p class="why">👀 The new pod is never ready and never restarted; users only reach the old pods. Page 10.</p>
+  <div class="term"><div class="cmd">kubectl -n ml-demo patch deployment cifar-api -p 'spec: {template: {spec: {containers: [{name: api, readinessProbe: {httpGet: {path: /nope}}}]}}}'</div><pre>deployment.apps/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                         READY   STATUS    RESTARTS   AGE
+cifar-api-548b9bf7c6-g2vb6   <span class="bad">0/1</span>     Running   0          40s
+cifar-api-898d867b9-7pc4l    1/1     Running   0          80s
+cifar-api-898d867b9-cqvvn    1/1     Running   0          77s</pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>Warning: resource deployments/cifar-api was previously managed with 'kubectl apply'. …
+deployment.apps/cifar-api rolled back</pre></div>
+  <p class="why">👀 The new pod is never ready and never restarted; users only reach the old pods. (The container is found by its <code>name: api</code>, so only its probe path changes.) Page 10.</p>
+</div>
+
+<h2 class="part-h">⭐ Extra (if time) <span class="pill blue">before C12: needs ml-demo running</span></h2>
+<p class="small muted">Already cleaned up? Run <code>kubectl apply -k k8s/</code> again first.</p>
+<div class="stepcard"><h3><input type="checkbox"> X1 · Autoscaling with a load test (needs metrics-server, page 11)</h3>
+  <p class="why">Install metrics-server once (downloads a small add-on from the internet). The patch is kept in a file because inline JSON quoting breaks in PowerShell 5.1.</p>
+  <div class="term"><div class="cmd">kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml</div><pre>serviceaccount/metrics-server created
+…
+deployment.apps/metrics-server created
+apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io created</pre><div class="cmd">kubectl -n kube-system patch deployment metrics-server --type=json --patch-file k8s/extras/metrics-server-patch.yaml</div><pre>deployment.apps/metrics-server patched</pre><div class="cmd">kubectl top pods -n ml-demo</div><pre><span class="c"># after ~1 minute</span>
+NAME                        CPU(cores)   MEMORY(bytes)
+cifar-api-898d867b9-7pc4l   1m           86Mi
+cifar-api-898d867b9-cqvvn   1m           86Mi
+cifar-ui-59d47cc676-kjdhr   4m           48Mi</pre></div>
+  <p class="why">Now the load test. Open a <b>second terminal</b> for the <code>-w</code> watch (Ctrl + C stops it).</p>
+  <div class="term"><div class="cmd">kubectl -n ml-demo create configmap loadtest-script --from-file=k8s/loadtest/loadtest.py</div><pre>configmap/loadtest-script created</pre><div class="cmd">kubectl apply -f k8s/loadtest/loadtest-job.yaml</div><pre>job.batch/loadtest created</pre><div class="cmd">kubectl -n ml-demo get hpa cifar-api -w</div><pre>NAME        REFERENCE              TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+cifar-api   Deployment/cifar-api   cpu: 12%/60%    2         6         2          5m38s
+cifar-api   Deployment/cifar-api   cpu: 181%/60%   2         6         2          5m58s
+cifar-api   Deployment/cifar-api   cpu: <span class="bad">278%</span>/60%   2         6         <span class="ok">6</span>          6m18s</pre><div class="cmd">kubectl -n ml-demo logs -f job/loadtest</div><pre>Load test: http://cifar-api:5000  concurrency=16  duration=180s
+[   10s]  273.9 req/s  p50=  65.0ms  p95= 128.3ms  errors=0  pods=2
+[   30s]  306.4 req/s  p50=  40.2ms  p95= 112.4ms  errors=0  pods=3
+[   40s]  505.5 req/s  p50=  19.6ms  p95=  76.0ms  errors=0  pods=6
+…
+Requests per pod (load balancing):
+  cifar-api-898d867b9-7pc4l                     15897
+  cifar-api-898d867b9-cqvvn                     15662
+  cifar-api-898d867b9-pks9m                     11646
+  cifar-api-898d867b9-bzh74                     11399
+  cifar-api-898d867b9-xpzrx                     11333
+  cifar-api-898d867b9-wcvfp                     11292
+total=77229 errors=0</pre></div>
+  <p class="why">👀 TARGETS climbs above 60% and REPLICAS goes 2 → 6 in under a minute; with 6 pods, req/s almost doubles and latency halves. Without metrics-server: <code>&lt;unknown&gt;</code>, no scaling. Run it again: <code>kubectl -n ml-demo delete job loadtest</code>, then apply again.</p>
+</div>
+<div class="stepcard"><h3><input type="checkbox"> X2 · A memory limit that is far too small</h3>
+  <div class="term"><div class="cmd">kubectl -n ml-demo set resources deployment cifar-api -c api --limits=memory=40Mi --requests=memory=40Mi</div><pre>deployment.apps/cifar-api resource requirements updated</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>NAME                        READY   STATUS             RESTARTS     AGE
+cifar-api-898d867b9-7pc4l   1/1     Running            0            7m38s
+cifar-api-898d867b9-cqvvn   1/1     Running            0            7m35s
+cifar-api-b74fd5ccf-zzf7c   0/1     <span class="bad">CrashLoopBackOff</span>   3 (9s ago)   50s</pre><div class="cmd">kubectl -n ml-demo describe pod cifar-api-b74fd5ccf-zzf7c</div><pre>    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       <span class="bad">OOMKilled</span>
+      Exit Code:    137
+    Restart Count:  3
+  Warning  Unhealthy  …  Startup probe failed: … connect: connection refused
+  Warning  BackOff    …  Back-off restarting failed container api …</pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>deployment.apps/cifar-api rolled back</pre></div>
+  <p class="why">👀 The API can't load its models in 40 MiB: <code>OOMKilled · Exit Code: 137</code>, restarts, CrashLoopBackOff. The old pods keep serving. (If you did X1 first you'll see up to 6 old pods.) Page 10.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> C12 · Clean up</h3>
@@ -251,22 +319,14 @@ service "cifar-api" deleted from ml-demo namespace
 service "cifar-ui" deleted from ml-demo namespace
 deployment.apps "cifar-api" deleted from ml-demo namespace
 deployment.apps "cifar-ui" deleted from ml-demo namespace
-horizontalpodautoscaler.autoscaling "cifar-api" deleted from ml-demo namespace</pre><div class="cmd">kubectl get namespaces</div><pre>NAME              STATUS   AGE
-default           Active   20h
-kube-node-lease   Active   20h
-kube-public       Active   20h
-kube-system       Active   20h</pre></div>
-  <p class="why">👀 <code>ml-demo</code> is gone. To switch Kubernetes off: Docker Desktop → Kubernetes → Stop.</p>
-</div>
-
-<h2 class="part-h">⭐ Extra (if time)</h2>
-<div class="stepcard"><h3><input type="checkbox"> X1 · Autoscaling with a load test (needs metrics-server, page 11)</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo create configmap loadtest-script --from-file=k8s/loadtest/loadtest.py</div><div class="cmd">kubectl apply -f k8s/loadtest/loadtest-job.yaml</div><div class="cmd">kubectl -n ml-demo get hpa cifar-api -w</div><div class="cmd">kubectl -n ml-demo logs -f job/loadtest</div></div>
-  <p class="why">👀 With metrics-server, TARGETS climbs above 60% and REPLICAS grows towards 6 (README run: 360%, 2 → 6 in ≈ 1 min, 71,635 requests, 0 errors). Without it: <code>&lt;unknown&gt;</code>.</p>
-</div>
-<div class="stepcard"><h3><input type="checkbox"> X2 · A memory limit that is far too small</h3>
-  <div class="term"><div class="cmd">kubectl -n ml-demo set resources deployment cifar-api -c api --limits=memory=40Mi --requests=memory=40Mi</div><pre>deployment.apps/cifar-api resource requirements updated</pre><div class="cmd">kubectl -n ml-demo get pods -l app=cifar-api</div><pre>cifar-api-85f886d766-mr797   0/1     Running   0          45s</pre><div class="cmd">kubectl -n ml-demo describe pod cifar-api-85f886d766-mr797</div><pre>  Warning  Unhealthy  kubelet  Startup probe failed: … context deadline exceeded (x16 over 31s)</pre><div class="cmd">kubectl -n ml-demo rollout undo deployment/cifar-api</div><pre>deployment.apps/cifar-api rolled back</pre></div>
-  <p class="why">👀 The API can't load its models in 40 MiB. You'll see startup-probe failures and restarts, or <code>Reason: OOMKilled · Exit Code: 137</code>. Page 10.</p>
+horizontalpodautoscaler.autoscaling "cifar-api" deleted from ml-demo namespace</pre><div class="cmd">kubectl get namespaces</div><pre>NAME                 STATUS   AGE
+default              Active   38m
+kube-node-lease      Active   38m
+kube-public          Active   38m
+kube-system          Active   38m
+local-path-storage   Active   38m
+projectcontour       Active   38m</pre></div>
+  <p class="why">👀 <code>ml-demo</code> is gone (the load-test job and its ConfigMap go with it). <code>local-path-storage</code> and <code>projectcontour</code> only exist on a kind cluster. To switch Kubernetes off: Docker Desktop → Kubernetes → Stop.</p>
 </div>
 
 <section class="card">
@@ -276,7 +336,9 @@ kube-system       Active   20h</pre></div>
     <tr><td><code>port is already allocated</code></td><td>Something else uses the port (often compose from Part B)</td><td><code>docker compose down</code>, or pick another host port</td></tr>
     <tr><td>curl: <code>Empty reply</code> / connection reset</td><td>App listens on 127.0.0.1, or wrong container port</td><td>Listen on 0.0.0.0; the right side of <code>-p</code> must be 5000</td></tr>
     <tr><td>UI: "API not reachable" (compose)</td><td><code>API_URL</code> uses localhost</td><td><code>http://api:5000</code></td></tr>
-    <tr><td><code>ErrImagePull</code> / <code>ImagePullBackOff</code></td><td>Image name/tag wrong, or never built</td><td>Build in Part A/B first; check <code>kubectl describe pod</code></td></tr>
+    <tr><td><code>ErrImagePull</code> / <code>ImagePullBackOff</code></td><td>Image name/tag wrong, never built, or a <b>kind</b> cluster that can't see your local images</td><td>Build in Part A/B first; on kind do step C0; check <code>kubectl describe pod</code></td></tr>
+    <tr><td><code>error: current-context is not set</code> / <code>localhost:8080 refused</code></td><td><code>~/.kube/config</code> is empty or lost the <code>docker-desktop</code> entry</td><td>Docker Desktop → Kubernetes → <b>Reset cluster</b> (or restart Docker Desktop). Then <code>kubectl config use-context docker-desktop</code></td></tr>
+    <tr><td><code>invalid JSON patch</code></td><td>PowerShell 5.1 mangled <code>"{\"…\"}"</code> quoting</td><td>Use the YAML form from C8/C10/C11: <code>-p 'data: {KEY: value}'</code></td></tr>
     <tr><td><code>CrashLoopBackOff</code></td><td>The app crashes at start</td><td><code>kubectl -n ml-demo logs &lt;pod&gt; --previous</code></td></tr>
     <tr><td>Running but READY <code>0/1</code></td><td>Readiness probe failing (or still loading)</td><td>Wait 1 min; <code>describe pod</code> → Events</td></tr>
     <tr><td>ENDPOINTS <code>&lt;none&gt;</code></td><td>Service selector doesn't match the pod labels</td><td>Selector and labels must both be <code>app: cifar-api</code></td></tr>

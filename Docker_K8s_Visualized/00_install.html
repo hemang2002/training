@@ -83,7 +83,7 @@ To generate this message, Docker took the following steps:
 <div class="stepcard"><h3><input type="checkbox"> 3 · Switch on Kubernetes (same clicks on Windows and Linux)</h3>
   <ol>
     <li>Docker Desktop → left menu <b>Kubernetes</b> → <b>Create cluster</b> (older versions: ⚙️ <b>Settings → Kubernetes → Enable Kubernetes → Apply</b>).</li>
-    <li>Choose <b>Kubeadm</b> (a single node: the simplest, and it can use the images you build yourself) → <b>Create</b>.</li>
+    <li>Choose <b>Kubeadm</b> (a single node: the simplest, and it can use the images you build yourself) → <b>Create</b>. Got <b>kind</b> instead (node named <code>docker-desktop-control-plane</code>)? Also fine: the lab's step C0 copies your images into it.</li>
     <li>Wait 1–3 minutes until it shows <b>Kubernetes running</b> in green.</li>
   </ol>
   <div class="os-linux" hidden><p class="why">🐧 Linux only: install <code>kubectl</code> once (Windows already has it):</p>
@@ -95,7 +95,7 @@ To generate this message, Docker took the following steps:
   <div class="term"><div class="cmd">kubectl version --client</div><pre>Client Version: v1.36.1
 Kustomize Version: v5.8.1</pre><div class="cmd">kubectl config use-context docker-desktop</div><pre>Switched to context "docker-desktop".</pre><div class="cmd">kubectl get nodes</div><pre>NAME             STATUS   ROLES           AGE   VERSION
 docker-desktop   <span class="ok">Ready</span>    control-plane   19h   v1.36.1</pre></div>
-  <p class="why">One node called <b>docker-desktop</b> with STATUS <b>Ready</b>: your PC is now a (tiny) Kubernetes cluster.</p>
+  <p class="why">One node called <b>docker-desktop</b> (kind cluster: <b>docker-desktop-control-plane</b>) with STATUS <b>Ready</b>: your PC is now a (tiny) Kubernetes cluster. <code>error: current-context is not set</code> or <code>no context exists with the name</code>? Your <code>~/.kube/config</code> is empty: Docker Desktop → Kubernetes → <b>Reset cluster</b>, then try again.</p>
 </div>
 
 <div class="stepcard"><h3><input type="checkbox"> 5 · Get the course files</h3>

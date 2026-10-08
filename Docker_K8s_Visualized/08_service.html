@@ -91,7 +91,7 @@ cifar-api-68c5fb8c48-ch29k
 cifar-api-68c5fb8c48-frr26
 cifar-api-68c5fb8c48-frr26      <span class="c">← 8 requests, spread over both pods</span></pre></div>
       <div class="termlabel">A typo in the selector</div>
-      <div class="term"><div class="cmd">kubectl -n ml-demo patch service cifar-api -p "{\"spec\":{\"selector\":{\"app\":\"cifar-apii\"}}}"</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
+      <div class="term"><div class="cmd">kubectl -n ml-demo patch service cifar-api -p 'spec: {selector: {app: cifar-apii}}'</div><pre>service/cifar-api patched</pre><div class="cmd">kubectl -n ml-demo get endpoints cifar-api</div><pre>NAME        ENDPOINTS
 cifar-api   <span class="bad">&lt;none&gt;</span>       <span class="c">← no pod has the label "cifar-apii"</span></pre><div class="cmd">kubectl -n ml-demo exec deploy/cifar-ui -- python -c "…urlopen('http://cifar-api:5000/health')…"</div><pre><span class="bad">urllib.error.URLError: &lt;urlopen error [Errno 111] Connection refused&gt;</span></pre></div>
       <p class="small muted">No error anywhere else: the pods are healthy, the Service exists. Silent label mistakes are why <code>kubectl get endpoints</code> is the first thing to check.</p>
     </div>

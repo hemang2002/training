@@ -83,8 +83,8 @@
       <div class="termlabel">Trainer's PC (Docker Desktop has no metrics-server)</div>
       <div class="term"><div class="cmd">kubectl -n ml-demo get hpa</div><pre>NAME        REFERENCE              TARGETS              MINPODS   MAXPODS   REPLICAS
 cifar-api   Deployment/cifar-api   cpu: <span class="bad">&lt;unknown&gt;</span>/60%   2         6         2</pre></div>
-      <p class="small"><code>&lt;unknown&gt;</code> = the HPA can't see CPU numbers. On Docker Desktop you install metrics-server once (it downloads a small add-on from the internet):</p>
-      <div class="term"><div class="cmd">kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml</div><div class="cmd">kubectl -n kube-system patch deployment metrics-server --type=json -p "[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--kubelet-insecure-tls\"}]"</div><div class="cmd">kubectl top pods -n ml-demo</div><pre><span class="c"># after ~1 minute: CPU and memory per pod</span></pre></div>
+      <p class="small"><code>&lt;unknown&gt;</code> = the HPA can't see CPU numbers. On Docker Desktop you install metrics-server once (it downloads a small add-on from the internet). Run it in <code>Day4_Docker_Kubernetes_Cloud</code>, where the patch file lives:</p>
+      <div class="term"><div class="cmd">kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml</div><div class="cmd">kubectl -n kube-system patch deployment metrics-server --type=json --patch-file k8s/extras/metrics-server-patch.yaml</div><div class="cmd">kubectl top pods -n ml-demo</div><pre><span class="c"># after ~1 minute: CPU and memory per pod</span></pre></div>
     </div>
     <div>
       <div class="termlabel">The verified run from the Day-4 README (kind cluster, same manifests)</div>

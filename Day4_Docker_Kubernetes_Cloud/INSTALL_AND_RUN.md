@@ -115,7 +115,11 @@ sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 kubectl config use-context docker-desktop
 kubectl get nodes
 ```
-You should see one node called **docker-desktop** with STATUS **Ready**.
+You should see one node with STATUS **Ready**, called **docker-desktop** (Kubeadm cluster) or
+**docker-desktop-control-plane** (kind cluster). Note which one: kind needs one extra step in Part 4.
+
+`error: current-context is not set` / `no context exists with the name "docker-desktop"`? Your `~/.kube/config`
+is empty. Docker Desktop → **Kubernetes** → **Reset cluster** (or restart Docker Desktop), then run the check again.
 
 ---
 
@@ -125,6 +129,25 @@ From the course folder:
 
 ```bash
 cd Day4_Docker_Kubernetes_Cloud
+```
+
+**Step 0 — kind cluster only** (node named `docker-desktop-control-plane`; skip on Kubeadm).
+A kind node runs in its own container with its own image store, so it can't see the images from Part 2
+(pods would stay in `ImagePullBackOff`). Copy them in once (≈ 30 s; again after every rebuild):
+
+```powershell
+# 🪟 PowerShell
+foreach ($n in (docker ps --filter "label=io.x-k8s.kind.cluster" --format "{{.Names}}")) { foreach ($i in "cifar-api:v1","cifar-ui:v1") { docker save $i -o img.tar; docker cp img.tar "${n}:/img.tar"; docker exec $n ctr -n k8s.io images import /img.tar; docker exec $n rm /img.tar } }; Remove-Item img.tar
+```
+```bash
+# 🐧 Linux / Git Bash
+for n in $(docker ps --filter "label=io.x-k8s.kind.cluster" --format "{{.Names}}"); do for i in cifar-api:v1 cifar-ui:v1; do docker save $i | MSYS_NO_PATHCONV=1 docker exec -i $n ctr -n k8s.io images import -; done; done
+```
+Check: `docker exec docker-desktop-control-plane crictl images` lists `docker.io/library/cifar-api v1` and `cifar-ui v1`.
+
+Then deploy:
+
+```bash
 kubectl apply -k k8s/
 kubectl -n ml-demo get pods -w
 ```
@@ -163,6 +186,8 @@ To switch Kubernetes off completely: Docker Desktop → **Kubernetes** → **Sto
 | `port is already allocated` / `address already in use` | another program uses port 5000, 8501 or 30080 — often the **Day 3 API/Streamlit** still running | stop it (Ctrl + C in its terminal) |
 | `no configuration file provided` / `must build kustomization` | terminal is in the wrong folder | Part 2 runs in `Day4_Docker_Kubernetes_Cloud/ml-app`, Part 4 in `Day4_Docker_Kubernetes_Cloud` |
 | `error validating "k8s/": ... failed to download openapi ... EOF` or `connection refused` | kubectl talks to a cluster that is **not running** (or an old one, e.g. minikube) | `kubectl config use-context docker-desktop`, check Kubernetes is **running** in Docker Desktop |
-| Pods stuck in `ErrImagePull` / `ImagePullBackOff` | Kubernetes can't find `cifar-api:v1` | do Part 2 first (it builds the images); use the **Kubeadm** cluster type |
+| Pods stuck in `ErrImagePull` / `ImagePullBackOff` | Kubernetes can't find `cifar-api:v1` | do Part 2 first (it builds the images); on a **kind** cluster do Part 4 step 0 |
+| `error: current-context is not set` | `~/.kube/config` is empty | Docker Desktop → Kubernetes → **Reset cluster** (or restart Docker Desktop) |
+| `invalid JSON patch` (PowerShell) | PowerShell 5.1 breaks `"{\"…\"}"` quoting | use the YAML form: `-p 'data: {DEFAULT_MODEL: fp32}'` |
 | Pods `Running` but READY `0/1` for a long time | the API is still loading the model | wait 1 minute; `kubectl -n ml-demo describe pod <name>` shows why |
 | Page says **"API not reachable"** | the API is still starting | wait 30 s, refresh |

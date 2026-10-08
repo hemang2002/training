@@ -313,9 +313,10 @@ minikube image ls | grep cifar
 
 * **kind:** `kind create cluster --name ml` → `kind load docker-image cifar-api:v1 cifar-ui:v1 --name ml`.
   Metrics server: `kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml`
-  then `kubectl -n kube-system patch deployment metrics-server --type=json -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'`.
+  then `kubectl -n kube-system patch deployment metrics-server --type=json --patch-file k8s/extras/metrics-server-patch.yaml`.
   Open the UI with `kubectl -n ml-demo port-forward svc/cifar-ui 8501:8501`.
-* **Docker Desktop Kubernetes:** images built with your local Docker are usually visible directly (no load step).
+* **Docker Desktop Kubernetes:** with the **Kubeadm** cluster type, images built with your local Docker are visible directly (no load step).
+  With the **kind** cluster type (node `docker-desktop-control-plane`) they are not: load them as in [INSTALL_AND_RUN.md](INSTALL_AND_RUN.md) Part 4 step 0.
   Install metrics-server as for kind. UI at `http://localhost:30080`.
 </details>
 
@@ -372,7 +373,7 @@ it scales back to 2 after the 60 s stabilization window. If TARGETS shows `<unkn
 
 ```bash
 # Change configuration: make fp32 the default and roll the pods
-kubectl -n ml-demo patch configmap cifar-config -p '{"data":{"DEFAULT_MODEL":"fp32"}}'
+kubectl -n ml-demo patch configmap cifar-config -p 'data: {DEFAULT_MODEL: fp32}'
 kubectl -n ml-demo rollout restart deployment/cifar-api
 kubectl -n ml-demo rollout status deployment/cifar-api
 kubectl -n ml-demo rollout history deployment/cifar-api
@@ -385,7 +386,7 @@ kubectl -n ml-demo rollout undo deployment/cifar-api
 kubectl -n ml-demo rollout status deployment/cifar-api
 ```
 
-> PowerShell quoting: use `-p '{\"data\":{\"DEFAULT_MODEL\":\"fp32\"}}'` or run the patch from Git Bash.
+> The patch is written as YAML (`data: {...}`), with no inner `"` quotes, so the same line works in bash, PowerShell 5.1 and PowerShell 7.
 
 `rollout undo` prints *"Warning: resource deployments/cifar-api was previously managed with 'kubectl apply'…"*.
 That's expected: imperative commands (`set image`, `undo`, `patch`) change the live object but not the YAML in
