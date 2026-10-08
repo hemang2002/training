@@ -20,6 +20,9 @@ You need: a free **Killercoda** account (sign in with GitHub/Google) and the cou
 Total time: ~10 minutes. Everything is copy-paste.
 
 > ⚠️ Use the **Ubuntu** playground, not the *Kubernetes* playground — the Kubernetes playground has no Docker.
+> **How to tell:** if your prompt says `root@controlplane` (or `kubectl get nodes` shows `controlplane` + `node01`),
+> you are on the *Kubernetes* playground. Its cluster can't see images you build, so pods end in
+> `ErrImagePull` / `ImagePullBackOff` (it tries Docker Hub). Close it and start the Ubuntu one below.
 
 ---
 
@@ -114,5 +117,6 @@ Nothing to clean up: the whole machine is deleted when the session ends.
 | `kubectl get nodes` → `connection refused` | k3s is still starting — wait 30 s, try again |
 | `docker build` fails with `no space left on device` | start a new session (the disk is small); run the steps again |
 | Pods stay `Pending` | `kubectl -n ml-demo describe pod <name>` → bottom lines say why (usually CPU/memory: wait, or delete the HPA with `kubectl -n ml-demo delete hpa cifar-api`) |
+| Pods `ErrImagePull` / `ImagePullBackOff` and prompt is `root@controlplane` | wrong playground (the *Kubernetes* one) → start the **Ubuntu** playground and begin at Step 1 |
 | Pods `ErrImageNeverPull` / `ErrImagePull` | the images are missing or k3s was installed **without** `--docker` → do Step 5 again; check Step 3 used `--docker` |
 | Traffic page shows an error | wait until `cifar-ui` is READY `1/1`, reload |
